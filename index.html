@@ -50,7 +50,16 @@ tbody tr:hover{background:#ffccbc;}
   #toggleSidebar{display:block;}
 }
 #zipOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:1400;justify-content:center;align-items:center;}
-#zipBox{background:#fff0e5;color:#333;padding:20px 25px;border-radius:12px;text-align:center;width:300px;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
+#zipBox{
+  background:#fff0e5;
+  color:#333;
+  padding:20px 25px;
+  border-radius:12px;
+  text-align:center;
+  width:300px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.3);
+  position:relative; /* ✅ correction */
+}
 #zipBox h2{margin:0 0 10px;color:#ff7043;font-size:18px;}
 #zipFileName{font-size:13px;margin-bottom:15px;color:#555;}
 #zipProgressBar{width:100%;height:22px;background:#eee;border-radius:11px;overflow:hidden;}
@@ -143,7 +152,7 @@ window.addEventListener("offline",updateNetworkStatus);
 function showSpinner(){spinner.style.display="block";}
 function hideSpinner(){spinner.style.display="none";}
 
-/* API Drive : on demande aussi modifiedTime et createdTime (on affichera modifiedTime) */
+/* API Drive */
 async function fetchFolderContents(folderId){
   showSpinner();
   try{
@@ -204,9 +213,7 @@ async function loadFolderFilesOnClick(li){
   displayFiles(filteredFiles,li.querySelector("span.folder-name").textContent);
 }
 
-/* Affichage fichiers
-   - CSV : date depuis AAAAMMJJ.csv
-   - Images (dossier "Capture") : date = modifiedTime (AAAA-MM-JJ) */
+/* Affichage fichiers */
 function displayFiles(files,folderName){
   csvTableBody.innerHTML="";
   if(files.length===0){csvTableBody.innerHTML="<tr><td colspan='5'>Aucun fichier</td></tr>";return;}
@@ -215,20 +222,17 @@ function displayFiles(files,folderName){
     const match=f.name.match(/(\d{8})\.csv$/i);
     if(match){
       date=`${match[1].slice(0,4)}-${match[1].slice(4,6)}-${match[1].slice(6,8)}`;
-    }else if(/capture/i.test(folderName)){
+    }else if(/\.(jpg|jpeg)$/i.test(f.name)){
       if(f.modifiedTime){ date=f.modifiedTime.slice(0,10); }
-      else if(f.createdTime){ date=f.createdTime.slice(0,10); } // fallback si jamais
+      else if(f.createdTime){ date=f.createdTime.slice(0,10); }
     }
-
     if((filterStartDate&&date<filterStartDate)||(filterEndDate&&date>filterEndDate)) continue;
-
     const row=document.createElement("tr");
     const dateCell=document.createElement("td");dateCell.textContent=date;
     const nameCell=document.createElement("td");nameCell.textContent=f.name;
     const folderCell=document.createElement("td");folderCell.textContent=folderName;
     const sizeCell=document.createElement("td");sizeCell.textContent=f.size?Math.round(f.size/1024)+" Ko":"?";
     const actionCell=document.createElement("td");
-
     let actions=`<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank"><button>Télécharger</button></a>`;
     if(f.name.toLowerCase().endsWith(".csv")){
       actions+=`<button onclick="window.open('viewer.html?fileId=${f.id}&fileName=${encodeURIComponent(f.name)}','_blank')">Tableau</button>`;
@@ -237,7 +241,6 @@ function displayFiles(files,folderName){
     if(/\.(jpg|jpeg)$/i.test(f.name)){
       actions+=`<br><img src="https://drive.google.com/thumbnail?id=${f.id}" style="max-width:80px;cursor:pointer;border:1px solid #ccc;border-radius:5px" onclick="openModal('${f.id}')">`;
     }
-
     actionCell.innerHTML=actions;
     row.appendChild(dateCell);row.appendChild(nameCell);row.appendChild(folderCell);row.appendChild(sizeCell);row.appendChild(actionCell);
     csvTableBody.appendChild(row);
@@ -245,147 +248,36 @@ function displayFiles(files,folderName){
 }
 
 /* Filtres */
-function applyFilter(){
-  filterStartDate=document.getElementById("startDate").value;
-  filterEndDate=document.getElementById("endDate").value;
-  const active=document.querySelector("#folderTree .active-folder");
-  if(active) active.click();
-}
-function clearFilter(){
-  filterStartDate="";filterEndDate="";
-  document.getElementById("startDate").value="";
-  document.getElementById("endDate").value="";
-  const active=document.querySelector("#folderTree .active-folder");
-  if(active) active.click();
-}
+function applyFilter(){filterStartDate=document.getElementById("startDate").value;filterEndDate=document.getElementById("endDate").value;const active=document.querySelector("#folderTree .active-folder");if(active)active.click();}
+function clearFilter(){filterStartDate="";filterEndDate="";document.getElementById("startDate").value="";document.getElementById("endDate").value="";const active=document.querySelector("#folderTree .active-folder");if(active)active.click();}
 
 /* Modale images */
-function openModal(id){
-  const modal=document.getElementById("imageModal");
-  modal.style.display="block";
-  document.getElementById("modalFrame").src=`https://drive.google.com/file/d/${id}/preview`;
-  currentImageIndex=imageFiles.findIndex(f=>f.id===id);
-  document.getElementById("downloadBtn").onclick=()=>window.open(`https://drive.google.com/uc?export=download&id=${id}`,"_blank");
-}
+function openModal(id){const modal=document.getElementById("imageModal");modal.style.display="block";document.getElementById("modalFrame").src=`https://drive.google.com/file/d/${id}/preview`;currentImageIndex=imageFiles.findIndex(f=>f.id===id);document.getElementById("downloadBtn").onclick=()=>window.open(`https://drive.google.com/uc?export=download&id=${id}`,"_blank");}
 function closeModal(){document.getElementById("imageModal").style.display="none";}
-document.getElementById("prevBtn").onclick=()=>{if(currentImageIndex>0) openModal(imageFiles[--currentImageIndex].id);};
-document.getElementById("nextBtn").onclick=()=>{if(currentImageIndex<imageFiles.length-1) openModal(imageFiles[++currentImageIndex].id);};
-window.onclick=e=>{if(e.target===document.getElementById("imageModal")) closeModal();};
-document.addEventListener("keydown",e=>{
-  if(document.getElementById("imageModal").style.display==="block"){
-    if(e.key==="ArrowLeft" && currentImageIndex>0) openModal(imageFiles[--currentImageIndex].id);
-    if(e.key==="ArrowRight" && currentImageIndex<imageFiles.length-1) openModal(imageFiles[++currentImageIndex].id);
-    if(e.key==="Escape") closeModal();
-  }
-});
+document.getElementById("prevBtn").onclick=()=>{if(currentImageIndex>0)openModal(imageFiles[--currentImageIndex].id);};
+document.getElementById("nextBtn").onclick=()=>{if(currentImageIndex<imageFiles.length-1)openModal(imageFiles[++currentImageIndex].id);};
+window.onclick=e=>{if(e.target===document.getElementById("imageModal"))closeModal();};
+document.addEventListener("keydown",e=>{if(document.getElementById("imageModal").style.display==="block"){if(e.key==="ArrowLeft"&&currentImageIndex>0)openModal(imageFiles[--currentImageIndex].id);if(e.key==="ArrowRight"&&currentImageIndex<imageFiles.length-1)openModal(imageFiles[++currentImageIndex].id);if(e.key==="Escape")closeModal();}});
 
 /* ZIP */
-const zipOverlay=document.getElementById("zipOverlay");
-const zipProgress=document.getElementById("zipProgress");
-const zipCounter=document.getElementById("zipCounter");
-const zipFileName=document.getElementById("zipFileName");
-const zipTime=document.getElementById("zipTime");
-const zipClose=document.getElementById("zipClose");
-let zipCancelled=false;
-let zipStartTime=0;
-
-function showZipOverlay(name){
-  zipCancelled=false;
-  zipOverlay.style.display="flex";
-  zipFileName.textContent=name;
-  zipProgress.style.width="0%";
-  zipProgress.textContent="0%";
-  zipCounter.textContent="0 / 0 fichiers";
-  zipTime.textContent="Temps restant : --";
-  zipStartTime=Date.now();
-}
+const zipOverlay=document.getElementById("zipOverlay");const zipProgress=document.getElementById("zipProgress");const zipCounter=document.getElementById("zipCounter");const zipFileName=document.getElementById("zipFileName");const zipTime=document.getElementById("zipTime");const zipClose=document.getElementById("zipClose");let zipCancelled=false;let zipStartTime=0;
+function showZipOverlay(name){zipCancelled=false;zipOverlay.style.display="flex";zipFileName.textContent=name;zipProgress.style.width="0%";zipProgress.textContent="0%";zipCounter.textContent="0 / 0 fichiers";zipTime.textContent="Temps restant : --";zipStartTime=Date.now();}
 function hideZipOverlay(){zipOverlay.style.display="none";}
-function updateZipProgress(pct,current,total,sizeAccum){
-  zipProgress.style.width=pct+"%";
-  zipProgress.textContent=pct+"%";
-  zipCounter.textContent=`${current} / ${total} fichiers`;
-  if(current>0){
-    const elapsed=(Date.now()-zipStartTime)/1000;
-    const speedFiles=current/elapsed;
-    const speedKB=(sizeAccum/1024)/elapsed;
-    const remainingFiles=total-current;
-    const remainingTime=remainingFiles/speedFiles;
-    const mins=Math.floor(remainingTime/60);
-    const secs=Math.round(remainingTime%60);
-    zipTime.textContent=`Temps restant : ${mins>0?mins+"m ":""}${secs}s (${speedFiles.toFixed(1)} fichiers/s, ${speedKB.toFixed(0)} Ko/s)`;
-  }
-}
+function updateZipProgress(pct,current,total,sizeAccum){zipProgress.style.width=pct+"%";zipProgress.textContent=pct+"%";zipCounter.textContent=`${current} / ${total} fichiers`;if(current>0){const elapsed=(Date.now()-zipStartTime)/1000;const speedFiles=current/elapsed;const speedKB=(sizeAccum/1024)/elapsed;const remainingFiles=total-current;const remainingTime=remainingFiles/speedFiles;const mins=Math.floor(remainingTime/60);const secs=Math.round(remainingTime%60);zipTime.textContent=`Temps restant : ${mins>0?mins+"m ":""}${secs}s (${speedFiles.toFixed(1)} fichiers/s, ${speedKB.toFixed(0)} Ko/s)`;}}
 zipClose.onclick=()=>{zipCancelled=true;hideZipOverlay();alert("Préparation ZIP annulée.");};
-
-document.getElementById("downloadFolderBtn").onclick=async()=>{
-  const activeFolder=document.querySelector("#folderTree .active-folder");
-  if(!activeFolder){alert("Sélectionnez un dossier !"); return;}
-  const folderId=localStorage.getItem("lastFolderId");
-  const folderName=activeFolder.textContent.trim();
-  showZipOverlay(folderName+".zip");
-  const files=await fetchFolderContents(folderId);
-  if(!files||files.length===0){hideZipOverlay();alert("Aucun fichier dans ce dossier."); return;}
-
-  const zip=new JSZip(); let count=0; let totalSize=0; let doneSize=0;
-  files.forEach(f=>{if(f.size) totalSize+=parseInt(f.size);});
-  for(const f of files){
-    if(zipCancelled) return;
-    try{
-      const url=`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media&key=${API_KEY}`;
-      const res=await fetch(url);
-      const blob=await res.blob();
-      zip.file(f.name,blob);
-      count++; doneSize+=f.size?parseInt(f.size):0;
-      updateZipProgress(Math.round((count/files.length)*100),count,files.length,doneSize);
-    }catch(e){console.error("Erreur sur",f.name,e);}
-  }
-  if(zipCancelled) return;
-  const content=await zip.generateAsync({type:"blob"});
-  saveAs(content,folderName+".zip");
-  hideZipOverlay();
-};
+document.getElementById("downloadFolderBtn").onclick=async()=>{const activeFolder=document.querySelector("#folderTree .active-folder");if(!activeFolder){alert("Sélectionnez un dossier !");return;}const folderId=localStorage.getItem("lastFolderId");const folderName=activeFolder.textContent.trim();showZipOverlay(folderName+".zip");const files=await fetchFolderContents(folderId);if(!files||files.length===0){hideZipOverlay();alert("Aucun fichier dans ce dossier.");return;}const zip=new JSZip();let count=0;let totalSize=0;let doneSize=0;files.forEach(f=>{if(f.size)totalSize+=parseInt(f.size);});for(const f of files){if(zipCancelled)return;try{const url=`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media&key=${API_KEY}`;const res=await fetch(url);const blob=await res.blob();zip.file(f.name,blob);count++;doneSize+=f.size?parseInt(f.size):0;updateZipProgress(Math.round((count/files.length)*100),count,files.length,doneSize);}catch(e){console.error("Erreur sur",f.name,e);}}if(zipCancelled)return;const content=await zip.generateAsync({type:"blob"});saveAs(content,folderName+".zip");hideZipOverlay();};
 
 /* Tri */
 let currentSort={col:null,asc:true};
-function sortTable(colIndex,type){
-  const table=document.getElementById("csvTable");
-  const tbody=table.tBodies[0];
-  const rows=Array.from(tbody.querySelectorAll("tr"));
-
-  if(currentSort.col===colIndex){currentSort.asc=!currentSort.asc;}
-  else{currentSort.col=colIndex;currentSort.asc=true;}
-
-  rows.sort((a,b)=>{
-    let aText=a.cells[colIndex]?.textContent.trim()||"";
-    let bText=b.cells[colIndex]?.textContent.trim()||"";
-    if(type==="number"){aText=parseInt(aText)||0; bText=parseInt(bText)||0;}
-    else if(type==="date"){aText=new Date(aText).getTime()||0; bText=new Date(bText).getTime()||0;}
-    if(aText<bText) return currentSort.asc?-1:1;
-    if(aText>bText) return currentSort.asc?1:-1;
-    return 0;
-  });
-
-  tbody.innerHTML="";
-  rows.forEach(r=>tbody.appendChild(r));
-
-  document.querySelectorAll("th .sort-arrow").forEach(el=>el.textContent="");
-  const arrow=table.tHead.rows[0].cells[colIndex].querySelector(".sort-arrow");
-  if(arrow){arrow.textContent=currentSort.asc?"↑":"↓";}
-}
+function sortTable(colIndex,type){const table=document.getElementById("csvTable");const tbody=table.tBodies[0];const rows=Array.from(tbody.querySelectorAll("tr"));if(currentSort.col===colIndex){currentSort.asc=!currentSort.asc;}else{currentSort.col=colIndex;currentSort.asc=true;}rows.sort((a,b)=>{let aText=a.cells[colIndex]?.textContent.trim()||"";let bText=b.cells[colIndex]?.textContent.trim()||"";if(type==="number"){aText=parseInt(aText)||0;bText=parseInt(bText)||0;}else if(type==="date"){aText=new Date(aText).getTime()||0;bText=new Date(bText).getTime()||0;}if(aText<bText)return currentSort.asc?-1:1;if(aText>bText)return currentSort.asc?1:-1;return 0;});tbody.innerHTML="";rows.forEach(r=>tbody.appendChild(r));document.querySelectorAll("th .sort-arrow").forEach(el=>el.textContent="");const arrow=table.tHead.rows[0].cells[colIndex].querySelector(".sort-arrow");if(arrow){arrow.textContent=currentSort.asc?"↑":"↓";}}
 
 /* Init */
-window.onload=()=>{
-  updateNetworkStatus();
-  loadRootFolders();
-  const last=localStorage.getItem("lastFolderId");
-  if(last){
-    const temp={dataset:{id:last},querySelector:()=>({classList:{add:()=>{}}})};
-    loadFolderFilesOnClick(temp);
-  }
-};
+window.onload=()=>{updateNetworkStatus();loadRootFolders();const last=localStorage.getItem("lastFolderId");if(last){const temp={dataset:{id:last},querySelector:()=>({classList:{add:()=>{}}})};loadFolderFilesOnClick(temp);}};
 </script>
 </body>
 </html>
+
+
 
 
 
