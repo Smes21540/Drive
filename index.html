@@ -102,8 +102,8 @@ thead th{
   position:sticky;top:0;z-index:2;background:var(--accent);
   color:var(--accent-contrast);font-weight:bold;text-transform:uppercase;cursor:pointer;
 }
-tbody tr.even{background:var(--row-even);}
-tbody tr.odd{background:var(--row-odd);}
+tbody tr:nth-child(even){background:var(--row-even);}
+tbody tr:nth-child(odd){background:var(--row-odd);}
 tbody tr:hover{background:var(--accent-muted);}
 .sort-arrow{margin-left:5px;font-size:11px;color:var(--accent-contrast);}
 
@@ -244,7 +244,8 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 
 <!-- Modale image -->
 <div id="imageModal" class="modal" role="dialog" aria-modal="true">
-  <span class="close" onclick="closeModal()">&times;</span>
+  <span class="close" onclick="closeModal()" aria-label="Fermer">&times;</span>
+  <!-- tabindex=-1 pour éviter que l'iframe vole le focus / bloque les flèches -->
   <iframe id="modalFrame" tabindex="-1"></iframe>
   <div class="modal-actions">
     <button id="prevBtn">&larr; Précédent</button>
@@ -298,6 +299,13 @@ function updateNetworkStatus(){
 window.addEventListener("online",updateNetworkStatus);
 window.addEventListener("offline",updateNetworkStatus);
 
+function formatSize(bytes){
+  if(!bytes) return "?";
+  const units=["o","Ko","Mo","Go"]; let i=0; let v=Number(bytes);
+  while(v>=1024 && i<units.length-1){ v/=1024; i++; }
+  return (i===0?Math.round(v):v.toFixed(1))+" "+units[i];
+}
+
 /* ----------- Drive API ----------- */
 async function fetchFolderContents(folderId){
   if(!navigator.onLine){updateNetworkStatus();return [];}
@@ -305,9 +313,15 @@ async function fetchFolderContents(folderId){
   try{
     const res=await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&key=${API_KEY}&fields=files(id,name,mimeType,size,createdTime,modifiedTime)`);
     const data=await res.json();
+    if(data.error){
+      alert("Erreur Drive: "+data.error.message);
+      console.error("Drive error:", data.error);
+      return [];
+    }
     return data.files||[];
   }catch(e){
     console.error("Erreur Drive:",e);
+    alert("Impossible de charger le dossier (réseau/API). Ouvre la console pour le détail.");
     return [];
   }finally{hideSpinner();}
 }
@@ -356,7 +370,7 @@ async function loadFolderFilesOnClick(li){
 
   const files = await fetchFolderContents(li.dataset.id);
   const filtered = files.filter(f => f.name.toLowerCase().endsWith('.csv') || f.name.toLowerCase().endsWith('.jpg') || f.name.toLowerCase().endsWith('.jpeg'));
-  imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name));
+  imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); // pour la modale
   displayFiles(filtered, nameSpan ? nameSpan.textContent : '');
 }
 
@@ -374,6 +388,7 @@ function displayFiles(files, folderName){
   downloadBtn.style.display="inline-block";
 
   for(const f of files){
+    // Date
     let date='';
     const m=f.name.match(/(\d{8})\.csv$/i);
     if(m){ date=`${m[1].slice(0,4)}-${m[1].slice(4,6)}-${m[1].slice(6,8)}`; }
@@ -388,14 +403,14 @@ function displayFiles(files, folderName){
     const tdDate=document.createElement('td'); tdDate.textContent=date||'';
     const tdName=document.createElement('td'); tdName.textContent=f.name;
     const tdFolder=document.createElement('td'); tdFolder.textContent=folderName;
-    const tdSize=document.createElement('td'); tdSize.textContent=f.size ? (Math.round(f.size/1024)+' Ko') : '?';
+    const tdSize=document.createElement('td'); tdSize.textContent=f.size ? formatSize(f.size) : '?';
 
     const tdAction=document.createElement('td'); tdAction.className='action-cell';
     let html='';
     if(f.name.toLowerCase().endsWith('.csv')){
       html+=`<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank"><button class="action-btn">Télécharger</button></a>`;
-      html+=`<button class="action-btn" onclick="window.open('viewer.html?fileId=${f.id}','_blank')">Tableau</button>`;
-      html+=`<button class="action-btn" onclick="window.open('viewer02.html?fileId=${f.id}','_blank')">Courbes</button>`;
+      html+=`<button class="action-btn" onclick="openViewer('viewer.html','${f.id}','${f.name}')">Tableau</button>`;
+      html+=`<button class="action-btn" onclick="openViewer('viewer02.html','${f.id}','${f.name}')">Courbes</button>`;
     }
     if(/\.(jpg|jpeg)$/i.test(f.name)){
       html+=`<img src="https://drive.google.com/thumbnail?id=${f.id}" onclick="openModal('${f.id}')" alt="aperçu">`;
@@ -406,15 +421,26 @@ function displayFiles(files, folderName){
     tr.appendChild(tdDate); tr.appendChild(tdName); tr.appendChild(tdFolder); tr.appendChild(tdSize); tr.appendChild(tdAction);
     tbody.appendChild(tr);
   }
+}
 
-  // recoloriser les lignes
-  Array.from(tbody.querySelectorAll("tr")).forEach((row,i)=>{
-    row.classList.remove("even","odd");
-    row.classList.add(i%2===0?"odd":"even");
+/* ----------- Open viewer (CSV list + index) ----------- */
+function openViewer(viewer, id, name){
+  const active=document.querySelector('#folderTree .active-folder');
+  if(!active){alert("Sélectionnez un dossier !"); return;}
+
+  const folderId=localStorage.getItem('lastFolderId');
+  fetchFolderContents(folderId).then(files=>{
+    const csvFiles=files.filter(f=>f.name.toLowerCase().endsWith('.csv'));
+    localStorage.setItem("csvFilesList", JSON.stringify(csvFiles));
+    const index=csvFiles.findIndex(f=>f.id===id);
+    localStorage.setItem("csvFileIndex", index);
+
+    // encodage du nom UNIQUEMENT ici (évite le double encodage)
+    window.open(`${viewer}?fileId=${id}&fileName=${encodeURIComponent(name)}`,'_blank');
   });
 }
 
-/* Filtres */
+/* ----------- Filtres ----------- */
 function applyFilter(){
   filterStartDate=document.getElementById('startDate').value;
   filterEndDate=document.getElementById('endDate').value;
@@ -428,7 +454,7 @@ function clearFilter(){
   if(active) active.click();
 }
 
-/* Modale images */
+/* ----------- Modale images + navigation clavier ----------- */
 function openModal(id){
   const modal=document.getElementById('imageModal');
   modal.style.display='block';
@@ -437,27 +463,22 @@ function openModal(id){
   document.getElementById('downloadBtn').onclick=()=>window.open(`https://drive.google.com/uc?export=download&id=${id}`,'_blank');
 }
 function closeModal(){document.getElementById('imageModal').style.display='none';}
+
 document.getElementById('prevBtn').onclick=()=>{if(currentImageIndex>0) openModal(imageFiles[--currentImageIndex].id);};
 document.getElementById('nextBtn').onclick=()=>{if(currentImageIndex<imageFiles.length-1) openModal(imageFiles[++currentImageIndex].id);};
-window.onclick=e=>{if(e.target===document.getElementById('imageModal')) closeModal();};
+window.addEventListener('click',e=>{if(e.target===document.getElementById('imageModal')) closeModal();});
 
-// navigation clavier
-window.addEventListener("keydown", e=>{
-  const modal=document.getElementById("imageModal");
-  if(modal.style.display==="block"){
-    if(e.key==="ArrowLeft" && currentImageIndex>0){
-      openModal(imageFiles[--currentImageIndex].id);
-    }
-    if(e.key==="ArrowRight" && currentImageIndex<imageFiles.length-1){
-      openModal(imageFiles[++currentImageIndex].id);
-    }
-    if(e.key==="Escape"){
-      closeModal();
-    }
+// Navigation clavier quand la modale est ouverte
+window.addEventListener('keydown', e=>{
+  const modal=document.getElementById('imageModal');
+  if(modal.style.display==='block'){
+    if(e.key==='ArrowLeft' && currentImageIndex>0){ openModal(imageFiles[--currentImageIndex].id); }
+    if(e.key==='ArrowRight' && currentImageIndex<imageFiles.length-1){ openModal(imageFiles[++currentImageIndex].id); }
+    if(e.key==='Escape'){ closeModal(); }
   }
 });
 
-/* ZIP overlay + progression + annulation */
+/* ----------- ZIP overlay + progression + annulation ----------- */
 const zipOverlay=document.getElementById('zipOverlay');
 const zipProgress=document.getElementById('zipProgress');
 const zipCounter=document.getElementById('zipCounter');
@@ -465,6 +486,8 @@ const zipFileName=document.getElementById('zipFileName');
 const zipTime=document.getElementById('zipTime');
 const zipClose=document.getElementById('zipClose');
 let zipCancelled=false, zipStartTime=0;
+
+function sanitizeFileName(name){ return name.replace(/[\/\\:*?"<>|]/g,"_"); }
 
 function showZipOverlay(name){
   zipCancelled=false;
@@ -486,7 +509,7 @@ function updateZipProgress(pct,current,total,sizeAccum){
     const speedFiles=current/elapsed;
     const speedKB=(sizeAccum/1024)/elapsed;
     const remainingFiles=total-current;
-    const remainingTime=remainingFiles/speedFiles;
+    const remainingTime=remainingFiles/Math.max(speedFiles,0.0001);
     const mins=Math.floor(remainingTime/60);
     const secs=Math.round(remainingTime%60);
     zipTime.textContent=`Temps restant : ${mins>0?mins+'m ':''}${secs}s (${speedFiles.toFixed(1)} fichiers/s, ${Math.max(0,speedKB).toFixed(0)} Ko/s)`;
@@ -508,8 +531,9 @@ document.getElementById('downloadFolderBtn').onclick=async()=>{
     try{
       const url=`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media&key=${API_KEY}`;
       const res=await fetch(url);
+      if(!res.ok) throw new Error('Fetch media failed: '+res.status);
       const blob=await res.blob();
-      zip.file(f.name, blob);
+      zip.file(sanitizeFileName(f.name), blob);
       count++; doneSize += f.size ? parseInt(f.size) : 0;
       updateZipProgress(Math.round((count/files.length)*100), count, files.length, doneSize);
     }catch(e){console.error("Erreur sur",f.name,e);}
@@ -520,7 +544,7 @@ document.getElementById('downloadFolderBtn').onclick=async()=>{
   hideZipOverlay();
 };
 
-/* Tri tableau */
+/* ----------- Tri tableau + recolorisation ----------- */
 let currentSort={col:null,asc:true};
 function sortTable(colIndex,type){
   const table=document.getElementById("csvTable");
@@ -530,7 +554,7 @@ function sortTable(colIndex,type){
   rows.sort((a,b)=>{
     let aText=a.cells[colIndex]?.textContent.trim()||"";
     let bText=b.cells[colIndex]?.textContent.trim()||"";
-    if(type==="number"){aText=parseInt(aText)||0; bText=parseInt(bText)||0;}
+    if(type==="number"){aText=parseFloat(aText)||0; bText=parseFloat(bText)||0;}
     else if(type==="date"){aText=new Date(aText).getTime()||0; bText=new Date(bText).getTime()||0;}
     if(aText<bText) return currentSort.asc?-1:1;
     if(aText>bText) return currentSort.asc?1:-1;
@@ -538,22 +562,13 @@ function sortTable(colIndex,type){
   });
   tbody.innerHTML="";
   rows.forEach(r=>tbody.appendChild(r));
-  document.querySelectorAll("th .sort-arrow").forEach(el=>el.textContent="");
-  const arrow=table.tHead.rows[0].cells[colIndex].querySelector(".sort-arrow");
-  if(arrow){arrow.textContent=currentSort.asc?"↑":"↓";}
-
-  // recoloriser
-  Array.from(tbody.querySelectorAll("tr")).forEach((row,i)=>{
-    row.classList.remove("even","odd");
-    row.classList.add(i%2===0?"odd":"even");
-  });
 }
 
-/* Icônes calendrier cliquables */
+/* ----------- Icônes calendrier cliquables ----------- */
 document.getElementById("iconStart").onclick=()=>document.getElementById("startDate").showPicker?.()||document.getElementById("startDate").focus();
 document.getElementById("iconEnd").onclick=()=>document.getElementById("endDate").showPicker?.()||document.getElementById("endDate").focus();
 
-/* Menu secret (thèmes) + auto-close 10s */
+/* ----------- Menu secret (thèmes) ----------- */
 document.getElementById("secretBtn").onclick=()=>{
   const menu=document.getElementById("themeMenu");
   if(menu.style.display==="block"){ closeThemeMenu(); }
@@ -562,7 +577,7 @@ document.getElementById("secretBtn").onclick=()=>{
 function resetThemeMenuTimer(){ clearTimeout(themeMenuTimer); themeMenuTimer=setTimeout(closeThemeMenu,10000); }
 function closeThemeMenu(){ document.getElementById("themeMenu").style.display="none"; clearTimeout(themeMenuTimer); }
 
-/* Thèmes */
+/* ----------- Thèmes + persistance (+ lignes du tableau) ----------- */
 function setTheme(theme){
   const r=document.documentElement;
   const logo=document.getElementById("mainLogo");
@@ -631,12 +646,15 @@ function setTheme(theme){
   }
 }
 
-/* Init */
+/* ----------- Init ----------- */
 window.onload=()=>{
   updateNetworkStatus();
   const savedTheme=localStorage.getItem("selectedTheme")||"orange";
   setTheme(savedTheme);
+
+  // bouton "Télécharger le dossier" caché par défaut tant qu'aucun contenu
   document.getElementById("downloadFolderBtn").style.display="none";
+
   loadRootFolders();
   const last=localStorage.getItem('lastFolderId');
   if(last){
@@ -647,6 +665,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
