@@ -7,7 +7,7 @@
 <style>
 :root{
   --bg:#fff5f5;
-  --panel:#fff0e5;
+  --panel:#ffffff;
   --sidebar-bg:#ffe5d9;
   --text:#333;
   --muted-text:#555;
@@ -19,100 +19,93 @@
 }
 
 html,body{height:100%;margin:0;overflow:hidden;}
-body { 
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; 
-  background-color: var(--bg); 
-  padding: 5px 20px 7px 20px; 
-  color: var(--danger); 
-  font-size: 14px; 
+body{
+  font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color:var(--bg);
+  padding:5px 20px 7px 20px;
+  color:var(--danger);
+  font-size:14px;
+  display:flex; flex-direction:column;
+}
+
+/* Header */
+.header{position:relative; display:flex; align-items:center; justify-content:center; margin:0 0 10px 0;}
+.header .logo{height:60px; width:auto;}
+#fileNameContainer{position:absolute; right:0; top:0; text-align:right;}
+#fileName,#lineCount{color:var(--danger);}
+#fileName{font-size:24px; font-weight:bold; white-space:nowrap; max-width:300px; overflow:hidden; text-overflow:ellipsis; display:none;}
+#lineCount{font-size:12px; display:none;}
+
+/* Controls */
+.controls{display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin:5px 0;}
+button{background-color:var(--accent); color:#fff; border:none; cursor:pointer; font-weight:bold; padding:8px 12px; border-radius:6px; font-size:13px; transition:background-color .3s ease, transform .2s ease;}
+button:hover{background-color:var(--accent-darker); transform:scale(1.05);}
+button:disabled{background-color:#ccc; color:#666; cursor:not-allowed; transform:none;}
+#toggleColumnsBtn{padding:6px 10px; border-radius:6px; border:1px solid var(--accent-darker); background-color:var(--accent); color:#fff; cursor:pointer; font-size:13px;}
+#toggleColumnsBtn:hover{background-color:var(--accent-darker);}
+
+/* Table wrapper centered */
+#tableWrapper{
+  flex:1;
+  overflow:auto;               /* scroll si nécessaire */
   display:flex;
-  flex-direction:column;
+  justify-content:center;      /* centre horizontalement */
+  align-items:center;          /* centre verticalement */
+  padding:10px;
+}
+#tableContainer{
+  display:inline-block;
+  overflow:auto;
+  max-width:100%;
+  max-height:100%;
+  border-radius:8px;
+  box-shadow:0 4px 12px var(--shadow);
+  background:var(--panel);
+  text-align:center;
 }
 
-.header { position: relative; display: flex; align-items: center; justify-content: center; margin: 0 0 10px 0; }
-.header .logo { height: 60px; width: auto; }
-#fileNameContainer { position: absolute; right: 0; top: 0; text-align: right; }
-#fileName, #lineCount { color: var(--danger); }
-#fileName { font-size: 24px; font-weight: bold; white-space: nowrap; max-width: 300px; overflow: hidden; text-overflow: ellipsis; display: none; }
-#lineCount { font-size: 12px; display: none; }
+/* Table */
+table{width:auto; border-collapse:separate; border-spacing:0; table-layout:auto; font-size:13px;}
+thead th, tbody td{padding:10px 12px; text-align:left; border-bottom:1px solid var(--sidebar-bg); white-space:nowrap; transition:background-color .6s ease, color .6s ease;}
+thead th{position:sticky; top:0; z-index:2; background-color:var(--accent); color:#fff; font-weight:bold; text-transform:uppercase; letter-spacing:.05em; cursor:pointer; user-select:none; font-size:12px;}
+thead th:hover{background-color:var(--accent-darker);}
+tbody tr:nth-child(even){background-color:var(--sidebar-bg);}
+tbody tr:nth-child(odd){background-color:var(--panel);}
+tbody tr:hover{background-color:var(--accent-muted); transition:background-color .3s ease;}
+thead th.sorted-asc::after{content:" ▲"; font-size:10px;}
+thead th.sorted-desc::after{content:" ▼"; font-size:10px;}
 
-.controls, #columnToggles { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 5px 0; }
-button { background-color: var(--accent); color: white; border: none; cursor: pointer; font-weight: bold; padding: 8px 12px; border-radius: 6px; font-size: 13px; transition: background-color 0.3s ease, transform 0.2s ease; }
-button:hover { background-color: var(--accent-darker); transform: scale(1.05); }
-button:disabled { background-color: #ccc; color: #666; cursor: not-allowed; transform:none; }
-#toggleColumnsBtn { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent-darker); background-color: var(--accent); color: white; cursor: pointer; font-size: 13px; }
-#toggleColumnsBtn:hover { background-color: var(--accent-darker); }
-
-#tableWrapper {
-  flex: 1;
-  overflow: auto;             /* scroll horizontal et vertical si besoin */
-  display: flex;
-  justify-content: center;    /* centre horizontalement */
-  align-items: center;        /* centre verticalement */
-  padding: 10px;
+/* Column toggles panel */
+#columnToggles{
+  display:none;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+  margin:5px 0;
 }
+#columnToggles.open{ display:flex; }
+#columnToggles label{font-size:12px; cursor:pointer; margin-right:5px;}
+#columnToggles input[type="checkbox"]{width:14px; height:14px; vertical-align:middle; margin-right:3px;}
 
-#tableContainer {
-  display: inline-block;
-  overflow: auto;
-  max-width: 100%;
-  max-height: 100%;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px var(--shadow);
-  background: var(--panel);
-  text-align: center;
-}
+/* Reset flash */
+.flash-red{animation:flashRed .6s ease;}
+@keyframes flashRed{0%{background-color:var(--accent-muted);}100%{background-color:var(--panel);}}
 
-table { width: auto; border-collapse: separate; border-spacing: 0; table-layout: auto; font-size: 13px; }
-thead th, tbody td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--sidebar-bg); white-space: nowrap; transition: background-color 0.6s ease, color 0.6s ease; }
-thead th { position: sticky; top: 0; z-index: 2; background-color: var(--accent); color: white; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; user-select: none; font-size: 12px; }
-thead th:hover { background-color: var(--accent-darker); }
-tbody tr:nth-child(even) { background-color: var(--sidebar-bg); }
-tbody tr:nth-child(odd) { background-color: var(--panel); }
-tbody tr:hover { background-color: var(--accent-muted); transition: background-color 0.3s ease; }
-thead th.sorted-asc::after { content: " ▲"; font-size: 10px; }
-thead th.sorted-desc::after { content: " ▼"; font-size: 10px; }
-
-#columnToggles {
-  display: none;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin: 5px 0;
-}
-#columnToggles.open {
-  display: flex;
-}
-
-#columnToggles label { font-size: 12px; cursor: pointer; margin-right:5px; }
-#columnToggles input[type="checkbox"] { width: 14px; height: 14px; vertical-align: middle; margin-right:3px; }
-
-.flash-red { animation: flashRed 0.6s ease; }
-@keyframes flashRed { 0% { background-color: var(--accent-muted); } 100% { background-color: var(--panel); } }
-
-/* Menu secret */
-#secretBtn{position:fixed;bottom:10px;right:10px;width:25px;height:25px;opacity:0;cursor:pointer;z-index:2000;}
-#themeMenu{display:none;position:fixed;bottom:50px;right:10px;background: var(--panel);
-  border:2px solid var(--accent);border-radius:8px;box-shadow:0 4px 12px var(--shadow);
-  padding:10px;z-index:2001;min-width:150px;}
-#themeMenu h3 {margin:0 0 8px 0;font-size:14px;color: var(--accent);}
-#themeMenu .closeMenu {position:absolute;top:5px;right:8px;font-size:14px;cursor:pointer;color:var(--accent);}
-#themeMenu .closeMenu:hover {color:var(--accent-darker);}
-#themeMenu button {display:block;width:100%;margin:4px 0;padding:6px;border:none;border-radius:6px;background: var(--accent);color: white;cursor:pointer;font-size:13px;}
-#themeMenu button:hover {background: var(--accent-darker);}
+/* Secret theme menu */
+#secretBtn{position:fixed; bottom:10px; right:10px; width:25px; height:25px; opacity:0; cursor:pointer; z-index:2000;}
+#themeMenu{display:none; position:fixed; bottom:50px; right:10px; background:var(--panel);
+  border:2px solid var(--accent); border-radius:8px; box-shadow:0 4px 12px var(--shadow);
+  padding:10px; z-index:2001; min-width:150px;}
+#themeMenu h3{margin:0 0 8px 0; font-size:14px; color:var(--accent);}
+#themeMenu .closeMenu{position:absolute; top:5px; right:8px; font-size:14px; cursor:pointer; color:var(--accent);}
+#themeMenu .closeMenu:hover{color:var(--accent-darker);}
+#themeMenu button{display:block; width:100%; margin:4px 0; padding:6px; border:none; border-radius:6px; background:var(--accent); color:#fff; cursor:pointer; font-size:13px;}
+#themeMenu button:hover{background:var(--accent-darker);}
 
 /* Overlay + Spinner */
-#loadingOverlay{
-  position:fixed; inset:0; background:rgba(0,0,0,0.05);
-  display:none; z-index:2500;
-}
-#spinner{
-  position:absolute; top:50%; left:50%;
-  width:40px; height:40px; margin:-20px 0 0 -20px;
-  border:6px solid #f3f3f3; border-top:6px solid var(--accent);
-  border-radius:50%; animation:spin 0.8s linear infinite;
-}
-@keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
+#loadingOverlay{position:fixed; inset:0; background:rgba(0,0,0,0.05); display:none; z-index:2500;}
+#spinner{position:absolute; top:50%; left:50%; width:40px; height:40px; margin:-20px 0 0 -20px; border:6px solid #f3f3f3; border-top:6px solid var(--accent); border-radius:50%; animation:spin .8s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg);} to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
@@ -161,9 +154,13 @@ thead th.sorted-desc::after { content: " ▼"; font-size: 10px; }
 <script src="libs/jspdf.umd.min.js"></script>
 <script src="libs/jspdf.plugin.autotable.min.js"></script>
 <script>
-// === Variables ===
+// === Variables globales ===
 const API_KEY='AIzaSyCbEV3CS9bOcxq5eK-QXbjczGHjvzyXS6M';
-let currentData=[], sortAsc=true, sortColIndex=null, visibleColumns={}, columnVisibilityMemory={}, columnSortMemory={colName:null,asc:true}, lastSearchQuery="";
+const VIS_MEM_KEY = 'columnVisibilityMemory';
+let currentData=[], sortAsc=true, sortColIndex=null, visibleColumns={},
+    columnVisibilityMemory = JSON.parse(localStorage.getItem(VIS_MEM_KEY) || '{}'),
+    columnSortMemory={colName:null,asc:true}, lastSearchQuery="", lastColorizedColIndex=null;
+
 let themeMenuTimer;
 let csvFilesList = JSON.parse(localStorage.getItem("csvFilesList")||"[]");
 let currentIndex = parseInt(localStorage.getItem("csvFileIndex")||"0",10);
@@ -181,7 +178,7 @@ function setTheme(theme){
   if(theme==="purple"){r.style.setProperty("--accent","#9c27b0");r.style.setProperty("--accent-darker","#6a1b9a");r.style.setProperty("--accent-muted","#e1bee7");r.style.setProperty("--bg","#f3e5f5");r.style.setProperty("--panel","#ffffff");r.style.setProperty("--sidebar-bg","#e1bee7");r.style.setProperty("--danger","#4a148c");r.style.setProperty("--text","#4a148c");}
   if(theme==="bordeaux"){r.style.setProperty("--accent","#800020");r.style.setProperty("--accent-darker","#4b0014");r.style.setProperty("--accent-muted","#d7a1a9");r.style.setProperty("--bg","#fff0f2");r.style.setProperty("--panel","#ffffff");r.style.setProperty("--sidebar-bg","#f3cdd3");r.style.setProperty("--danger","#600018");r.style.setProperty("--text","#4b0014");}
 }
-document.getElementById("secretBtn").onclick=()=>{const menu=document.getElementById("themeMenu");if(menu.style.display==="block"){closeThemeMenu();}else{menu.style.display="block";resetThemeMenuTimer();}};
+document.getElementById("secretBtn").onclick=()=>{const menu=document.getElementById("themeMenu"); if(menu.style.display==="block"){closeThemeMenu();}else{menu.style.display="block";resetThemeMenuTimer();}};
 function resetThemeMenuTimer(){clearTimeout(themeMenuTimer);themeMenuTimer=setTimeout(closeThemeMenu,10000);}
 function closeThemeMenu(){document.getElementById("themeMenu").style.display="none";clearTimeout(themeMenuTimer);}
 
@@ -246,15 +243,16 @@ async function loadCSV(){
   }
 }
 
-// === Rendu tableau ===
+// === Utils ===
 function escapeHtml(str){ return (str==null?'':String(str)).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])); }
 
+// === Rendu tableau + toggles colonnes ===
 function renderTable(data){
   let html='<table id="csvTable">';
   if(data.length>0){
     html+='<thead><tr>';
     data[0].forEach((cell,index)=>{
-      let cls=(index===sortColIndex)?(sortAsc?"sorted-desc":"sorted-asc"):"";
+      const cls=(index===sortColIndex)?(sortAsc?"sorted-desc":"sorted-asc"):"";
       html+=`<th class="${cls}" onclick="sortTable(${index})">${escapeHtml((cell??'').toString().trim())}</th>`;
     });
     html+='</tr></thead>';
@@ -268,23 +266,32 @@ function renderTable(data){
   html+='</tbody></table>';
   document.getElementById('tableContainer').innerHTML=html;
 
-  // Construire les toggles colonnes
+  // Panneau de toggles colonnes (reconstruit à chaque rendu)
   const toggleContainer=document.getElementById('columnToggles');
   toggleContainer.innerHTML=`<label style="font-weight:bold;"><input type="checkbox" id="selectAll" /> Tout</label>
                              <label style="font-weight:bold;"><input type="checkbox" id="selectNone" /> Aucune</label>`;
+  visibleColumns = {};
   if(data.length>0){
     data[0].forEach((cell,index)=>{
       const colName=(cell??'').toString().trim();
       const id=`colToggle${index}`;
-      const checked=columnVisibilityMemory[colName]!==false; // true par défaut
+      const checked = (columnVisibilityMemory[colName] !== false); // visible par défaut
       visibleColumns[index]=checked;
-      toggleContainer.innerHTML+=`<label><input type="checkbox" id="${id}" data-col="${index}" ${checked?"checked":""} /> ${escapeHtml(colName)}</label>`;
+      toggleContainer.innerHTML += `<label><input type="checkbox" id="${id}" data-col="${index}" ${checked?"checked":""} /> ${escapeHtml(colName)}</label>`;
     });
 
     // Écouteurs toggles individuels
     toggleContainer.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
       const colIndex=cb.dataset.col;
-      if(colIndex!==undefined) cb.addEventListener('change',()=>toggleColumn(Number(colIndex), cb.checked));
+      if(colIndex!==undefined){
+        cb.addEventListener('change',()=>{
+          toggleColumn(Number(colIndex), cb.checked);
+          // Mémoriser par nom d'en-tête
+          const headerName=(currentData[0][colIndex]??'').toString().trim();
+          columnVisibilityMemory[headerName]=cb.checked;
+          localStorage.setItem(VIS_MEM_KEY, JSON.stringify(columnVisibilityMemory));
+        });
+      }
     });
 
     // Tout / Aucune
@@ -292,82 +299,48 @@ function renderTable(data){
     const none=document.getElementById('selectNone');
     if(all){
       all.addEventListener('change',e=>{
-        const checked=e.target.checked;
+        const on=e.target.checked;
         document.querySelectorAll('#columnToggles input[type="checkbox"]').forEach(cb=>{
           if(cb.dataset.col!==undefined){
-            cb.checked=checked;
-            toggleColumn(Number(cb.dataset.col), checked);
+            cb.checked=on;
+            const idx=Number(cb.dataset.col);
+            toggleColumn(idx,on);
+            const headerName=(currentData[0][idx]??'').toString().trim();
+            columnVisibilityMemory[headerName]=on;
           }
         });
+        localStorage.setItem(VIS_MEM_KEY, JSON.stringify(columnVisibilityMemory));
         if(none) none.checked=false;
       });
     }
     if(none){
       none.addEventListener('change',e=>{
-        const checked=e.target.checked;
+        const off=e.target.checked;
         document.querySelectorAll('#columnToggles input[type="checkbox"]').forEach(cb=>{
           if(cb.dataset.col!==undefined){
-            cb.checked=!checked;
-            toggleColumn(Number(cb.dataset.col), !checked);
+            cb.checked=!off;
+            const idx=Number(cb.dataset.col);
+            toggleColumn(idx,!off);
+            const headerName=(currentData[0][idx]??'').toString().trim();
+            columnVisibilityMemory[headerName]=!off;
           }
         });
+        localStorage.setItem(VIS_MEM_KEY, JSON.stringify(columnVisibilityMemory));
         if(all) all.checked=false;
       });
     }
   }
 
-  // Appliquer la visibilité mémorisée
+  // Appliquer visibilité mémorisée
   Object.keys(visibleColumns).forEach(i=>toggleColumn(Number(i), visibleColumns[i], true));
-}
 
-function toggleColumn(colIndex, visible, skipMemoryUpdate=false){
-  visibleColumns[colIndex]=visible;
-  const headerName=(currentData[0][colIndex]??'').toString().trim();
-  if(!skipMemoryUpdate) columnVisibilityMemory[headerName]=visible;
-
-  const table=document.getElementById('csvTable');
-  if(!table) return;
-  table.querySelectorAll('tr').forEach(row=>{
-    const cell=row.children[colIndex];
-    if(cell) cell.style.display=visible?'':'none';
-  });
-}
-
-// === Détection type + Tri ===
-function detectType(val){ 
-  if(val===null || val===undefined) return 'string';
-  const s=String(val).trim();
-  if(s!=='' && !isNaN(Number(s))) return 'number';
-  const d=new Date(s);
-  if(!isNaN(d.getTime())) return 'date';
-  return 'string';
-}
-
-function sortTable(colIndex){
-  const header=currentData[0];
-  const body=currentData.slice(1);
-  const firstVal = body.find(r=>r[colIndex]!=null)?.[colIndex] ?? '';
-  const type=detectType(firstVal);
-
-  body.sort((a,b)=>{
-    let valA=a[colIndex]??'', valB=b[colIndex]??'';
-    if(type==='number'){ return sortAsc? (Number(valA)-Number(valB)) : (Number(valB)-Number(valA)); }
-    if(type==='date'){
-      const da=new Date(valA).getTime(), db=new Date(valB).getTime();
-      return sortAsc? (da-db):(db-da);
+  // Si une colonne numérique a été colorisée précédemment, réappliquer
+  if(lastColorizedColIndex!=null){
+    // Vérifier qu'elle existe toujours
+    if(currentData[0] && currentData[0][lastColorizedColIndex]!==undefined){
+      colorizeColumn(lastColorizedColIndex);
     }
-    valA=valA.toString().toLowerCase(); 
-    valB=valB.toString().toLowerCase();
-    return sortAsc? valA.localeCompare(valB): valB.localeCompare(valA);
-  });
-
-  columnSortMemory.colName=(header[colIndex]??'').toString().trim(); 
-  columnSortMemory.asc=sortAsc;
-
-  sortAsc=!sortAsc; 
-  sortColIndex=colIndex; 
-  currentData=[header,...body];
-  renderTable(currentData);
+  }
 
   // Réappliquer filtre si présent
   if(lastSearchQuery!==""){
@@ -379,100 +352,58 @@ function sortTable(colIndex){
   }
 }
 
-// === Recherche ===
-document.getElementById("searchInput").addEventListener("input",function(){ 
-  lastSearchQuery=this.value.toLowerCase(); 
-  document.querySelectorAll("#csvTable tbody tr").forEach(row=>{
-    row.style.display=row.textContent.toLowerCase().includes(lastSearchQuery)?'':'none';
+function toggleColumn(colIndex, visible, skipMemoryUpdate=false){
+  visibleColumns[colIndex]=visible;
+  const table=document.getElementById('csvTable');
+  if(!table) return;
+  table.querySelectorAll('tr').forEach(row=>{
+    const cell=row.children[colIndex];
+    if(cell) cell.style.display=visible?'':'none';
   });
-});
-
-// === Réinitialiser ===
-document.getElementById("resetBtn").addEventListener("click",()=>{
-  document.getElementById("searchInput").value=""; 
-  lastSearchQuery="";
-  sortAsc=true; 
-  sortColIndex=null; 
-  columnSortMemory={colName:null,asc:true}; 
-  columnVisibilityMemory={};
-  if(currentData.length>0){ 
-    currentData=[currentData[0], ...currentData.slice(1)]; 
-    visibleColumns={}; 
-    renderTable(currentData); 
+  if(!skipMemoryUpdate){
+    const headerName=(currentData[0][colIndex]??'').toString().trim();
+    columnVisibilityMemory[headerName]=visible;
+    localStorage.setItem(VIS_MEM_KEY, JSON.stringify(columnVisibilityMemory));
   }
-  const tableContainer=document.getElementById("tableContainer"); 
-  tableContainer.classList.remove("flash-red"); 
-  void tableContainer.offsetWidth; 
-  tableContainer.classList.add("flash-red");
-});
-
-// === Afficher / Masquer colonnes (avec persistance panneau) ===
-const toggleBtn = document.getElementById('toggleColumnsBtn');
-const toggles  = document.getElementById('columnToggles');
-toggleBtn.setAttribute('aria-controls', 'columnToggles');
-
-// Restaurer l'état au chargement
-if (localStorage.getItem('columnTogglesOpen') === '1') {
-  toggles.classList.add('open');
-  toggleBtn.setAttribute('aria-expanded', 'true');
-} else {
-  toggleBtn.setAttribute('aria-expanded', 'false');
 }
 
-toggleBtn.addEventListener('click', () => {
-  const isOpen = toggles.classList.toggle('open');
-  toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-  localStorage.setItem('columnTogglesOpen', isOpen ? '1' : '0');
-});
+// === Détection type ===
+function detectType(val){
+  if(val===null || val===undefined) return 'string';
+  const s=String(val).trim();
+  if(s!=='' && !isNaN(Number(s))) return 'number';
+  const d=new Date(s);
+  if(!isNaN(d.getTime())) return 'date';
+  return 'string';
+}
 
-// === Export Excel ===
-document.getElementById("exportExcel").addEventListener("click",()=> {
-  if(currentData.length===0) return;
-  let csvName=(document.getElementById('fileName').textContent||'').replace(/\.csv$/i,"");
-  let excelFileName=csvName+".xlsx";
-  const match=csvName.match(/^SA(\d+)_([0-9]{8})$/);
-  if(match){
-    const numRaw=match[1]; 
-    const numTwoDigits=parseInt(numRaw,10).toString().padStart(2,"0"); 
-    const dateRaw=match[2]; 
-    excelFileName=`Séchoir-${numTwoDigits}_${dateRaw}.xlsx`;
-  }
-  const ws=XLSX.utils.aoa_to_sheet(currentData);
-  const wb=XLSX.utils.book_new(); 
-  XLSX.utils.book_append_sheet(wb,ws,"Sheet1"); 
-  XLSX.writeFile(wb,excelFileName);
-});
+// === Colorisation colonne numérique (barème fixe 0-70) ===
+function colorizeColumn(colIndex) {
+  const table = document.getElementById("csvTable");
+  if (!table) return;
 
-// === Export PDF ===
-document.getElementById("exportPDF").addEventListener("click",()=>{ 
-  if(currentData.length===0) return;
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({orientation:"l", unit:"pt", format:"a4"});
-  const title = (document.getElementById('fileName').textContent||"Traçabilité Séchoir");
-  doc.setFontSize(14); 
-  doc.text(title, 40, 40);
-  const body = currentData.slice(1).map(r=>r.map(c=>String(c??"")));
-  const head = [currentData[0].map(c=>String(c??""))];
-  doc.autoTable({ head, body, startY:60, styles:{fontSize:8, cellPadding:3}, headStyles:{fillColor:[255,112,67]} });
-  doc.save(title.replace(/\.csv$/i,"")+".pdf");
-});
+  const cells = [...table.querySelectorAll("tbody tr")].map(r => r.children[colIndex]).filter(Boolean);
 
-// === Init ===
-window.onload=()=>{ 
-  const savedTheme=localStorage.getItem("selectedTheme")||"orange"; 
-  setTheme(savedTheme); 
-  loadCSV(); 
-};
-</script>
-</body>
-</html>
+  cells.forEach(cell => {
+    const v = parseFloat(cell.textContent.replace(",", "."));
+    if (!isNaN(v)) {
+      // Normaliser entre 0 et 1 dans l'intervalle [0,70]
+      let t = v / 70;
+      t = Math.max(0, Math.min(1, t));
 
+      // Interpolation bleu (0,0,255) → rouge (255,0,0)
+      const r = Math.round(255 * t);
+      const g = 0;
+      const b = Math.round(255 * (1 - t));
 
+      cell.style.backgroundColor = `rgb(${r},${g},${b})`;
+      cell.style.color = "#fff"; // texte lisible
+    } else {
+      cell.style.backgroundColor = "";
+      cell.style.color = "";
+    }
+  });
 
-
-
-
-
-
-
+  lastColorizedColIndex = colIndex;
+}
 
