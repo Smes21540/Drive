@@ -377,27 +377,63 @@ function detectType(val){
   return 'string';
 }
 
-// === Colorisation colonne numérique (barème fixe 0-70) ===
+// === Colorisation colonne numérique (15-70, colonnes contenant "SONDE", "TEMP" ou "T°C") ===
 function colorizeColumn(colIndex) {
   const table = document.getElementById("csvTable");
   if (!table) return;
 
+  // Vérifier le nom d'en-tête
+  const headerName = (currentData[0][colIndex] ?? "").toString().toUpperCase();
+  if (
+    !headerName.includes("SONDE") &&
+    !headerName.includes("TEMP") &&
+    !headerName.includes("T°C")
+  ) {
+    return; // pas de coloration si le titre n'a aucun mot clé
+  }
+
   const cells = [...table.querySelectorAll("tbody tr")].map(r => r.children[colIndex]).filter(Boolean);
+
+  const minVal = 15;
+  const maxVal = 70;
 
   cells.forEach(cell => {
     const v = parseFloat(cell.textContent.replace(",", "."));
     if (!isNaN(v)) {
-      // Normaliser entre 0 et 1 dans l'intervalle [0,70]
-      let t = v / 70;
+      // Normaliser entre 0 et 1 sur la plage 15–70
+      let t = (v - minVal) / (maxVal - minVal);
       t = Math.max(0, Math.min(1, t));
 
-      // Interpolation bleu (0,0,255) → rouge (255,0,0)
-      const r = Math.round(255 * t);
-      const g = 0;
-      const b = Math.round(255 * (1 - t));
+      let r, g, b;
+
+      if (t < 0.5) {
+        // 15 → 42 : bleu clair → vert
+        const ratio = t / 0.5;
+        r = 0;
+        g = Math.round(150 + (255 - 150) * ratio);
+        b = Math.round(255 - 255 * ratio);
+      } else if (t < 0.75) {
+        // 42 → 56 : vert → jaune
+        const ratio = (t - 0.5) / 0.25;
+        r = Math.round(255 * ratio);
+        g = 255;
+        b = 0;
+      } else if (t < 0.9) {
+        // 56 → 63 : jaune → orange
+        const ratio = (t - 0.75) / 0.15;
+        r = 255;
+        g = Math.round(255 - 90 * ratio);
+        b = 0;
+      } else {
+        // 63 → 70 : orange → rouge
+        const ratio = (t - 0.9) / 0.1;
+        r = 255;
+        g = Math.round(165 - 165 * ratio);
+        b = 0;
+      }
 
       cell.style.backgroundColor = `rgb(${r},${g},${b})`;
-      cell.style.color = "#fff"; // texte lisible
+      cell.style.color = "#000"; // noir pour contraste
     } else {
       cell.style.backgroundColor = "";
       cell.style.color = "";
@@ -406,6 +442,8 @@ function colorizeColumn(colIndex) {
 
   lastColorizedColIndex = colIndex;
 }
+
+
 
 
 // === Tri (avec coloration auto si numérique) ===
@@ -506,3 +544,4 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
