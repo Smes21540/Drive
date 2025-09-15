@@ -407,3 +407,102 @@ function colorizeColumn(colIndex) {
   lastColorizedColIndex = colIndex;
 }
 
+
+// === Tri (avec coloration auto si numérique) ===
+function sortTable(colIndex){
+  const header=currentData[0];
+  const body=currentData.slice(1);
+  const firstVal = body.find(r=>r[colIndex]!=null)?.[colIndex] ?? '';
+  const type=detectType(firstVal);
+
+  body.sort((a,b)=>{
+    let valA=a[colIndex]??'', valB=b[colIndex]??'';
+    if(type==='number'){ return sortAsc? (Number(valA)-Number(valB)) : (Number(valB)-Number(valA)); }
+    if(type==='date'){ return sortAsc? new Date(valA)-new Date(valB): new Date(valB)-new Date(valA); }
+    valA=String(valA).toLowerCase(); valB=String(valB).toLowerCase();
+    return sortAsc? valA.localeCompare(valB): valB.localeCompare(valA);
+  });
+
+  columnSortMemory.colName=(header[colIndex]??'').toString().trim();
+  columnSortMemory.asc=sortAsc;
+
+  sortAsc=!sortAsc; sortColIndex=colIndex; currentData=[header,...body];
+  renderTable(currentData);
+
+  if(type==='number'){ colorizeColumn(colIndex); } else { lastColorizedColIndex=null; }
+}
+
+// === Recherche ===
+document.getElementById("searchInput").addEventListener("input",function(){
+  lastSearchQuery=this.value.toLowerCase();
+  document.querySelectorAll("#csvTable tbody tr").forEach(row=>{
+    row.style.display=row.textContent.toLowerCase().includes(lastSearchQuery)?'':'none';
+  });
+});
+
+// === Réinitialiser ===
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  document.getElementById("searchInput").value=""; lastSearchQuery="";
+  sortAsc=true; sortColIndex=null; columnSortMemory={colName:null,asc:true};
+  columnVisibilityMemory={}; localStorage.removeItem(VIS_MEM_KEY);
+  lastColorizedColIndex=null;
+
+  if(currentData.length>0){
+    currentData=[currentData[0], ...currentData.slice(1)];
+    renderTable(currentData);
+  }
+  const tableContainer=document.getElementById("tableContainer");
+  tableContainer.classList.remove("flash-red"); void tableContainer.offsetWidth; tableContainer.classList.add("flash-red");
+});
+
+// === Afficher / Masquer colonnes (persistance panneau) ===
+const toggleBtn=document.getElementById('toggleColumnsBtn');
+const toggles=document.getElementById('columnToggles');
+toggleBtn.setAttribute('aria-controls','columnToggles');
+if(localStorage.getItem('columnTogglesOpen')==='1'){ toggles.classList.add('open'); toggleBtn.setAttribute('aria-expanded','true'); }
+else{ toggleBtn.setAttribute('aria-expanded','false'); }
+toggleBtn.addEventListener('click',()=>{
+  const isOpen=toggles.classList.toggle('open');
+  toggleBtn.setAttribute('aria-expanded', isOpen ? 'true':'false');
+  localStorage.setItem('columnTogglesOpen', isOpen ? '1':'0');
+});
+
+// === Export Excel ===
+document.getElementById("exportExcel").addEventListener("click",()=>{
+  if(currentData.length===0) return;
+  let csvName=(document.getElementById('fileName').textContent||'').replace(/\.csv$/i,"");
+  let excelFileName=csvName+".xlsx";
+  const match=csvName.match(/^SA(\d+)_([0-9]{8})$/);
+  if(match){
+    const numRaw=match[1]; const numTwoDigits=parseInt(numRaw,10).toString().padStart(2,"0");
+    const dateRaw=match[2]; excelFileName=`Séchoir-${numTwoDigits}_${dateRaw}.xlsx`;
+  }
+  const ws=XLSX.utils.aoa_to_sheet(currentData);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Sheet1");
+  XLSX.writeFile(wb,excelFileName);
+});
+
+// === Export PDF ===
+document.getElementById("exportPDF").addEventListener("click",()=>{
+  if(currentData.length===0) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:"l", unit:"pt", format:"a4"});
+  const title = (document.getElementById('fileName').textContent||"Traçabilité Séchoir");
+  doc.setFontSize(14); doc.text(title, 40, 40);
+  const body = currentData.slice(1).map(r=>r.map(c=>String(c??"")));
+  const head = [currentData[0].map(c=>String(c??""))];
+  doc.autoTable({ head, body, startY:60, styles:{fontSize:8, cellPadding:3}, headStyles:{fillColor:[255,112,67]} });
+  doc.save(title.replace(/\.csv$/i,"")+".pdf");
+});
+
+// === Init ===
+window.onload=()=>{
+  const savedTheme=localStorage.getItem("selectedTheme")||"orange"; 
+  setTheme(savedTheme);
+  loadCSV();
+  updateNavButtons();
+};
+</script>
+</body>
+</html>
