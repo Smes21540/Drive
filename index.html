@@ -545,24 +545,44 @@ document.getElementById('downloadFolderBtn').onclick=async()=>{
 };
 
 /* ----------- Tri tableau + recolorisation ----------- */
-let currentSort={col:null,asc:true};
-function sortTable(colIndex,type){
-  const table=document.getElementById("csvTable");
-  const tbody=table.tBodies[0];
-  const rows=Array.from(tbody.querySelectorAll("tr"));
-  if(currentSort.col===colIndex){currentSort.asc=!currentSort.asc;}else{currentSort.col=colIndex;currentSort.asc=true;}
-  rows.sort((a,b)=>{
-    let aText=a.cells[colIndex]?.textContent.trim()||"";
-    let bText=b.cells[colIndex]?.textContent.trim()||"";
-    if(type==="number"){aText=parseFloat(aText)||0; bText=parseFloat(bText)||0;}
-    else if(type==="date"){aText=new Date(aText).getTime()||0; bText=new Date(bText).getTime()||0;}
-    if(aText<bText) return currentSort.asc?-1:1;
-    if(aText>bText) return currentSort.asc?1:-1;
+let currentSort = { col: null, asc: true };
+
+function sortTable(colIndex, type) {
+  const table = document.getElementById("csvTable");
+  const tbody = table.tBodies[0];
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+
+  if (currentSort.col === colIndex) {
+    currentSort.asc = !currentSort.asc;
+  } else {
+    currentSort.col = colIndex;
+    currentSort.asc = true;
+  }
+
+  rows.sort((a, b) => {
+    let aText = a.cells[colIndex]?.textContent.trim() || "";
+    let bText = b.cells[colIndex]?.textContent.trim() || "";
+    if (type === "number") {
+      aText = parseFloat(aText) || 0;
+      bText = parseFloat(bText) || 0;
+    } else if (type === "date") {
+      aText = new Date(aText).getTime() || 0;
+      bText = new Date(bText).getTime() || 0;
+    }
+    if (aText < bText) return currentSort.asc ? -1 : 1;
+    if (aText > bText) return currentSort.asc ? 1 : -1;
     return 0;
   });
-  tbody.innerHTML="";
-  rows.forEach(r=>tbody.appendChild(r));
+
+  tbody.innerHTML = "";
+  rows.forEach(r => tbody.appendChild(r));
+
+  // mise à jour des flèches
+  document.querySelectorAll("thead th .sort-arrow").forEach(span => span.textContent = "");
+  const arrow = table.tHead.rows[0].cells[colIndex].querySelector(".sort-arrow");
+  if (arrow) arrow.textContent = currentSort.asc ? "▲" : "▼";
 }
+
 
 /* ----------- Icônes calendrier cliquables ----------- */
 document.getElementById("iconStart").onclick=()=>document.getElementById("startDate").showPicker?.()||document.getElementById("startDate").focus();
@@ -665,6 +685,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
