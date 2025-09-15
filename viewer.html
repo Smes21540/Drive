@@ -43,8 +43,25 @@ button:disabled { background-color: #ccc; color: #666; cursor: not-allowed; tran
 #toggleColumnsBtn { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent-darker); background-color: var(--accent); color: white; cursor: pointer; font-size: 13px; }
 #toggleColumnsBtn:hover { background-color: var(--accent-darker); }
 
-#tableWrapper { flex:1; overflow-y:auto; text-align:center; }
-#tableContainer { display: inline-block; overflow: auto; min-width:100%; border-radius: 8px; box-shadow: 0 4px 12px var(--shadow); background: var(--panel); text-align: center; }
+#tableWrapper {
+  flex: 1;
+  overflow: auto;             /* scroll horizontal et vertical si besoin */
+  display: flex;
+  justify-content: center;    /* centre horizontalement */
+  align-items: center;        /* centre verticalement */
+  padding: 10px;
+}
+
+#tableContainer {
+  display: inline-block;
+  overflow: auto;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--shadow);
+  background: var(--panel);
+  text-align: center;
+}
 
 table { width: auto; border-collapse: separate; border-spacing: 0; table-layout: auto; font-size: 13px; }
 thead th, tbody td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--sidebar-bg); white-space: nowrap; transition: background-color 0.6s ease, color 0.6s ease; }
@@ -56,9 +73,19 @@ tbody tr:hover { background-color: var(--accent-muted); transition: background-c
 thead th.sorted-asc::after { content: " ▲"; font-size: 10px; }
 thead th.sorted-desc::after { content: " ▼"; font-size: 10px; }
 
+#columnToggles {
+  display: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 5px 0;
+}
+#columnToggles.open {
+  display: flex;
+}
+
 #columnToggles label { font-size: 12px; cursor: pointer; margin-right:5px; }
 #columnToggles input[type="checkbox"] { width: 14px; height: 14px; vertical-align: middle; margin-right:3px; }
-#columnToggles { display: none; }
 
 .flash-red { animation: flashRed 0.6s ease; }
 @keyframes flashRed { 0% { background-color: var(--accent-muted); } 100% { background-color: var(--panel); } }
@@ -211,7 +238,8 @@ async function loadCSV(){
           🔄 Réessayer
         </button>
       </div>`;
-    document.getElementById("retryBtn").onclick=()=>{container.innerHTML="⏳ Nouvelle tentative...";loadCSV();};
+    const retry=document.getElementById("retryBtn");
+    if(retry){ retry.onclick=()=>{container.innerHTML="⏳ Nouvelle tentative...";loadCSV();}; }
   } finally {
     hideLoading();
     updateNavButtons();
@@ -219,7 +247,8 @@ async function loadCSV(){
 }
 
 // === Rendu tableau ===
-function escapeHtml(str){ return str.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])); }
+function escapeHtml(str){ return (str==null?'':String(str)).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])); }
+
 function renderTable(data){
   let html='<table id="csvTable">';
   if(data.length>0){
@@ -239,74 +268,161 @@ function renderTable(data){
   html+='</tbody></table>';
   document.getElementById('tableContainer').innerHTML=html;
 
+  // Construire les toggles colonnes
   const toggleContainer=document.getElementById('columnToggles');
   toggleContainer.innerHTML=`<label style="font-weight:bold;"><input type="checkbox" id="selectAll" /> Tout</label>
                              <label style="font-weight:bold;"><input type="checkbox" id="selectNone" /> Aucune</label>`;
   if(data.length>0){
     data[0].forEach((cell,index)=>{
-      const colName=(cell??'').toString().trim(), id=`colToggle${index}`, checked=columnVisibilityMemory[colName]!==false;
+      const colName=(cell??'').toString().trim();
+      const id=`colToggle${index}`;
+      const checked=columnVisibilityMemory[colName]!==false; // true par défaut
       visibleColumns[index]=checked;
       toggleContainer.innerHTML+=`<label><input type="checkbox" id="${id}" data-col="${index}" ${checked?"checked":""} /> ${escapeHtml(colName)}</label>`;
     });
+
+    // Écouteurs toggles individuels
     toggleContainer.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
       const colIndex=cb.dataset.col;
-      if(colIndex!==undefined) cb.addEventListener('change',()=>toggleColumn(colIndex, cb.checked));
+      if(colIndex!==undefined) cb.addEventListener('change',()=>toggleColumn(Number(colIndex), cb.checked));
     });
-    document.getElementById('selectAll').addEventListener('change',e=>{
-      const checked=e.target.checked;
-      document.querySelectorAll('#columnToggles input[type="checkbox"]').forEach(cb=>{ if(cb.dataset.col!==undefined){ cb.checked=checked; toggleColumn(cb.dataset.col, checked); }});
-      document.getElementById('selectNone').checked=false;
-    });
-    document.getElementById('selectNone').addEventListener('change',e=>{
-      const checked=e.target.checked;
-      document.querySelectorAll('#columnToggles input[type="checkbox"]').forEach(cb=>{ if(cb.dataset.col!==undefined){ cb.checked=!checked; toggleColumn(cb.dataset.col,!checked); }});
-      document.getElementById('selectAll').checked=false;
-    });
+
+    // Tout / Aucune
+    const all=document.getElementById('selectAll');
+    const none=document.getElementById('selectNone');
+    if(all){
+      all.addEventListener('change',e=>{
+        const checked=e.target.checked;
+        document.querySelectorAll('#columnToggles input[type="checkbox"]').forEach(cb=>{
+          if(cb.dataset.col!==undefined){
+            cb.checked=checked;
+            toggleColumn(Number(cb.dataset.col), checked);
+          }
+        });
+        if(none) none.checked=false;
+      });
+    }
+    if(none){
+      none.addEventListener('change',e=>{
+        const checked=e.target.checked;
+        document.querySelectorAll('#columnToggles input[type="checkbox"]').forEach(cb=>{
+          if(cb.dataset.col!==undefined){
+            cb.checked=!checked;
+            toggleColumn(Number(cb.dataset.col), !checked);
+          }
+        });
+        if(all) all.checked=false;
+      });
+    }
   }
-  Object.keys(visibleColumns).forEach(i=>toggleColumn(i, visibleColumns[i]));
+
+  // Appliquer la visibilité mémorisée
+  Object.keys(visibleColumns).forEach(i=>toggleColumn(Number(i), visibleColumns[i], true));
 }
 
-function toggleColumn(colIndex, visible){
+function toggleColumn(colIndex, visible, skipMemoryUpdate=false){
   visibleColumns[colIndex]=visible;
   const headerName=(currentData[0][colIndex]??'').toString().trim();
-  columnVisibilityMemory[headerName]=visible;
+  if(!skipMemoryUpdate) columnVisibilityMemory[headerName]=visible;
+
   const table=document.getElementById('csvTable');
   if(!table) return;
-  table.querySelectorAll('tr').forEach(row=>{ const cell=row.children[colIndex]; if(cell) cell.style.display=visible?'':'none'; });
+  table.querySelectorAll('tr').forEach(row=>{
+    const cell=row.children[colIndex];
+    if(cell) cell.style.display=visible?'':'none';
+  });
 }
 
 // === Détection type + Tri ===
-function detectType(val){ if(!isNaN(val) && val!=='') return 'number'; const d=new Date(val); if(!isNaN(d.getTime())) return 'date'; return 'string'; }
+function detectType(val){ 
+  if(val===null || val===undefined) return 'string';
+  const s=String(val).trim();
+  if(s!=='' && !isNaN(Number(s))) return 'number';
+  const d=new Date(s);
+  if(!isNaN(d.getTime())) return 'date';
+  return 'string';
+}
+
 function sortTable(colIndex){
-  const header=currentData[0], body=currentData.slice(1), type=detectType(body.find(r=>r[colIndex]!=null)?.[colIndex]??'');
+  const header=currentData[0];
+  const body=currentData.slice(1);
+  const firstVal = body.find(r=>r[colIndex]!=null)?.[colIndex] ?? '';
+  const type=detectType(firstVal);
+
   body.sort((a,b)=>{
     let valA=a[colIndex]??'', valB=b[colIndex]??'';
-    if(type==='number') return sortAsc? valA-valB: valB-valA;
-    if(type==='date') return sortAsc? new Date(valA)-new Date(valB): new Date(valB)-new Date(valA);
-    valA=valA.toString().toLowerCase(); valB=valB.toString().toLowerCase();
+    if(type==='number'){ return sortAsc? (Number(valA)-Number(valB)) : (Number(valB)-Number(valA)); }
+    if(type==='date'){
+      const da=new Date(valA).getTime(), db=new Date(valB).getTime();
+      return sortAsc? (da-db):(db-da);
+    }
+    valA=valA.toString().toLowerCase(); 
+    valB=valB.toString().toLowerCase();
     return sortAsc? valA.localeCompare(valB): valB.localeCompare(valA);
   });
-  columnSortMemory.colName=(header[colIndex]??'').toString().trim(); columnSortMemory.asc=sortAsc;
-  sortAsc=!sortAsc; sortColIndex=colIndex; currentData=[header,...body];
+
+  columnSortMemory.colName=(header[colIndex]??'').toString().trim(); 
+  columnSortMemory.asc=sortAsc;
+
+  sortAsc=!sortAsc; 
+  sortColIndex=colIndex; 
+  currentData=[header,...body];
   renderTable(currentData);
+
+  // Réappliquer filtre si présent
   if(lastSearchQuery!==""){
-    document.getElementById("searchInput").value=lastSearchQuery;
-    document.querySelectorAll("#csvTable tbody tr").forEach(row=>row.style.display=row.textContent.toLowerCase().includes(lastSearchQuery)?'':'none');
+    const q=lastSearchQuery;
+    document.getElementById("searchInput").value=q;
+    document.querySelectorAll("#csvTable tbody tr").forEach(row=>{
+      row.style.display=row.textContent.toLowerCase().includes(q)?'':'none';
+    });
   }
 }
 
 // === Recherche ===
 document.getElementById("searchInput").addEventListener("input",function(){ 
   lastSearchQuery=this.value.toLowerCase(); 
-  document.querySelectorAll("#csvTable tbody tr").forEach(row=>row.style.display=row.textContent.toLowerCase().includes(lastSearchQuery)?'':'none'); 
+  document.querySelectorAll("#csvTable tbody tr").forEach(row=>{
+    row.style.display=row.textContent.toLowerCase().includes(lastSearchQuery)?'':'none';
+  });
 });
 
 // === Réinitialiser ===
 document.getElementById("resetBtn").addEventListener("click",()=>{
-  document.getElementById("searchInput").value=""; lastSearchQuery="";
-  sortAsc=true; sortColIndex=null; columnSortMemory={colName:null,asc:true}; columnVisibilityMemory={};
-  if(currentData.length>0){ currentData=[currentData[0], ...currentData.slice(1)]; visibleColumns={}; renderTable(currentData); }
-  const tableContainer=document.getElementById("tableContainer"); tableContainer.classList.remove("flash-red"); void tableContainer.offsetWidth; tableContainer.classList.add("flash-red");
+  document.getElementById("searchInput").value=""; 
+  lastSearchQuery="";
+  sortAsc=true; 
+  sortColIndex=null; 
+  columnSortMemory={colName:null,asc:true}; 
+  columnVisibilityMemory={};
+  if(currentData.length>0){ 
+    currentData=[currentData[0], ...currentData.slice(1)]; 
+    visibleColumns={}; 
+    renderTable(currentData); 
+  }
+  const tableContainer=document.getElementById("tableContainer"); 
+  tableContainer.classList.remove("flash-red"); 
+  void tableContainer.offsetWidth; 
+  tableContainer.classList.add("flash-red");
+});
+
+// === Afficher / Masquer colonnes (avec persistance panneau) ===
+const toggleBtn = document.getElementById('toggleColumnsBtn');
+const toggles  = document.getElementById('columnToggles');
+toggleBtn.setAttribute('aria-controls', 'columnToggles');
+
+// Restaurer l'état au chargement
+if (localStorage.getItem('columnTogglesOpen') === '1') {
+  toggles.classList.add('open');
+  toggleBtn.setAttribute('aria-expanded', 'true');
+} else {
+  toggleBtn.setAttribute('aria-expanded', 'false');
+}
+
+toggleBtn.addEventListener('click', () => {
+  const isOpen = toggles.classList.toggle('open');
+  toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  localStorage.setItem('columnTogglesOpen', isOpen ? '1' : '0');
 });
 
 // === Export Excel ===
@@ -316,11 +432,15 @@ document.getElementById("exportExcel").addEventListener("click",()=> {
   let excelFileName=csvName+".xlsx";
   const match=csvName.match(/^SA(\d+)_([0-9]{8})$/);
   if(match){
-    const numRaw=match[1]; const numTwoDigits=parseInt(numRaw,10).toString().padStart(2,"0"); 
-    const dateRaw=match[2]; excelFileName=`Séchoir-${numTwoDigits}_${dateRaw}.xlsx`;
+    const numRaw=match[1]; 
+    const numTwoDigits=parseInt(numRaw,10).toString().padStart(2,"0"); 
+    const dateRaw=match[2]; 
+    excelFileName=`Séchoir-${numTwoDigits}_${dateRaw}.xlsx`;
   }
   const ws=XLSX.utils.aoa_to_sheet(currentData);
-  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Sheet1"); XLSX.writeFile(wb,excelFileName);
+  const wb=XLSX.utils.book_new(); 
+  XLSX.utils.book_append_sheet(wb,ws,"Sheet1"); 
+  XLSX.writeFile(wb,excelFileName);
 });
 
 // === Export PDF ===
@@ -329,7 +449,8 @@ document.getElementById("exportPDF").addEventListener("click",()=>{
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation:"l", unit:"pt", format:"a4"});
   const title = (document.getElementById('fileName').textContent||"Traçabilité Séchoir");
-  doc.setFontSize(14); doc.text(title, 40, 40);
+  doc.setFontSize(14); 
+  doc.text(title, 40, 40);
   const body = currentData.slice(1).map(r=>r.map(c=>String(c??"")));
   const head = [currentData[0].map(c=>String(c??""))];
   doc.autoTable({ head, body, startY:60, styles:{fontSize:8, cellPadding:3}, headStyles:{fillColor:[255,112,67]} });
@@ -345,6 +466,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
