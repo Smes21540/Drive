@@ -33,7 +33,17 @@
     button:disabled{background:#ccc;color:#666;cursor:not-allowed;transform:none;}
     .graph-wrapper{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:40px;}
     .graph-side{display:flex;flex-direction:column;gap:10px;}
-    #myChart{background:#fff;border-radius:8px;box-shadow:0 4px 12px var(--shadow);display:block;margin:0 auto;max-width:100%;}
+    #myChart {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 800px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--shadow);
+  display: block;
+  margin: 0 auto;
+}
+
     #zoomInfo{position:absolute;top:80px;right:20px;background:rgba(255,255,255,0.9);border:1px solid var(--accent);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--accent-darker);font-weight:bold;z-index:10;pointer-events:none;}
     #spinner{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px;border:6px solid #f3f3f3;border-top:6px solid var(--accent);border-radius:50%;animation:spin 1s linear infinite;z-index:2000;}
     @keyframes spin{0%{transform:translate(-50%,-50%) rotate(0deg);}100%{transform:translate(-50%,-50%) rotate(360deg);}}
@@ -128,8 +138,7 @@
     </div>
   </div>
 
-   <!-- === PARTIE 10 : Script JS === -->
-<script>
+   <script>
   /* ===================== CONFIG / STATE ===================== */
   const API_KEY='AIzaSyCbEV3CS9bOcxq5eK-QXbjczGHjvzyXS6M';
   let csvData=[], chart, currentX="", currentY=[];
@@ -182,7 +191,6 @@
     return dt.getFullYear()+String(dt.getMonth()+1).padStart(2,"0")+String(dt.getDate()).padStart(2,"0");
   }
   function makeSortKey(iso,t){return new Date(`${iso}T${t||"00:00:00"}`).getTime();}
-  // Dédoublonnage : 1re => "Consigne", 2e => "Valeur", puis _3...
   function dedupeHeaders(arr){
     const hc={};
     return arr.map(h=>{
@@ -301,7 +309,6 @@
         }
         ctx.restore();
 
-        // 👉 Met à jour la barre de dates sous le canvas (si présente)
         const labels=[];
         for(let d=start.getTime(); d<x.max; d+=oneDay){labels.push(dayLabelFR(d));}
         const dl=document.getElementById('dateLabels'); if(dl) dl.textContent = labels.join(" | ");
@@ -313,7 +320,8 @@
       type:'line',
       data:{datasets},
       options:{
-        responsive:false,
+        responsive:true,
+        maintainAspectRatio:false,
         interaction:{mode:'nearest',axis:'x',intersect:false},
         plugins:{
           legend:{position:'top'},
@@ -371,7 +379,6 @@
     csvData=csvData.concat(rows); loadedDays.add(yyyymmdd); return true;
   }
 
-  // 🔥 Avant / Après : charge le jour voisin, met à jour datasets, puis décale la fenêtre (sans « coller »)
   async function panAndLoad(direction){
     if(!chart || !saMeta) return;
 
@@ -388,7 +395,6 @@
     if (loaded) {
       csvData.sort((a,b)=>(a.__sortKey||0)-(b.__sortKey||0));
 
-      // ⚡ Rebuilder les datasets comme drawChart, SANS redétruire le chart
       if (currentY.length) {
         chart.data.datasets = currentY.map((yCol,i)=>({
           label:yCol,
@@ -399,7 +405,6 @@
         }));
       }
 
-      // Décale la fenêtre (fenêtre fixe)
       saMeta.date = targetDate;
       chart.options.scales.x.min = targetMin;
       chart.options.scales.x.max = targetMax;
@@ -411,6 +416,7 @@
     } else {
       const d=`${targetDate.slice(6,8)}/${targetDate.slice(4,6)}/${targetDate.slice(0,4)}`;
       alert(`Aucun fichier disponible pour la date ${d}`);
+      return;
     }
   }
 
@@ -424,10 +430,9 @@
       await loadDayIfAvailable(target);
     }
     csvData.sort((a,b)=>(a.__sortKey||0)-(b.__sortKey||0));
-    if(currentY.length) drawChart(); // Étendre = redraw complet (on « colle » les jours)
+    if(currentY.length) drawChart();
   }
 
-  /* Modal jours */
   let modalResolve=null, modalDirection=0;
   function openDayModal(initial,dir){
     modalDirection=dir;
@@ -445,7 +450,7 @@
   document.getElementById('extendPrev').onclick=async()=>{ const res=await openDayModal(1,-1); if(res&&res.n>0) extendDays(-1,res.n); };
   document.getElementById('extendNext').onclick=async()=>{ const res=await openDayModal(1,+1); if(res&&res.n>0) extendDays(+1,res.n); };
 
-  /* ===================== EXPORT PDF (titre + canvas + dates) ===================== */
+  /* ===================== EXPORT PDF ===================== */
   document.getElementById('exportPDF').onclick = () => {
     if (!chart) { alert("Aucun graphique à exporter."); return; }
 
@@ -522,14 +527,13 @@
     document.getElementById('zoomInfo').style.display='block';
     setTimeout(()=>{document.getElementById('zoomInfo').style.display='none';},5000);
 
-    // S'assurer qu'on a un conteneur pour les dates sous le canvas
     if(!document.getElementById('dateLabels')){
       const dl=document.createElement("div");
       dl.id="dateLabels";
       dl.style.textAlign="center";
       dl.style.marginTop="10px";
       dl.style.fontSize="13px";
-      dl.style.color=getCSSVar('--text'); // suit le thème
+      dl.style.color=getCSSVar('--text');
       document.querySelector(".graph-wrapper").after(dl);
     }
   })();
