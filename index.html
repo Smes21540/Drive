@@ -430,7 +430,7 @@ async function loadFolderFilesOnClick(li){
   localStorage.setItem('lastFolderId', li.dataset.id);
 
   const files = await fetchFolderContents(li.dataset.id);
-  const filtered = files.filter(f => f.name.toLowerCase().endsWith('.csv') || f.name.toLowerCase().endsWith('.jpg') || f.name.toLowerCase().endsWith('.gif')  f.name.toLowerCase().endsWith('.jpeg'));
+  const filtered = files.filter(f => f.name.toLowerCase().endsWith('.csv') || f.name.toLowerCase().endsWith('.jpg') || f.name.toLowerCase().endsWith('.gif') || f.name.toLowerCase().endsWith('.jpeg'));
   imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); // pour la modale
   displayFiles(filtered, nameSpan ? nameSpan.textContent : '');
 }
@@ -794,6 +794,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
