@@ -230,7 +230,7 @@ async function loadCSV(){
     container.innerHTML=`
       <div style="padding:20px; background:#ffccbc; color:#d84315; border-radius:8px; font-weight:bold;">
         ⚠️ Impossible de charger le fichier CSV.<br>
-        Cause probable : restriction Google Drive (CORS) ou problème réseau.<br>
+        Restriction Google Drive: Réessayer plus tard<br>
         <button id="retryBtn" style="margin-top:10px; background:#e64a19; color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">
           🔄 Réessayer
         </button>
@@ -652,6 +652,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
