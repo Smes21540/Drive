@@ -6,7 +6,6 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-YG4RV4W27S');
 </script>
 <head>
@@ -387,8 +386,6 @@ async function loadRootFolders(){
   }, 1000);
 }
 
-
-
 async function toggleFolder(li){
   const toggle=li.querySelector('.folder-toggle');
   if(li.dataset.loaded==='true'){
@@ -399,28 +396,50 @@ async function toggleFolder(li){
   toggle.textContent='…';
   const files=await fetchFolderContents(li.dataset.id);
   const ul=document.createElement('ul');
-  files
-    .filter(f => f.mimeType === 'application/vnd.google-apps.folder')
-    .forEach(f =>{
-      const childLi=document.createElement('li'); childLi.dataset.id=f.id;
-      const childToggle=document.createElement('span'); childToggle.className='folder-toggle'; childToggle.textContent='+';
-      childToggle.onclick=()=>toggleFolder(childLi);
-      const span=document.createElement('span'); span.className='folder-name'; span.textContent=f.name;
-      span.onclick=()=>loadFolderFilesOnClick(childLi);
-      childLi.appendChild(childToggle); childLi.appendChild(span); ul.appendChild(childLi);
+  for (const f of files.filter(f => f.mimeType === 'application/vnd.google-apps.folder')) {
+    const childLi=document.createElement('li'); 
+    childLi.dataset.id=f.id;
 
-      // ✅ vérifier tout dossier dont le nom contient "Temp"
-      if(f.name.includes("Temp")){ checkTraçaTempToday(li, f.id); }
-    });
-  li.appendChild(ul); li.dataset.loaded='true'; toggle.textContent='+';
+    const childToggle=document.createElement('span'); 
+    childToggle.className='folder-toggle'; 
+    childToggle.textContent='+';
+    childToggle.onclick=()=>toggleFolder(childLi);
+
+    const span=document.createElement('span'); 
+    span.className='folder-name'; 
+    span.textContent=f.name;
+    span.onclick=()=>loadFolderFilesOnClick(childLi);
+
+    childLi.appendChild(childToggle); 
+    childLi.appendChild(span); 
+    ul.appendChild(childLi);
+
+    // ✅ Cas spécial : si le dossier est Traça_Temp → précharger Historique
+    if (f.name.toLowerCase().includes("traça_temp") || f.name.toLowerCase().includes("traca_temp")) {
+      const siblings = await fetchFolderContents(li.dataset.id);
+      const hist = siblings.find(s => s.mimeType === 'application/vnd.google-apps.folder' && s.name.toLowerCase().includes("historique"));
+      if (hist) {
+        const histFiles = await fetchFolderContents(hist.id);
+        const z3Files = histFiles.filter(ff => ff.name.toUpperCase().startsWith("Z3") && ff.name.toLowerCase().endsWith(".csv"));
+        localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
+        console.log("[INDEX] Z3 préchargés:", z3Files.length);
+      }
+    }
+
+    // ✅ Vérif Temp (flamme 🔥)
+    if(f.name.includes("Temp")){ checkTraçaTempToday(li, f.id); }
+  }
+  li.appendChild(ul); 
+  li.dataset.loaded='true'; 
+  toggle.textContent='+';
 }
+
 
 // Fonction utilitaire pour récupérer les sous-dossiers sans modifier l'affichage
 async function fetchChildren(folderId){
   const files = await fetchFolderContents(folderId);
   return files.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
 }
-
 
 async function loadFolderFilesOnClick(li){
   await toggleFolder(li);
@@ -464,20 +483,18 @@ function displayFiles(files, folderName){
     const tdDate=document.createElement('td'); tdDate.textContent=date||'';
     const tdName=document.createElement('td'); tdName.textContent=f.name;
     const tdFolder=document.createElement('td'); tdFolder.textContent=folderName;
-const tdSize = document.createElement('td');
-if (f.size) {
-  tdSize.textContent = formatSize(f.size);
-
-  if (parseInt(f.size) < 200) {
-    tdSize.style.color = "#999";      // gris clair
-    tdSize.textContent += " (vide)";  // ajoute le tag
-  } else {
-    tdSize.style.color = "inherit";   // couleur normale
-  }
-} else {
-  tdSize.textContent = '?';
-}
-
+    const tdSize = document.createElement('td');
+    if (f.size) {
+      tdSize.textContent = formatSize(f.size);
+      if (parseInt(f.size) < 200) {
+        tdSize.style.color = "#999";
+        tdSize.textContent += " (vide)";
+      } else {
+        tdSize.style.color = "inherit";
+      }
+    } else {
+      tdSize.textContent = '?';
+    }
 
     const tdAction=document.createElement('td'); tdAction.className='action-cell';
     let html='';
@@ -498,21 +515,29 @@ if (f.size) {
 }
 
 /* ----------- Open viewer (CSV list + index) ----------- */
-function openViewer(viewer, id, name){
-  const active=document.querySelector('#folderTree .active-folder');
-  if(!active){alert("Sélectionnez un dossier !"); return;}
+async function openViewer(viewer, id, name){
+  const active = document.querySelector('#folderTree .active-folder');
+  if (!active) { alert("Sélectionnez un dossier !"); return; }
 
-  const folderId=localStorage.getItem('lastFolderId');
-  fetchFolderContents(folderId).then(files=>{
-    const csvFiles=files.filter(f=>f.name.toLowerCase().endsWith('.csv'));
-    localStorage.setItem("csvFilesList", JSON.stringify(csvFiles));
-    const index=csvFiles.findIndex(f=>f.id===id);
-    localStorage.setItem("csvFileIndex", index);
+  const folderId = localStorage.getItem('lastFolderId');
 
-    // encodage du nom UNIQUEMENT ici (évite le double encodage)
-    window.open(`${viewer}?fileId=${id}&fileName=${encodeURIComponent(name)}`,'_blank');
-  });
+  // SA du dossier courant
+  const files = await fetchFolderContents(folderId);
+  const saFiles = files.filter(f => f.name.toUpperCase().startsWith("SA") && f.name.toLowerCase().endsWith('.csv'));
+
+  // 🔗 Récupérer les Z3 préchargés
+  const z3Files = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
+
+  // SA + Z3 → Viewer
+  const allCsv = [...saFiles, ...z3Files];
+  localStorage.setItem("csvFilesList", JSON.stringify(allCsv));
+
+  const index = allCsv.findIndex(f => f.id === id);
+  localStorage.setItem("csvFileIndex", index);
+
+  window.open(`${viewer}?fileId=${id}&fileName=${encodeURIComponent(name)}`,'_blank');
 }
+
 
 /* ----------- Filtres ----------- */
 function applyFilter(){
@@ -657,7 +682,6 @@ function sortTable(colIndex, type) {
   if (arrow) arrow.textContent = currentSort.asc ? "▲" : "▼";
 }
 
-
 /* ----------- Icônes calendrier cliquables ----------- */
 document.getElementById("iconStart").onclick=()=>document.getElementById("startDate").showPicker?.()||document.getElementById("startDate").focus();
 document.getElementById("iconEnd").onclick=()=>document.getElementById("endDate").showPicker?.()||document.getElementById("endDate").focus();
@@ -759,19 +783,19 @@ async function checkTraçaTempToday(parentLi, tracatempId) {
     const text = await res.text();
 
     // lire les dernières lignes
-const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
-const lastLine = lines[lines.length - 1];
-if (!lastLine) return;
+    const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+    const lastLine = lines[lines.length - 1];
+    if (!lastLine) return;
 
-// Nettoyage : enlever guillemets et espaces
-const cols = lastLine.split(",").map(c => c.replace(/"/g, "").trim());
+    // Nettoyage : enlever guillemets et espaces
+    const cols = lastLine.split(",").map(c => c.replace(/"/g, "").trim());
 
-const v4 = parseFloat(cols[3]);
-const v6 = parseFloat(cols[5]);
+    const v4 = parseFloat(cols[3]);
+    const v6 = parseFloat(cols[5]);
 
-if ((v4 && v4 > FLAME_THRESHOLD) || (v6 && v6 > FLAME_THRESHOLD)) {
-  markFolderWithFlame(parentLi);
-}
+    if ((v4 && v4 > FLAME_THRESHOLD) || (v6 && v6 > FLAME_THRESHOLD)) {
+      markFolderWithFlame(parentLi);
+    }
 
   } catch (e) {
     console.error("Erreur lecture CSV dans Temp", e);
@@ -807,11 +831,6 @@ window.onload=()=>{
 </script>
 </body>
 </html>
-
-
-
-
-
 
 
 
