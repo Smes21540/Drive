@@ -13,6 +13,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
 
   <!-- === PARTIE 2 : Styles CSS === -->
   <style>
@@ -348,6 +350,14 @@
       loadedDays.add(baseDateYYYYMMDD);
     }
   }
+// Enregistrer le plugin d'annotation pour Chart.js 4
+if (window['chartjs-plugin-annotation']) {
+  Chart.register(window['chartjs-plugin-annotation']);
+} else {
+  console.warn("chartjs-plugin-annotation non trouvé");
+}
+
+
 
   /* ===================== CHART ===================== */
   function getTimeUnit(range){
@@ -416,171 +426,140 @@ function buildDatasets(){
   });
 }
 
+async function drawChart(fileId = baseFileId, fileName = baseFileName) {
+  try {
+    const parsed = await loadCSVByFileId(fileId);
+    if (!parsed || !parsed.data) throw new Error("CSV vide ou invalide");
 
-  async function drawChart(){
-  if(!csvData.length||!timeField||!currentY.length) return;
-  const ctx=document.getElementById('myChart').getContext('2d');
+    // Utiliser les en-têtes globaux
+    headers = dedupeHeaders(parsed.data[0] || []);
+    csvData = buildObjectsFromParsedResults(parsed, headers);
 
-  const allX=csvData.map(r=>r.__sortKey).filter(v=>Number.isFinite(v));
-  const minX=Math.min(...allX), maxX=Math.max(...allX);
-
-  const datasets = buildDatasets();
-
-  // Charger le fichier Z correspondant (même date que le SA)
-// Charger le fichier Z correspondant (dans le dossier Historique)
-let zEvents = [];
-if (saMeta) {
-  const list=JSON.parse(localStorage.getItem("csvFilesList")||"[]");
-  const nameZ=`Historique/Z3${saMeta.num}_${saMeta.date}.csv`;   // ex: SA00094 → Historique/Z300094
-  const f=list.find(x=>x.name===nameZ);
-  if (f) {
-    const parsed=await loadCSVByFileId(f.id);
-    if (parsed && parsed.data?.length > 3) {
-      zEvents = parsed.data.slice(3).map(r=>{
-        const date=r[0], time=r[1], msg=r[2];
-        if (!date||!time||!msg) return null;
-        const iso="20"+date.slice(6,8)+"-"+date.slice(3,5)+"-"+date.slice(0,2);
-        const ts=new Date(`${iso}T${time}`).getTime();
-        return { x:ts, label:msg };
-      }).filter(Boolean);
+    if (saMeta) {
+      enrichRowsWithDate(csvData, baseDateYYYYMMDD);
     }
-  }
-}
 
+    currentX = document.getElementById('xColumn').value;
+    currentY = Array.from(
+      document.querySelectorAll("#yColumnsContainer input:checked")
+    ).map(cb => cb.value);
 
-  // Transformer en annotations Chart.js
-  function buildAnnotations(events){
-    const annotations={};
-    events.forEach((ev,i)=>{
-      let color="blue";
-      if(ev.label.includes("Marche")) color="green";
-      if(ev.label.includes("Arrêt")||ev.label.includes("Défaut")) color="red";
-      annotations["event"+i]={
-        type:"line",
-        xMin:ev.x,
-        xMax:ev.x,
-        borderColor:color,
-        borderWidth:2,
-        label:{
-          content:ev.label,
-          enabled:true,
-          rotation:90,
-          position:"start",
-          font:{size:10},
-          backgroundColor:"rgba(255,255,255,0.7)",
-          color:color
+    if (!currentX || currentY.length === 0) {
+      console.warn("Aucune colonne sélectionnée pour tracer.");
+      return;
+    }
+
+    // Construire datasets
+    const datasets = buildDatasets();
+
+    // Détruire ancien graphique si besoin
+    if (chart) {
+      chart.destroy();
+    }
+
+    const ctx = document.getElementById('myChart').getContext('2d');
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        parsing: false,
+        scales: {
+          x: {
+            type: 'time',
+            time: { unit: 'hour' },
+            ticks: { source: 'auto' }
+          },
+          y: { beginAtZero: false }
+        },
+        plugins: {
+          zoom: {
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: 'x',
+            },
+            pan: { enabled: true, mode: 'x' }
+          },
+          legend: { display: true },
+          annotation: { annotations: {} }
+        }
+      }
+    });
+
+    // === Charger le fichier Z3 associé pour les événements ===
+    let zEvents = [];
+    if (saMeta) {
+      const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+      const expectedZ = `Z3${saMeta.num}_${saMeta.date}.csv`.toLowerCase();
+
+      const f = list.find(x =>
+        String(x.name || "").toLowerCase() === expectedZ
+      );
+
+      if (f) {
+        console.log("[Z3] Fichier trouvé:", f.name);
+        const parsedZ = await loadCSVByFileId(f.id);
+        const rows = Papa.parse(parsedZ, { header: true }).data;
+
+        zEvents = rows.map(r => {
+          const t = r["Trigger Time"] || r["time"] || r["Time"] || r[0];
+          const label = r["Event"] || r["Label"] || r[2] || "Événement";
+          const dateObj = new Date(String(t));
+          return (!isNaN(dateObj.getTime())) ? { time: dateObj, label } : null;
+        }).filter(Boolean);
+      } else {
+        console.warn("[Z3] Aucun fichier trouvé pour", expectedZ);
+      }
+    }
+
+    // Ajouter traits verticaux fins pour chaque événement
+    const annotations = {};
+    zEvents.forEach((ev, i) => {
+      annotations["event" + i] = {
+        type: 'line',
+        xMin: ev.time.getTime(),
+        xMax: ev.time.getTime(),
+        borderColor: 'red',
+        borderWidth: 1,
+        label: {
+          content: ev.label,
+          enabled: false,
+          position: 'start'
         }
       };
     });
-    return annotations;
+
+    chart.options.plugins.annotation.annotations = annotations;
+
+    // Tooltip : afficher l’événement au survol proche
+    chart.options.plugins.tooltip.callbacks.afterBody = (items) => {
+      const x = items[0].parsed.x;
+      const hit = zEvents.find(ev => Math.abs(ev.time.getTime() - x) < 60000);
+      return hit ? ["Événement:", hit.label] : [];
+    };
+
+    chart.update();
+    applyAdaptiveTicks();
+  } catch (e) {
+    console.error("Erreur dans drawChart:", e);
+    alert("Erreur lors du tracé du graphique. Voir console.");
   }
-
-  const dayBackgroundPlugin={
-    id:'dayBackground',
-    beforeDraw(chart){
-      const {scales:{x},chartArea}=chart;
-      if(!x||!isFinite(x.min)||!isFinite(x.max)) return;
-      const oneDay=86400000;
-      let start=new Date(x.min); start.setHours(0,0,0,0);
-      let toggle=false;
-      const ctx=chart.ctx; ctx.save();
-      for(let d=start.getTime(); d<x.max; d+=oneDay){
-        const from=x.getPixelForValue(d), to=x.getPixelForValue(d+oneDay);
-        ctx.fillStyle=toggle? (getCSSVar('--accent-muted')||'rgba(255,112,67,0.12)') : 'rgba(0,0,0,0.02)';
-        ctx.fillRect(from, chartArea.top, to-from, chartArea.bottom-chartArea.top);
-        toggle=!toggle;
-      }
-      ctx.restore();
-      const labels=[];
-      for(let d=start.getTime(); d<x.max; d+=oneDay){labels.push(dayLabelFR(d));}
-      const dl=document.getElementById('dateLabels'); if(dl) dl.textContent = labels.join(" | ");
-    }
-  };
-
-  if(chart) chart.destroy();
-  chart=new Chart(ctx,{
-    type:'line',
-    data:{datasets},
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      interaction:{mode:'nearest',axis:'x',intersect:false},
-      plugins:{
-        legend:{
-          position:'top',
-          onClick:(e,legendItem,legend)=>{
-            const chart = legend.chart;
-            const ds = chart.data.datasets[legendItem.datasetIndex];
-            if (e.native.ctrlKey) {
-              const colorPicker=document.getElementById("colorPicker");
-              colorPicker.oninput=(ev)=>{
-                const chosen=ev.target.value;
-                ds.borderColor=chosen;
-                ds.pointBackgroundColor=chosen;
-                ds.pointBorderColor=chosen;
-                chart.update();
-              };
-              colorPicker.click();
-            } else {
-              Chart.defaults.plugins.legend.onClick.call(this,e,legendItem,legend);
-            }
-          }
-        },
-        datalabels:{display:false},
-        zoom:{
-          zoom:{wheel:{enabled:true,modifierKey:'ctrl'},pinch:{enabled:true},drag:{enabled:true,mode:'x'}},
-          pan:{enabled:true,mode:'x'}
-        },
-        tooltip:{
-          callbacks:{
-            title:(items)=>{
-              if(!items?.length) return '';
-              const d=new Date(items[0].parsed.x);
-              return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-            },
-            label:(ctx)=>{
-              const ds=ctx.dataset;
-              const idx=ctx.dataIndex;
-              const rawY=ds.rawData?.[idx]?.y;
-              return `${ds.label}: ${rawY ?? ctx.parsed.y}`;
-            }
-          }
-        },
-        // === Ajout des annotations pour Z ===
-        annotation:{
-          annotations: buildAnnotations(zEvents)
-        }
-      },
-      scales:{
-        x:{
-          type:'time',
-          min:Number.isFinite(minX)?minX:undefined,
-          max:Number.isFinite(maxX)?maxX:undefined,
-          time:{unit:'hour',tooltipFormat:'HH:mm',displayFormats:{hour:'HH:mm',minute:'HH:mm'}},
-          ticks:{autoSkip:true,callback:(value)=>{
-            const d=new Date(value);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-          }}
-        },
-        y:{title:{display:true,text:'Valeurs'}}
-      }
-    },
-    plugins:[ChartDataLabels,dayBackgroundPlugin]
-  });
-
-  chart.update();
-  applyAdaptiveTicks();
 }
+
 
 
   /* ===================== UI ===================== */
   document.getElementById('backBtn').onclick=()=>window.close();
 
   // Auto-affichage du graphique dès qu'une case Y est cochée/décochée
-  document.getElementById("yColumnsContainer").addEventListener("change", () => {
-    currentX = document.getElementById('xColumn').value;
-    currentY = Array.from(document.querySelectorAll("#yColumnsContainer input:checked")).map(cb => cb.value);
-    if (currentY.length) drawChart();
-  });
+document.getElementById("yColumnsContainer").addEventListener("change", () => {
+  currentX = document.getElementById('xColumn').value;
+  currentY = Array.from(document.querySelectorAll("#yColumnsContainer input:checked")).map(cb => cb.value);
+  if (currentY.length) drawChart(baseFileId, baseFileName);
+});
+
 
   // Reset zoom
   document.getElementById('resetZoom').onclick=()=>{
@@ -663,7 +642,8 @@ document.getElementById("smoothBtn").onclick = () => {
       await loadDayIfAvailable(target);
     }
     csvData.sort((a,b)=>(a.__sortKey||0)-(b.__sortKey||0));
-    if(currentY.length) drawChart();
+    if(currentY.length) drawChart(baseFileId, baseFileName);
+
   }
 
   let modalResolve=null, modalDirection=0;
@@ -762,6 +742,8 @@ document.getElementById("smoothBtn").onclick = () => {
     updateSmoothBtnUI();
 
     await loadCSVFromDrive();
+if (currentY.length) drawChart(baseFileId, baseFileName);
+
 
     // aide zoom temporaire
     document.getElementById('zoomInfo').style.display='block';
@@ -781,6 +763,8 @@ document.getElementById("smoothBtn").onclick = () => {
   </script>
 </body>
 </html>
+
+
 
 
 
