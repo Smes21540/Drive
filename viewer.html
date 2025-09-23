@@ -267,12 +267,16 @@ function renderTable(data){
   }
 
   html+='<tbody>';
-  for(let i=headerRowIndex+1;i<data.length;i++){
-    html+='<tr>';
-    data[i].forEach((cell,index)=> html+=`<td>${escapeHtml((cell??'').toString().trim())}</td>`);
-    html+='</tr>';
-  }
-  html+='</tbody></table>';
+html+='<tbody>';
+for(let i=data.length-1; i>headerRowIndex; i--){   // on part de la fin
+  html+='<tr>';
+  data[i].forEach((cell,index)=> {
+    html+=`<td>${escapeHtml((cell??'').toString().trim())}</td>`;
+  });
+  html+='</tr>';
+}
+html+='</tbody></table>';
+
   document.getElementById('tableContainer').innerHTML=html;
 
   // Panneau de toggles colonnes (reconstruit à chaque rendu)
@@ -652,6 +656,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
