@@ -225,6 +225,19 @@ async function loadCSV(){
     const rowCount=currentData.length>1?currentData.length-1:0;
     lineCountDiv.textContent=rowCount+" ligne"+(rowCount!==1?"s":"");
     renderTable(currentData);
+
+    // === Tri automatique sur la colonne TIME (descendant) ===
+    const baseName = (fileName || "").split(/[\\/]/).pop();
+    const isZfile = baseName.startsWith("Z");
+    const headerRowIndex = isZfile ? 2 : 0;
+    const header = currentData[headerRowIndex].map(c => (c ?? "").toString().toUpperCase());
+
+    const timeColIndex = header.findIndex(h => h.includes("TIME"));
+    if (timeColIndex >= 0) {
+      sortAsc = false;         // forcer premier tri en décroissant
+      sortTable(timeColIndex); // affiche 23:59 → 00:00
+    }
+
   } catch(err){
     console.error("Erreur:",err);
     container.innerHTML=`
@@ -656,6 +669,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
