@@ -59,7 +59,7 @@
   justify-content: center;
   gap: 20px;
   margin-bottom: 40px;
-  height: 800px;          /* hauteur fixée comme le canvas */
+  height: 1000px;          /* hauteur fixée comme le canvas */
 }
 
 .graph-side {
@@ -71,7 +71,7 @@
 #myChart {
   width: 100%;
   aspect-ratio: 16/9;
-  max-height: 800px;
+  max-height: 1000px;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 12px var(--shadow);
@@ -84,17 +84,19 @@
   flex-direction: column;
   gap: 4px;
 
-  max-height: 100%;       /* jamais plus haut que le canvas */
-  overflow-y: auto;       /* scroll si trop long */
+  /* hauteur adaptative */
+  max-height: 1000px;      /* ne jamais dépasser 1000px */
+  height: auto;            /* prend la taille du contenu si < 1000px */
 
+  overflow-y: auto;        /* ajoute une barre de défilement si trop long */
   border: 1px solid #ddd;
   padding: 6px;
   border-radius: 6px;
   background: var(--panel);
   scrollbar-width: thin;
   width: 220px;
-  margin: 0 auto;         /* centrage horizontal */
 }
+
 
 
 
@@ -145,11 +147,11 @@
   flex-direction: column;
   gap: 4px;
 
-  /* 🆕 occuper toute la hauteur disponible du côté gauche */
-  height: 100%;
-  max-height: none;
+  /* hauteur auto sauf si trop long */
+  height: auto;            /* s'adapte au contenu */
+  max-height: 1000px;      /* plafonné à 1000px si trop grand */
+  overflow-y: auto;        /* active le scroll uniquement si nécessaire */
 
-  overflow-y: auto;
   border: 1px solid #ddd;
   padding: 6px;
   border-radius: 6px;
@@ -157,6 +159,7 @@
   scrollbar-width: thin;
   width: 220px;
 }
+
     }
     .y-columns::-webkit-scrollbar{width:6px;}
     .y-columns::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px;}
@@ -183,9 +186,10 @@
 .graph-side {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
+  justify-content: center; /* centre verticalement */
+  align-items: center;     /* centre horizontalement */
 }
+
 
 
   </style>
@@ -228,7 +232,7 @@
 
   <!-- Zone centrale : graphe -->
   <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
-    <canvas id="myChart" width="1600" height="800"></canvas>
+    <canvas id="myChart" width="1400" height="1000"></canvas>
     <input type="color" id="colorPicker" style="display:none;" />
     <div id="dateLabels" style="text-align:center; margin-top:8px; font-weight:bold; color:var(--danger);"></div>
   </div>
@@ -274,6 +278,8 @@
   let colors=[]; let themeMenuTimer;
   let loadedDays=new Set(); let saMeta=null;
   let customColors = {}; // mémorise les couleurs choisies par label
+  let initialMin = null, initialMax = null;
+
 
 
   // Z3
@@ -699,6 +705,10 @@ if (!isNaN(dt.getTime())) {
   const allX=csvData.map(r=>r.__sortKey).filter(v=>Number.isFinite(v));
   const minX=Math.min(...allX), maxX=Math.max(...allX);
 
+  // stocker les bornes initiales une seule fois
+  if (initialMin === null) initialMin = minX;
+  if (initialMax === null) initialMax = maxX;
+
   const datasets = buildDatasets();
 
   // Sauvegarder zoom avant destruction
@@ -747,14 +757,19 @@ if (!isNaN(dt.getTime())) {
           zoom:{
             wheel:{enabled:true,modifierKey:'ctrl'},
             pinch:{enabled:true},
-            drag:{enabled:true,mode:'x'},
-            mode:'x'
+            drag:{
+              enabled:true,
+              mode:'x',
+              backgroundColor:'rgba(54, 162, 235, 0.1)', // fond semi-transparent
+              borderColor:'rgba(54, 162, 235, 0.5)',     // contour visible
+              borderWidth:1
+            }
           },
           pan:{enabled:true,mode:'x'},
           limits:{ y:{min:'original',max:'original'} }
         }
       },
-      tooltip:{   // au bon niveau
+      tooltip:{
         callbacks:{
           title:(items)=>{
             if(!items?.length) return '';
@@ -821,6 +836,7 @@ if (!isNaN(dt.getTime())) {
 
 
 
+
   /* ===================== UI ===================== */
   document.getElementById('backBtn').onclick=()=>window.close();
 
@@ -858,14 +874,23 @@ ds.pointBorderColor = newColor;
     colorPickerEl.click();
   });
 
-  // Reset zoom
-  document.getElementById('resetZoom').onclick=()=>{
-    if(!chart) return;
-    chart.resetZoom();
-    chart.options.scales.x.min=undefined;
-    chart.options.scales.x.max=undefined;
-    applyAdaptiveTicks();
-  };
+// Reset zoom
+document.getElementById('resetZoom').onclick=()=>{
+  if(!chart) return;
+
+  // Empêcher autoLoadDays de s’exécuter pendant le reset
+  chart.$isResetting = true;
+
+  chart.resetZoom();
+  chart.options.scales.x.min = initialMin;
+  chart.options.scales.x.max = initialMax;
+  applyAdaptiveTicks();
+  chart.update('none');
+
+  // Réactiver autoLoadDays après un petit délai
+  setTimeout(()=>{ chart.$isResetting = false; }, 200);
+};
+
 
   // ==== LISSAGE avec mémorisation ====
   function updateSmoothBtnUI() {
@@ -1031,20 +1056,19 @@ async function loadDayIfAvailable(yyyymmdd){
 
 /* ===================== AUTO LOAD DAYS (zoom/pan) ===================== */
 async function autoLoadDays(chart){
+  // 🚫 si on est en train de faire un reset → on sort direct
+  if(chart.$isResetting) return;
   if(!saMeta) return;
+
   const xScale = chart.scales.x;
   const min = xScale.min, max = xScale.max;
 
   const d0 = new Date(min);
   const d1 = new Date(max);
 
-  // Mise à zéro heure
+  // Mise à zéro heure (⚠️ pas de limite veille/lendemain)
   d0.setHours(0,0,0,0);
   d1.setHours(0,0,0,0);
-
-  // 🔥 inclure la veille et le lendemain
-  d0.setDate(d0.getDate()-1);
-  d1.setDate(d1.getDate()+1);
 
   let newData = false;
 
@@ -1076,6 +1100,7 @@ async function autoLoadDays(chart){
     if(z3Visible && chart) chart.update('none');
   }
 }
+
 
 
   /* ===================== EXPORT PDF ===================== */
