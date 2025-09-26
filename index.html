@@ -804,13 +804,16 @@ async function checkTraçaTempToday(parentLi, tracatempId) {
 
 function markFolderWithFlame(li) {
   const span = li.querySelector(".folder-name");
-  if (span && !span.innerHTML.startsWith("🔥")) {
+  // ✅ Vérifie s'il y a déjà une flamme (évite les doublons)
+  if (span && !span.querySelector(".flame")) {
     span.innerHTML = `<span class="flame">🔥</span> ` + span.innerHTML;
   }
+  // ✅ Propagation aux parents
   if (li.parentElement && li.parentElement.closest("li")) {
     markFolderWithFlame(li.parentElement.closest("li"));
   }
 }
+
 
 /* ----------- Init ----------- */
 window.onload=()=>{
@@ -831,6 +834,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
