@@ -199,9 +199,12 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 }
 
 @keyframes flicker {
-  from { transform: translateY(0); }
-  to   { transform: translateY(-2px); }
+  0%   { transform: translateY(0) scale(1); color: #ff7043; }
+  30%  { transform: translateY(-1px) scale(1.05); color: #ff5722; }
+  60%  { transform: translateY(-2px) scale(1.1); color: #ff9800; }
+  100% { transform: translateY(0) scale(1); color: #ff7043; }
 }
+
 
 </style>
 </head>
@@ -804,15 +807,15 @@ async function checkTraçaTempToday(parentLi, tracatempId) {
 
 function markFolderWithFlame(li) {
   const span = li.querySelector(".folder-name");
-  // ✅ Vérifie s'il y a déjà une flamme (évite les doublons)
-  if (span && !span.querySelector(".flame")) {
+  if (span && !span.classList.contains("has-flame")) {
+    span.classList.add("has-flame");
     span.innerHTML = `<span class="flame">🔥</span> ` + span.innerHTML;
   }
-  // ✅ Propagation aux parents
   if (li.parentElement && li.parentElement.closest("li")) {
     markFolderWithFlame(li.parentElement.closest("li"));
   }
 }
+
 
 
 /* ----------- Init ----------- */
@@ -834,24 +837,3 @@ window.onload=()=>{
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
