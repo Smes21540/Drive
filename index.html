@@ -205,13 +205,30 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   100% { transform: translateY(0) scale(1); color: #ff7043; }
 }
 
+#eventAlert {
+  display:none;
+  position:fixed;
+  top:40px; /* juste sous netAlert */
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--accent);
+  color:#fff;
+  padding:8px 16px;
+  border-radius:6px;
+  font-weight:bold;
+  z-index:3000;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
+}
+
 
 </style>
 </head>
 <body>
 
 <div id="netAlert">⚠️ Pas de connexion internet détectée. Vérifiez votre réseau.</div>
+<div id="eventAlert">✅ Événements chargés</div>
 <div id="spinner"></div>
+
 
 <!-- Sidebar dossiers -->
 <div id="sidebar">
@@ -330,6 +347,14 @@ function formatSize(bytes){
   return (i===0?Math.round(v):v.toFixed(1))+" "+units[i];
 }
 
+function showEventAlert(msg="✅ Événements chargés") {
+  const alertBox = document.getElementById("eventAlert");
+  alertBox.textContent = msg;
+  alertBox.style.display = "block";
+  setTimeout(()=>{ alertBox.style.display="none"; },2000);
+}
+
+
 /* ----------- Drive API ----------- */
 async function fetchFolderContents(folderId){
   if(!navigator.onLine){updateNetworkStatus();return [];}
@@ -424,8 +449,10 @@ async function toggleFolder(li){
       if (hist) {
         const histFiles = await fetchFolderContents(hist.id);
         const z3Files = histFiles.filter(ff => ff.name.toUpperCase().startsWith("Z3") && ff.name.toLowerCase().endsWith(".csv"));
-        localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
-        console.log("[INDEX] Z3 préchargés:", z3Files.length);
+localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
+console.log("[Z3] Préchargés depuis Historique:", z3Files.length);
+showEventAlert();
+
       }
     }
 
@@ -446,16 +473,70 @@ async function fetchChildren(folderId){
 
 async function loadFolderFilesOnClick(li){
   await toggleFolder(li);
+
+  // Réinitialiser la sélection visuelle
   document.querySelectorAll('#folderTree li span.folder-name').forEach(s=>s.classList.remove('active-folder'));
-  const nameSpan=li.querySelector('span.folder-name');
-  if(nameSpan){ nameSpan.classList.add('active-folder'); }
+  const nameSpan = li.querySelector('span.folder-name');
+  if(nameSpan){ 
+    nameSpan.classList.add('active-folder'); 
+  }
   localStorage.setItem('lastFolderId', li.dataset.id);
 
+  const folderName = nameSpan ? nameSpan.textContent.toLowerCase() : "";
+
+  // ⚡ Gestion spéciale Z3
+  if (folderName.includes("traça_temp") || folderName.includes("traca_temp")) {
+    // récupérer le dossier parent (= site)
+    const siteLi = li.parentElement.closest("li");
+    if (siteLi && siteLi.dataset.id) {
+      const siblings = await fetchFolderContents(siteLi.dataset.id);
+      const hist = siblings.find(s => 
+        s.mimeType === 'application/vnd.google-apps.folder' && 
+        s.name.toLowerCase().includes("historique")
+      );
+
+      if (hist) {
+        const histFiles = await fetchFolderContents(hist.id);
+        const z3Files = histFiles.filter(ff => 
+          ff.name.toUpperCase().startsWith("Z3") && 
+          ff.name.toLowerCase().endsWith(".csv")
+        );
+        localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
+        console.log("[Z3] Préchargés depuis Historique voisin:", z3Files.length);
+      } else {
+        localStorage.removeItem("csvZ3Files");
+        console.warn("[Z3] Aucun dossier Historique trouvé pour", nameSpan.textContent);
+      }
+    }
+  } 
+  else if (folderName.includes("historique")) {
+    // directement charger les Z3 de ce dossier
+    const histFiles = await fetchFolderContents(li.dataset.id);
+    const z3Files = histFiles.filter(ff => 
+      ff.name.toUpperCase().startsWith("Z3") && 
+      ff.name.toLowerCase().endsWith(".csv")
+    );
+    localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
+    console.log("[Z3] Préchargés directement (Historique):", z3Files.length);
+  } 
+  else {
+    // Sinon → effacer le cache Z3
+    localStorage.removeItem("csvZ3Files");
+    console.log("[Z3] Cache vidé (hors Traça_Temp / Historique)");
+  }
+
+  // Charger fichiers CSV/JPG classiques du dossier
   const files = await fetchFolderContents(li.dataset.id);
-  const filtered = files.filter(f => f.name.toLowerCase().endsWith('.csv') || f.name.toLowerCase().endsWith('.jpg') || f.name.toLowerCase().endsWith('.jpeg'));
+  const filtered = files.filter(f => 
+    f.name.toLowerCase().endsWith('.csv') || 
+    f.name.toLowerCase().endsWith('.jpg') || 
+    f.name.toLowerCase().endsWith('.jpeg')
+  );
   imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); // pour la modale
   displayFiles(filtered, nameSpan ? nameSpan.textContent : '');
 }
+
+
 
 function displayFiles(files, folderName){
   const tbody=document.querySelector('#csvTable tbody');
@@ -482,10 +563,28 @@ function displayFiles(files, folderName){
 
     if((filterStartDate && date<filterStartDate) || (filterEndDate && date>filterEndDate)) continue;
 
-    const tr=document.createElement('tr');
-    const tdDate=document.createElement('td'); tdDate.textContent=date||'';
-    const tdName=document.createElement('td'); tdName.textContent=f.name;
-    const tdFolder=document.createElement('td'); tdFolder.textContent=folderName;
+const tr=document.createElement('tr');
+
+// Bloc DATE avec affichage du jour
+const tdDate=document.createElement('td');
+if (date) {
+  const d = new Date(date);
+  const jours = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+  const jourNom = jours[d.getDay()];
+  tdDate.textContent = `${date} (${jourNom})`;
+
+  // Week-end → rouge + gras
+  if (d.getDay() === 0 || d.getDay() === 6) {
+    tdDate.style.color = "var(--danger)";
+    tdDate.style.fontWeight = "bold";
+  }
+} else {
+  tdDate.textContent = '';
+}
+
+const tdName=document.createElement('td'); tdName.textContent=f.name;
+const tdFolder=document.createElement('td'); tdFolder.textContent=folderName;
+
     const tdSize = document.createElement('td');
     if (f.size) {
       tdSize.textContent = formatSize(f.size);
@@ -501,11 +600,13 @@ function displayFiles(files, folderName){
 
     const tdAction=document.createElement('td'); tdAction.className='action-cell';
     let html='';
-    if(f.name.toLowerCase().endsWith('.csv')){
-      html+=`<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank"><button class="action-btn">Télécharger</button></a>`;
-      html+=`<button class="action-btn" onclick="openViewer('viewer.html','${f.id}','${f.name}')">Tableau</button>`;
-      html+=`<button class="action-btn" onclick="openViewer('viewer02.html','${f.id}','${f.name}')">Courbes</button>`;
-    }
+if(f.name.toLowerCase().endsWith('.csv')){
+  html+=`<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank"><button class="action-btn">Télécharger</button></a>`;
+  html+=`<button class="action-btn" onclick="openViewer('viewer.html','${f.id}','${f.name}')">Tableau</button>`;
+  html+=`<button class="action-btn" onclick="openViewer('viewer02.html','${f.id}','${f.name}')">Courbes</button>`;
+  html+=`<button class="action-btn" onclick="openViewer('index03.html','${f.id}','${f.name}')">Sondes</button>`;
+}
+
     if(/\.(jpg|jpeg)$/i.test(f.name)){
       html+=`<img src="https://drive.google.com/thumbnail?id=${f.id}" onclick="openModal('${f.id}')" alt="aperçu">`;
       html+=`<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank"><button class="action-btn">Télécharger</button></a>`;
@@ -531,15 +632,56 @@ async function openViewer(viewer, id, name){
   // 🔗 Récupérer les Z3 préchargés
   const z3Files = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
 
-  // SA + Z3 → Viewer
+  // SA + Z3 → base
   const allCsv = [...saFiles, ...z3Files];
+
+  // ⚡ Ajouter la hiérarchie de dossiers
+  function addFolderHierarchy(li, acc){
+    if (!li) return;
+
+    const nameSpan = li.querySelector('.folder-name');
+    const folderObj = {
+      id: li.dataset.id,
+      name: nameSpan ? nameSpan.textContent : '',
+      parents: []
+    };
+
+    const parentLi = li.parentElement.closest('li');
+    if (parentLi) {
+      folderObj.parents.push(parentLi.dataset.id);
+      addFolderHierarchy(parentLi, acc);
+    }
+
+    if (!acc.find(x => x.id === folderObj.id)) {
+      acc.push(folderObj);
+    }
+  }
+
+  // 👉 Dossier actif
+  const activeLi = active.closest('li');
+  addFolderHierarchy(activeLi, allCsv);
+
+  // 👉 Relier chaque CSV au dossier actif
+  allCsv.forEach(f => {
+    if (!f.parents) f.parents = [];
+    if (!f.parents.includes(activeLi.dataset.id)) {
+      f.parents.push(activeLi.dataset.id);
+    }
+  });
+
+  // Sauvegarde
   localStorage.setItem("csvFilesList", JSON.stringify(allCsv));
 
   const index = allCsv.findIndex(f => f.id === id);
   localStorage.setItem("csvFileIndex", index);
 
+  console.log("📦 Sauvegardé dans csvFilesList:", allCsv); // debug
+
   window.open(`${viewer}?fileId=${id}&fileName=${encodeURIComponent(name)}`,'_blank');
 }
+
+
+
 
 
 /* ----------- Filtres ----------- */
@@ -809,12 +951,13 @@ function markFolderWithFlame(li) {
   const span = li.querySelector(".folder-name");
   if (span && !span.classList.contains("has-flame")) {
     span.classList.add("has-flame");
-    span.innerHTML = `<span class="flame">🔥</span> ` + span.innerHTML;
+    span.innerHTML = `<span class="flame" title="Brûleur(s) actuellement en fonctionnement">🔥</span> ` + span.innerHTML;
   }
   if (li.parentElement && li.parentElement.closest("li")) {
     markFolderWithFlame(li.parentElement.closest("li"));
   }
 }
+
 
 
 
