@@ -15,239 +15,188 @@ body{
   display:flex; flex-direction:column; align-items:center;
 }
 h1{color:var(--accent);}
-#container{
-  display:flex;
-  flex-direction:row;
-  gap:20px;
-  margin-top:20px;
-}
-#acGrid{
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  gap:20px;
-}
-#acGrid > div{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-.acTitle{
-  font-weight:bold;
-  text-align:center;
-  color:var(--accent);
-  margin-bottom:4px;
-}
-#grid{
-  display:grid;
-  grid-template-columns:repeat(6, 120px);
-  grid-template-rows:repeat(8, 80px);
-  gap:8px;
-}
-.sonde{
-  background:#eee;
-  border-radius:8px;
-  display:flex; flex-direction:column;
-  justify-content:center; align-items:center;
-  font-weight:bold;
-  box-shadow:0 2px 5px rgba(0,0,0,0.2);
-  padding:4px;
-}
-.sonde .label{font-size:12px; color:#333; margin-bottom:2px;}
-.sonde .consigne{font-size:11px; color:#666; font-style:italic;}
-.sonde .val{font-size:20px; font-weight:bold; color:#000;}
-#timeLabel{margin:10px; font-weight:bold; font-size:16px;}
+#container{display:flex;flex-direction:row;gap:20px;margin-top:20px;}
+#leftCol,#rightCol{display:flex;flex-direction:column;justify-content:space-between;gap:20px;}
+.caseTitle{font-weight:bold;text-align:center;color:var(--accent);margin-bottom:4px;}
+.caseWrapper{display:flex;flex-direction:column;align-items:center;}
+#grid{display:grid;gap:8px;}
+.sonde{background:#eee;border-radius:8px;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  font-weight:bold;box-shadow:0 2px 5px rgba(0,0,0,0.2);padding:4px;}
+.sonde .label{font-size:12px;color:#333;margin-bottom:2px;}
+.sonde .consigne{font-size:11px;color:#666;font-style:italic;}
+.sonde .val{font-size:20px;font-weight:bold;color:#000;}
+#timeLabel{margin:10px;font-weight:bold;font-size:16px;}
 #slider{width:80%;}
-button{margin:10px; padding:8px 12px; border:none; border-radius:6px; background:var(--accent); color:#fff; cursor:pointer;}
+button{margin:10px;padding:8px 12px;border:none;border-radius:6px;
+  background:var(--accent);color:#fff;cursor:pointer;}
 button:hover{background:var(--accent-darker);}
 </style>
 </head>
 <body>
 
 <button onclick="window.close()">⬅️ Retour</button>
-<h1>Plan des sondes (6x8)</h1>
+<h1>Plan des sondes</h1>
 <div id="timeLabel">Heure :</div>
 
 <div id="container">
-  <!-- Bloc AC / Temp Grain -->
-  <div id="acGrid">
-    <div>
-      <div class="acTitle">Air chaud Supérieur</div>
-      <div class="sonde" id="SondeACsup">
-        <div class="consigne">-- °C</div>
-        <div class="val">-- °C</div>
-      </div>
+  <!-- Colonne gauche -->
+  <div id="leftCol">
+    <div class="caseWrapper">
+      <div class="caseTitle">Air chaud Supérieur</div>
+      <div class="sonde" id="SondeACsup"><div class="consigne">-- °C</div><div class="val">-- °C</div></div>
     </div>
-    <div>
-      <div class="acTitle">Température Grain</div>
-      <div class="sonde" id="TempGrain">
-        <div class="consigne">-- °C</div>
-        <div class="val">-- °C</div>
-      </div>
+    <div class="caseWrapper">
+      <div class="caseTitle">Température Grain</div>
+      <div class="sonde" id="TempGrain"><div class="consigne">-- °C</div><div class="val">-- °C</div></div>
     </div>
-    <div>
-      <div class="acTitle">Air chaud Inférieur</div>
-      <div class="sonde" id="SondeACinf">
-        <div class="consigne">-- °C</div>
-        <div class="val">-- °C</div>
-      </div>
+    <div class="caseWrapper">
+      <div class="caseTitle">Air chaud Inférieur</div>
+      <div class="sonde" id="SondeACinf"><div class="consigne">-- °C</div><div class="val">-- °C</div></div>
     </div>
   </div>
 
-  <!-- Grille sondes -->
+  <!-- Grille centrale -->
   <div id="grid"></div>
+
+  <!-- Colonne droite (si T°C Ext) -->
+  <div id="rightCol" style="display:none;">
+    <div class="caseWrapper">
+      <div class="caseTitle">Température Extérieure</div>
+      <div class="sonde" id="TempExt"><div class="consigne">-- °C</div><div class="val">-- °C</div></div>
+    </div>
+  </div>
 </div>
 
 <input type="range" id="slider" min="0" max="0" value="0"/>
 
 <script src="libs/papaparse.min.js"></script>
 <script>
-// === Variables ===
-const API_KEY="AIzaSyCbEV3CS9bOcxq5eK-QXbjczGHjvzyXS6M";
-let csvData=[], headers=[];
+let csvData=[], headers=[], planLayout=[];
 
-// === Plan défini (6 colonnes x 8 lignes) ===
-const sondeLayout = [
-  [45,41,37,33,29,25],
-  [46,42,38,34,30,26],
-  [47,43,39,35,31,27],
-  [48,44,40,36,32,28],
-  [21,17,13,9,5,1],
-  [22,18,14,10,6,2],
-  [23,19,15,11,7,3],
-  [24,20,16,12,8,4]
-];
+// --- Paramètres URL ---
+const params = new URLSearchParams(window.location.search);
+const fileId = params.get("fileId");
+const fileName = params.get("fileName");
 
-// === Construction de la grille selon le plan ===
-const grid=document.getElementById("grid");
-sondeLayout.forEach(row=>{
-  row.forEach(num=>{
-    const div=document.createElement("div");
-    div.className="sonde";
-    div.id="sonde"+num;
-    div.innerHTML=`<div class="label">Sonde ${num}</div>
-                   <div class="consigne">-- °C</div>
-                   <div class="val">-- °C</div>`;
-    grid.appendChild(div);
+// --- Charger le plan depuis localStorage ---
+function loadPlan(){
+  const planRaw = localStorage.getItem("planSondes");
+  if(!planRaw){
+    document.getElementById("grid").innerHTML="<b style='color:red'>❌ Aucun plan_sondes.csv trouvé</b>";
+    return;
+  }
+  const rows = planRaw.trim().split(/\r?\n/).map(l => l.split(",").map(v => v.trim()));
+  planLayout = rows;
+  buildGrid();
+  console.log("✅ Plan sondes chargé depuis localStorage");
+}
+
+// --- Construire la grille ---
+function buildGrid(){
+  const grid=document.getElementById("grid");
+  grid.style.gridTemplateColumns=`repeat(${planLayout[0].length}, 120px)`;
+  grid.style.gridTemplateRows=`repeat(${planLayout.length}, 80px)`;
+  grid.innerHTML="";
+  planLayout.forEach(row=>{
+    row.forEach(num=>{
+      const div=document.createElement("div");
+      div.className="sonde";
+      div.id="sonde"+num;
+      div.innerHTML=`<div class="label">Sonde ${num}</div>
+                     <div class="consigne">-- °C</div>
+                     <div class="val">-- °C</div>`;
+      grid.appendChild(div);
+    });
   });
-});
+}
 
-// === Charger CSV ===
+// --- Charger CSV de données ---
 async function loadCSV(){
-  const fileId=new URLSearchParams(window.location.search).get("fileId");
-  if(!fileId) return;
-  const url=`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${API_KEY}`;
+  if(!fileId){ console.error("❌ fileId manquant dans l’URL"); return; }
+
+  const url=`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=AIzaSyCbEV3CS9bOcxq5eK-QXbjczGHjvzyXS6M`;
   const response=await fetch(url);
   const text=await response.text();
 
-  // transformHeader pour gérer doublons (_1, _2…)
-  const seen = {};
+  const seen={};
   const results=Papa.parse(text,{
-    header:true,
-    skipEmptyLines:true,
-    transformHeader: (h) => {
-      h = h.replace(/"/g,"").trim();
-      if(seen[h]){
-        seen[h]++;
-        return h+"_"+seen[h];
-      } else {
-        seen[h]=1;
-        return h+"_1";
-      }
+    header:true,skipEmptyLines:true,
+    transformHeader:(h)=>{
+      h=h.replace(/"/g,"").trim();
+      if(seen[h]){ seen[h]++; return h+"_"+seen[h]; }
+      else{ seen[h]=1; return h+"_1"; }
     }
   });
 
   headers=results.meta.fields;
   csvData=results.data;
   document.getElementById("slider").max=csvData.length-1;
+
+  if(headers.some(h=>h.toUpperCase().startsWith("T°C EXT"))){
+    document.getElementById("rightCol").style.display="flex";
+  }
+
   updateGrid(0);
 }
 
-// === Mise à jour du quadrillage ===
+// --- Mise à jour affichage ---
 function updateGrid(idx){
   if(!csvData[idx]) return;
   const row=csvData[idx];
   const timeLabel=document.getElementById("timeLabel");
+  const timeKey=headers.find(h=>h.toLowerCase().includes("time")||h.toLowerCase().includes("heure"));
+  timeLabel.textContent=timeKey ? "Heure : "+row[timeKey] : "Ligne "+idx;
 
-  const timeKey=headers.find(h=>h.toLowerCase().includes("heure")||h.toLowerCase().includes("time"));
-  if(timeKey){ timeLabel.textContent="Heure : "+row[timeKey]; }
-  else{ timeLabel.textContent="Ligne "+idx; }
-
-  // === Sondes classiques ===
-  sondeLayout.flat().forEach(i=>{
-    const sondeNum = String(i).padStart(2,"0");
-    const consCol = "Sonde"+sondeNum+"_1";
-    const valCol  = "Sonde"+sondeNum+"_2";
-
-    const consigne = parseFloat(row[consCol]);
-    const valeur   = parseFloat(row[valCol]);
-
+  // sondes
+  planLayout.flat().forEach(i=>{
+    const sondeNum=String(i).padStart(2,"0");
+    const consCol="Sonde"+sondeNum+"_1";
+    const valCol="Sonde"+sondeNum+"_2";
     const div=document.getElementById("sonde"+i);
-    if(div){
-      div.querySelector(".consigne").textContent = isNaN(consigne) ? "-- °C" : consigne.toFixed(1)+" °C";
-      const valDiv=div.querySelector(".val");
-      if(!isNaN(valeur)){
-        valDiv.textContent=valeur.toFixed(1)+" °C";
-        div.style.background=getColor(valeur);
-      }else{
-        valDiv.textContent="-- °C";
-        div.style.background="#eee";
-      }
-    }
-  });
-
-  // === Cas spéciaux (AC inf, sup, Temp Grain) ===
-  updateSpecial("Sonde AC inf","SondeACinf",row);
-  updateSpecial("Sonde AC sup","SondeACsup",row);
-  updateSpecial("Temp Grain","TempGrain",row);
-}
-
-function updateSpecial(label, id, row){
-  const consCol = headers.find(h => h.toUpperCase() === label.toUpperCase()+"_1");
-  const valCol  = headers.find(h => h.toUpperCase() === label.toUpperCase()+"_2");
-  if(consCol && valCol){
+    if(!div) return;
     const consigne=parseFloat(row[consCol]);
     const valeur=parseFloat(row[valCol]);
-    const div=document.getElementById(id);
-    if(div){
-      div.querySelector(".consigne").textContent = isNaN(consigne) ? "-- °C" : consigne.toFixed(1)+" °C";
-      const valDiv=div.querySelector(".val");
-      if(!isNaN(valeur)){
-        valDiv.textContent=valeur.toFixed(1)+" °C";
-        div.style.background=getColor(valeur);
-      }else{
-        valDiv.textContent="-- °C";
-        div.style.background="#eee";
-      }
-    }
-  }
+    div.querySelector(".consigne").textContent=isNaN(consigne)?"-- °C":consigne.toFixed(1)+" °C";
+    const valDiv=div.querySelector(".val");
+    if(!isNaN(valeur)){ valDiv.textContent=valeur.toFixed(1)+" °C"; div.style.background=getColor(valeur); }
+    else{ valDiv.textContent="-- °C"; div.style.background="#eee"; }
+  });
+
+  // cas spéciaux
+  updateSpecial("Sonde AC sup","SondeACsup",row);
+  updateSpecial("Sonde AC inf","SondeACinf",row);
+  updateSpecial("Temp Grain","TempGrain",row);
+  updateSpecial("T°C Ext","TempExt",row);
 }
 
-// === Couleur en fonction de la température ===
+function updateSpecial(label,id,row){
+  const consCol=headers.find(h=>h.toUpperCase()===label.toUpperCase()+"_1");
+  const valCol=headers.find(h=>h.toUpperCase()===label.toUpperCase()+"_2");
+  if(!consCol||!valCol) return;
+  const consigne=parseFloat(row[consCol]);
+  const valeur=parseFloat(row[valCol]);
+  const div=document.getElementById(id);
+  if(!div) return;
+  div.querySelector(".consigne").textContent=isNaN(consigne)?"-- °C":consigne.toFixed(1)+" °C";
+  const valDiv=div.querySelector(".val");
+  if(!isNaN(valeur)){ valDiv.textContent=valeur.toFixed(1)+" °C"; div.style.background=getColor(valeur); }
+  else{ valDiv.textContent="-- °C"; div.style.background="#eee"; }
+}
+
+// --- Couleur selon T°C ---
 function getColor(v){
-  const min=15, max=70;
-  let t=(v-min)/(max-min); t=Math.max(0,Math.min(1,t));
-  if(t<0.5){ // bleu → vert
-    const ratio=t/0.5;
-    return `rgb(${0},${150+105*ratio},${255-255*ratio})`;
-  }else if(t<0.75){ // vert → jaune
-    const ratio=(t-0.5)/0.25;
-    return `rgb(${255*ratio},255,0)`;
-  }else if(t<0.9){ // jaune → orange
-    const ratio=(t-0.75)/0.15;
-    return `rgb(255,${255-90*ratio},0)`;
-  }else{ // orange → rouge
-    const ratio=(t-0.9)/0.1;
-    return `rgb(255,${165-165*ratio},0)`;
-  }
+  const min=15,max=70; let t=(v-min)/(max-min); t=Math.max(0,Math.min(1,t));
+  if(t<0.5){const r=t/0.5;return `rgb(0,${150+105*r},${255-255*r})`;}
+  else if(t<0.75){const r=(t-0.5)/0.25;return `rgb(${255*r},255,0)`;}
+  else if(t<0.9){const r=(t-0.75)/0.15;return `rgb(255,${255-90*r},0)`;}
+  else{const r=(t-0.9)/0.1;return `rgb(255,${165-165*r},0)`;}
 }
 
-// === Slider ===
-document.getElementById("slider").addEventListener("input",e=>{
-  updateGrid(parseInt(e.target.value));
-});
+document.getElementById("slider").addEventListener("input",e=>updateGrid(parseInt(e.target.value)));
 
-// === Init ===
+// --- Init ---
+loadPlan();
 loadCSV();
 </script>
 </body>
