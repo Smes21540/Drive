@@ -603,9 +603,19 @@ const tdFolder=document.createElement('td'); tdFolder.textContent=folderName;
 if(f.name.toLowerCase().endsWith('.csv')){
   html+=`<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank"><button class="action-btn">Télécharger</button></a>`;
   html+=`<button class="action-btn" onclick="openViewer('viewer.html','${f.id}','${f.name}')">Tableau</button>`;
-  html+=`<button class="action-btn" onclick="openViewer('viewer02.html','${f.id}','${f.name}')">Courbes</button>`;
-  html+=`<button class="action-btn" onclick="openViewer('index03.html','${f.id}','${f.name}')">Sondes</button>`;
+
+  // 👇 bouton Courbes seulement si on n'est PAS dans Historique
+  if (!folderName.toLowerCase().includes("historique")) {
+    html+=`<button class="action-btn" onclick="openViewer('viewer02.html','${f.id}','${f.name}')">Courbes</button>`;
+  }
+
+  // 👇 bouton Sondes uniquement si on est dans Traça_Temp
+  if (folderName.toLowerCase().includes("traça_temp") || folderName.toLowerCase().includes("traca_temp")) {
+    html+=`<button class="action-btn" onclick="openViewer('index03.html','${f.id}','${f.name}')">Sondes</button>`;
+  }
 }
+
+
 
     if(/\.(jpg|jpeg)$/i.test(f.name)){
       html+=`<img src="https://drive.google.com/thumbnail?id=${f.id}" onclick="openModal('${f.id}')" alt="aperçu">`;
@@ -946,14 +956,30 @@ async function checkTraçaTempToday(parentLi, tracatempId) {
     if (!lastLine) return;
 
     // Nettoyage : enlever guillemets et espaces
+    const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
     const cols = lastLine.split(",").map(c => c.replace(/"/g, "").trim());
 
-    const v4 = parseFloat(cols[3]);
-    const v6 = parseFloat(cols[5]);
+    // Trouver la 2ème occurrence de "Sonde AC Sup"
+    let supIndices = headers
+      .map((h, i) => ({ h, i }))
+      .filter(o => o.h.toLowerCase().includes("sonde ac sup"));
+    let idxSup = supIndices.length >= 2 ? supIndices[1].i : supIndices[0]?.i;
 
-    if ((v4 && v4 > FLAME_THRESHOLD) || (v6 && v6 > FLAME_THRESHOLD)) {
+    // Trouver la 2ème occurrence de "Sonde AC Inf"
+    let infIndices = headers
+      .map((h, i) => ({ h, i }))
+      .filter(o => o.h.toLowerCase().includes("sonde ac inf"));
+    let idxInf = infIndices.length >= 2 ? infIndices[1].i : infIndices[0]?.i;
+
+    // Valeurs
+    const vSup = idxSup !== undefined ? parseFloat(cols[idxSup]) : NaN;
+    const vInf = idxInf !== undefined ? parseFloat(cols[idxInf]) : NaN;
+
+    // 🔥 seuil
+    if ((vSup && vSup > FLAME_THRESHOLD) || (vInf && vInf > FLAME_THRESHOLD)) {
       markFolderWithFlame(parentLi);
     }
+
 
   } catch (e) {
     console.error("Erreur lecture CSV dans Temp", e);
