@@ -585,8 +585,9 @@ if (date) {
 const tdName = document.createElement('td');
 tdName.textContent = f.name;
 
-// === FLAMME FILE (debug version) ===
-if (f.name.toLowerCase().endsWith(".csv")) {
+// === FLAMME FILE (corrigé) ===
+if (f.name.toLowerCase().endsWith(".csv") &&
+    (folderName.toLowerCase().includes("traça_temp") || folderName.toLowerCase().includes("traca_temp"))) {
   (async () => {
     try {
       const url = `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media&key=${API_KEY}`;
@@ -596,30 +597,29 @@ if (f.name.toLowerCase().endsWith(".csv")) {
       const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
       if (lines.length < 2) return;
 
-      const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
+      // En-têtes en minuscules + nettoyés
+      const headers = lines[0].split(",").map(h => h.replace(/"/g,"").trim().toLowerCase());
 
-      // Trouver la 2ème occurrence de Sonde AC inf et sup
-      let idxInf = headers.map((h,i)=>({h,i})).filter(o=>o.h === "Sonde AC inf")[1]?.i;
-      let idxSup = headers.map((h,i)=>({h,i})).filter(o=>o.h === "Sonde AC sup")[1]?.i;
+      // 2ème occurrence de "sonde ac inf" et "sonde ac sup"
+      let idxInf = headers.map((h,i)=>({h,i})).filter(o=>o.h.includes("sonde ac inf"))[1]?.i;
+      let idxSup = headers.map((h,i)=>({h,i})).filter(o=>o.h.includes("sonde ac sup"))[1]?.i;
 
       if (idxInf === undefined && idxSup === undefined) return;
 
       let countFlame = 0;
-
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(",").map(c => c.replace(/"/g,"").trim());
         const vInf = idxInf !== undefined ? parseFloat(cols[idxInf]) : NaN;
         const vSup = idxSup !== undefined ? parseFloat(cols[idxSup]) : NaN;
 
-        if ((vInf && vInf > FLAME_THRESHOLD) || (vSup && vSup > FLAME_THRESHOLD)) {
+        if ((isFinite(vInf) && vInf > FLAME_THRESHOLD) ||
+            (isFinite(vSup) && vSup > FLAME_THRESHOLD)) {
           countFlame++;
         }
       }
 
-      console.log("[DEBUG FLAME]", f.name, "idxInf:", idxInf, "idxSup:", idxSup, "count:", countFlame);
-
       if (countFlame >= 1) {
-        tdName.innerHTML = `${f.name}&nbsp;&nbsp;&nbsp;<span class="flame" title="≥5 valeurs brûleur actives">🔥</span>`;
+        tdName.innerHTML = `${f.name}&nbsp;&nbsp;&nbsp;<span class="flame" title="Brûleur actif détecté">🔥</span>`;
       }
     } catch(e) {
       console.error("Erreur flamme fichier:", f.name, e);
@@ -627,6 +627,7 @@ if (f.name.toLowerCase().endsWith(".csv")) {
   })();
 }
 // === FIN FLAMME FILE ===
+
 
 const tdFolder=document.createElement('td'); tdFolder.textContent=folderName;
 
@@ -1064,4 +1065,3 @@ window.onload=()=>{
 </script>
 </body>
 </html>
-
