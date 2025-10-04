@@ -1,169 +1,202 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Plan des sondes</title>
-<style>
-:root{
-  --bg:#fff5f5; --panel:#ffffff; --accent:#ff7043; --accent-darker:#e64a19;
-  --accent-muted:#ffccbc; --danger:#d84315; --text:#333;
-}
-body{
-  font-family:"Segoe UI",sans-serif;
-  background:var(--bg); margin:0; padding:20px;
-  display:flex; flex-direction:column; align-items:center;
-}
-h1{color:var(--accent);}
-#container{display:flex;flex-direction:row;gap:20px;margin-top:20px;}
-#leftCol,#rightCol{display:flex;flex-direction:column;justify-content:space-between;gap:20px;}
-.caseTitle{font-weight:bold;text-align:center;color:var(--accent);margin-bottom:4px;}
-.caseWrapper{display:flex;flex-direction:column;align-items:center;}
-#grid{display:grid;gap:8px;}
-.sonde{background:#eee;border-radius:8px;
-  display:flex;flex-direction:column;justify-content:center;align-items:center;
-  font-weight:bold;box-shadow:0 2px 5px rgba(0,0,0,0.2);padding:4px;}
-.sonde .label{font-size:12px;color:#333;margin-bottom:2px;}
-.sonde .consigne{font-size:11px;color:#666;font-style:italic;}
-.sonde .val{font-size:20px;font-weight:bold;color:#000;}
-#timeLabel{margin:10px;font-weight:bold;font-size:16px;}
-#slider{width:80%;}
-button{margin:10px;padding:8px 12px;border:none;border-radius:6px;
-  background:var(--accent);color:#fff;cursor:pointer;}
-button:hover{background:var(--accent-darker);}
-</style>
-</head>
-<body>
-
-<button onclick="window.close()">⬅️ Retour</button>
-<h1>Plan des sondes</h1>
-<div id="timeLabel">Heure :</div>
-
-<div id="container">
-  <!-- Colonne gauche -->
-  <div id="leftCol">
-    <div class="caseWrapper">
-      <div class="caseTitle">Air chaud Supérieur</div>
-      <div class="sonde" id="SondeACsup"><div class="consigne">-- °C</div><div class="val">-- °C</div></div>
-    </div>
-    <div class="caseWrapper">
-      <div class="caseTitle">Température Grain</div>
-      <div class="sonde" id="TempGrain"><div class="consigne">-- °C</div><div class="val">-- °C</div></div>
-    </div>
-    <div class="caseWrapper">
-      <div class="caseTitle">Air chaud Inférieur</div>
-      <div class="sonde" id="SondeACinf"><div class="consigne">-- °C</div><div class="val">-- °C</div></div>
-    </div>
-  </div>
-
-  <!-- Grille centrale -->
-  <div id="grid"></div>
-
-  <!-- Colonne droite (si T°C Ext) -->
-  <div id="rightCol" style="display:none;">
-    <div class="caseWrapper">
-      <div class="caseTitle">Température Extérieure</div>
-      <div class="sonde" id="TempExt"><div class="consigne">-- °C</div><div class="val">-- °C</div></div>
-    </div>
-  </div>
-</div>
-
-<input type="range" id="slider" min="0" max="0" value="0"/>
-
-<script src="libs/papaparse.min.js"></script>
 <script>
+/* ========= Thème ========= */
+function applyThemeVars(vars){
+  const r=document.documentElement;
+  Object.entries(vars).forEach(([k,v])=>r.style.setProperty(k,v));
+}
+function setTheme(theme){
+  localStorage.setItem("selectedTheme",theme);
+  if(theme==="orange") applyThemeVars({"--accent":"#ff7043","--accent-darker":"#e64a19","--accent-muted":"#ffccbc","--bg":"#fff5f5","--panel":"#ffffff","--danger":"#d84315","--text":"#333"});
+  if(theme==="blue")   applyThemeVars({"--accent":"#2196f3","--accent-darker":"#1976d2","--accent-muted":"#bbdefb","--bg":"#e3f2fd","--panel":"#ffffff","--danger":"#0d47a1","--text":"#0d47a1"});
+  if(theme==="green")  applyThemeVars({"--accent":"#4caf50","--accent-darker":"#2e7d32","--accent-muted":"#c8e6c9","--bg":"#f1f8e9","--panel":"#ffffff","--danger":"#1b5e20","--text":"#1b5e20"});
+  if(theme==="purple") applyThemeVars({"--accent":"#9c27b0","--accent-darker":"#6a1b9a","--accent-muted":"#e1bee7","--bg":"#f3e5f5","--panel":"#ffffff","--danger":"#4a148c","--text":"#4a148c"});
+  if(theme==="bordeaux")applyThemeVars({"--accent":"#800020","--accent-darker":"#4b0014","--accent-muted":"#d7a1a9","--bg":"#fff0f2","--panel":"#ffffff","--danger":"#600018","--text":"#4b0014"});
+}
+
+/* ========= En-tête dossier (comme viewer02) ========= */
+function hydrateFolderHeader(){
+  const params=new URLSearchParams(window.location.search);
+  const fileId=params.get("fileId");
+  const fileName=params.get("fileName");
+  let title="";
+  try{
+    const list = JSON.parse(localStorage.getItem("csvFilesList")||"[]");
+    const f = list.find(x=>x.id===fileId);
+    if(f && f.parents && f.parents.length){
+      const parent = list.find(x=>x.id===f.parents[0]);
+      if(parent && parent.name){
+        title = parent.name;
+        if(parent.parents && parent.parents.length){
+          const root = list.find(x=>x.id===parent.parents[0]);
+          if(root && root.name) title = root.name+" / "+parent.name;
+        }
+      }
+    }
+  }catch(e){ console.warn("csvFilesList absent ou invalide", e); }
+  if(!title) title = decodeURIComponent(fileName||"");
+
+  const flameTitle = title.replace(/🔥/g,'<span class="flame" title="Brûleur(s) actuellement en fonctionnement">🔥</span>');
+  const el = document.getElementById("currentFolderName");
+  if(el) el.innerHTML = flameTitle;
+}
+
+/* ========= État global ========= */
 let csvData=[], headers=[], planLayout=[];
+let hasTempExt=false, rowsCount=0, colsCount=0;
 
-// --- Paramètres URL ---
-const params = new URLSearchParams(window.location.search);
-const fileId = params.get("fileId");
-const fileName = params.get("fileName");
+const params=new URLSearchParams(window.location.search);
+const fileId=params.get("fileId");
+const fileName=params.get("fileName");
 
-// --- Charger le plan depuis localStorage ---
+/* ========= Plan depuis localStorage ========= */
 function loadPlan(){
-  const planRaw = localStorage.getItem("planSondes");
+  const grid=document.getElementById("grid");
+  const planRaw=localStorage.getItem("planSondes");
   if(!planRaw){
-    document.getElementById("grid").innerHTML="<b style='color:red'>❌ Aucun plan_sondes.csv trouvé</b>";
+    grid.innerHTML="<b style='color:red'>❌ Aucun plan_sondes.csv trouvé dans localStorage (clé: planSondes)</b>";
+    console.error("planSondes manquant. Exemple rapide :", "localStorage.setItem('planSondes','01,02,03\\n04,05,06')");
     return;
   }
-  const rows = planRaw.trim().split(/\r?\n/).map(l => l.split(",").map(v => v.trim()));
-  planLayout = rows;
+
+  // Lignes vides = séparateurs visuels (on mettra null)
+  const rows=planRaw.trim().split(/\r?\n/).map(l=>{
+    const cols=l.split(",").map(v=>v.trim());
+    return cols.every(v=>v==="") ? null : cols;
+  });
+
+  planLayout=rows;
+  rowsCount = planLayout.filter(r=>r).length;
+  const firstNonEmpty = planLayout.find(r=>r);
+  colsCount = firstNonEmpty ? firstNonEmpty.length : 0;
+
   buildGrid();
-  console.log("✅ Plan sondes chargé depuis localStorage");
 }
 
-// --- Construire la grille ---
 function buildGrid(){
   const grid=document.getElementById("grid");
-  grid.style.gridTemplateColumns=`repeat(${planLayout[0].length}, 120px)`;
-  grid.style.gridTemplateRows=`repeat(${planLayout.length}, 80px)`;
+  grid.style.gridTemplateColumns=`repeat(${colsCount}, var(--tile-size))`;
   grid.innerHTML="";
-  planLayout.forEach(row=>{
-    row.forEach(num=>{
+
+  for(const row of planLayout){
+    if(!row){
+      // ligne vide = espace visuel (séparateur haut/bas)
+      const spacer=document.createElement("div");
+      spacer.style.gridColumn=`1 / span ${colsCount}`;
+      spacer.style.height="calc(var(--tile-size) * 0.3)";
+      spacer.style.display="block";
+      grid.appendChild(spacer);
+      continue;
+    }
+    for(const num of row){
+      if(!num) continue; // cellule vide éventuelle
       const div=document.createElement("div");
       div.className="sonde";
       div.id="sonde"+num;
-      div.innerHTML=`<div class="label">Sonde ${num}</div>
-                     <div class="consigne">-- °C</div>
-                     <div class="val">-- °C</div>`;
+      div.innerHTML=`
+        <div class="label">Sonde ${num}</div>
+        <div class="consigne">-- °C</div>
+        <div class="val">-- °C</div>`;
       grid.appendChild(div);
-    });
-  });
+    }
+  }
 }
 
-// --- Charger CSV de données ---
+/* ========= CSV Google Drive ========= */
 async function loadCSV(){
-  if(!fileId){ console.error("❌ fileId manquant dans l’URL"); return; }
+  if(!fileId){ console.error("❌ fileId manquant dans l'URL"); return; }
+
+  // Affiche nom + compte lignes (quand dispo)
+  const fn=document.getElementById("fileName");
+  if(fn) fn.textContent = decodeURIComponent(fileName||"");
 
   const url=`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=AIzaSyCbEV3CS9bOcxq5eK-QXbjczGHjvzyXS6M`;
-  const response=await fetch(url);
-  const text=await response.text();
+  let text="";
+  try{
+    const res=await fetch(url);
+    if(!res.ok){
+      console.error("Échec fetch CSV", res.status, res.statusText);
+      return;
+    }
+    text=await res.text();
+  }catch(e){
+    console.error("Fetch CSV erreur réseau:", e);
+    return;
+  }
+
+  if(typeof Papa==="undefined"){
+    console.error("PapaParse introuvable. Vérifie libs/papaparse.min.js (ou utilise un CDN).");
+    return;
+  }
 
   const seen={};
   const results=Papa.parse(text,{
-    header:true,skipEmptyLines:true,
+    header:true, skipEmptyLines:true,
     transformHeader:(h)=>{
-      h=h.replace(/"/g,"").trim();
+      h=(h||"").replace(/"/g,"").trim();
       if(seen[h]){ seen[h]++; return h+"_"+seen[h]; }
       else{ seen[h]=1; return h+"_1"; }
     }
   });
 
-  headers=results.meta.fields;
-  csvData=results.data;
-  document.getElementById("slider").max=csvData.length-1;
+  headers = results.meta?.fields || [];
+  csvData = results.data || [];
 
-  if(headers.some(h=>h.toUpperCase().startsWith("T°C EXT"))){
-    document.getElementById("rightCol").style.display="flex";
-  }
+  const lc=document.getElementById("lineCount");
+  if(lc) lc.textContent = (csvData?.length||0) + " ligne" + ((csvData?.length||0)>1?"s":"");
+
+  document.getElementById("slider").max = Math.max(0, (csvData.length||1)-1);
+
+  hasTempExt = headers.some(h => (h||"").toUpperCase().startsWith("T°C EXT"));
+  const extEl = document.getElementById("TempExt");
+  if(extEl) extEl.style.display = hasTempExt ? "flex" : "none";
+
+  const minInit=parseFloat(localStorage.getItem("scaleMin")||"15");
+  const maxInit=parseFloat(localStorage.getItem("scaleMax")||"70");
+  document.getElementById("minInput").value = isNaN(minInit)?15:minInit;
+  document.getElementById("maxInput").value = isNaN(maxInit)?70:maxInit;
 
   updateGrid(0);
 }
 
-// --- Mise à jour affichage ---
+/* ========= Affichage d’une ligne ========= */
 function updateGrid(idx){
   if(!csvData[idx]) return;
   const row=csvData[idx];
-  const timeLabel=document.getElementById("timeLabel");
-  const timeKey=headers.find(h=>h.toLowerCase().includes("time")||h.toLowerCase().includes("heure"));
-  timeLabel.textContent=timeKey ? "Heure : "+row[timeKey] : "Ligne "+idx;
 
-  // sondes
-  planLayout.flat().forEach(i=>{
-    const sondeNum=String(i).padStart(2,"0");
-    const consCol="Sonde"+sondeNum+"_1";
-    const valCol="Sonde"+sondeNum+"_2";
-    const div=document.getElementById("sonde"+i);
-    if(!div) return;
-    const consigne=parseFloat(row[consCol]);
-    const valeur=parseFloat(row[valCol]);
-    div.querySelector(".consigne").textContent=isNaN(consigne)?"-- °C":consigne.toFixed(1)+" °C";
-    const valDiv=div.querySelector(".val");
-    if(!isNaN(valeur)){ valDiv.textContent=valeur.toFixed(1)+" °C"; div.style.background=getColor(valeur); }
-    else{ valDiv.textContent="-- °C"; div.style.background="#eee"; }
+  const dateKey=headers.find(h=>(h||"").toLowerCase().includes("date"));
+  const timeKey=headers.find(h=>{
+    const hh=(h||"").toLowerCase();
+    return hh.includes("heure") || hh.includes("time") || hh==="h";
   });
 
-  // cas spéciaux
+  let dtLabel="";
+  if(dateKey && row[dateKey]) dtLabel += String(row[dateKey]);
+  if(timeKey && row[timeKey]) dtLabel += (dtLabel?" — ":"") + String(row[timeKey]);
+  document.getElementById("datetimeLabel").textContent = dtLabel||("");
+
+  // tuiles du plan
+  planLayout.flat().forEach(i=>{
+    if(!i) return; // ignore séparateurs
+    const sondeNum=String(i).padStart(2,"0");
+    const consCol="Sonde"+sondeNum+"_1";
+    const valCol ="Sonde"+sondeNum+"_2";
+    const div=document.getElementById("sonde"+i);
+    if(!div) return;
+
+    const cons=parseFloat(row[consCol]);
+    const val =parseFloat(row[valCol]);
+
+    div.querySelector(".consigne").textContent = isNaN(cons) ? "-- °C" : cons.toFixed(1)+" °C";
+    const valDiv = div.querySelector(".val");
+    if(!isNaN(val)){
+      valDiv.textContent = val.toFixed(1)+" °C";
+      div.style.background = getColor(val);
+    }else{
+      valDiv.textContent = "-- °C";
+      div.style.background = "#eee";
+    }
+  });
+
   updateSpecial("Sonde AC sup","SondeACsup",row);
   updateSpecial("Sonde AC inf","SondeACinf",row);
   updateSpecial("Temp Grain","TempGrain",row);
@@ -171,33 +204,73 @@ function updateGrid(idx){
 }
 
 function updateSpecial(label,id,row){
-  const consCol=headers.find(h=>h.toUpperCase()===label.toUpperCase()+"_1");
-  const valCol=headers.find(h=>h.toUpperCase()===label.toUpperCase()+"_2");
-  if(!consCol||!valCol) return;
-  const consigne=parseFloat(row[consCol]);
-  const valeur=parseFloat(row[valCol]);
-  const div=document.getElementById(id);
-  if(!div) return;
-  div.querySelector(".consigne").textContent=isNaN(consigne)?"-- °C":consigne.toFixed(1)+" °C";
-  const valDiv=div.querySelector(".val");
-  if(!isNaN(valeur)){ valDiv.textContent=valeur.toFixed(1)+" °C"; div.style.background=getColor(valeur); }
-  else{ valDiv.textContent="-- °C"; div.style.background="#eee"; }
+  const card=document.getElementById(id);
+  if(!card) return;
+  const consCol=headers.find(h=>(h||"").toUpperCase()===label.toUpperCase()+"_1");
+  const valCol =headers.find(h=>(h||"").toUpperCase()===label.toUpperCase()+"_2");
+  if(!consCol || !valCol) return;
+
+  const cons=parseFloat(row[consCol]);
+  const val =parseFloat(row[valCol]);
+
+  card.querySelector(".consigne").textContent = isNaN(cons) ? "-- °C" : cons.toFixed(1)+" °C";
+  const valDiv = card.querySelector(".val");
+  if(!isNaN(val)){
+    valDiv.textContent = val.toFixed(1)+" °C";
+    card.style.background = getColor(val);
+  }else{
+    valDiv.textContent = "-- °C";
+    card.style.background = "#eee";
+  }
 }
 
-// --- Couleur selon T°C ---
+/* ========= Palette couleur ========= */
+function getScale(){
+  let min=parseFloat(document.getElementById("minInput").value);
+  let max=parseFloat(document.getElementById("maxInput").value);
+  if(!isFinite(min)) min=15;
+  if(!isFinite(max)) max=70;
+  if(max<=min) max=min+1;
+  return {min,max};
+}
 function getColor(v){
-  const min=15,max=70; let t=(v-min)/(max-min); t=Math.max(0,Math.min(1,t));
-  if(t<0.5){const r=t/0.5;return `rgb(0,${150+105*r},${255-255*r})`;}
-  else if(t<0.75){const r=(t-0.5)/0.25;return `rgb(${255*r},255,0)`;}
-  else if(t<0.9){const r=(t-0.75)/0.15;return `rgb(255,${255-90*r},0)`;}
-  else{const r=(t-0.9)/0.1;return `rgb(255,${165-165*r},0)`;}
+  const {min,max}=getScale();
+  let t=(v-min)/(max-min); t=Math.max(0,Math.min(1,t));
+  if(t<0.5){ const r=t/0.5; return `rgb(0,${Math.round(150+105*r)},${Math.round(255-255*r)})`; }
+  else if(t<0.75){ const r=(t-0.5)/0.25; return `rgb(${Math.round(255*r)},255,0)`; }
+  else if(t<0.9){ const r=(t-0.75)/0.15; return `rgb(255,${Math.round(255-90*r)},0)`; }
+  else{ const r=(t-0.9)/0.1; return `rgb(255,${Math.round(165-165*r)},0)`; }
 }
 
-document.getElementById("slider").addEventListener("input",e=>updateGrid(parseInt(e.target.value)));
+/* ========= Listeners ========= */
+document.getElementById("slider").addEventListener("input",e=>{
+  const i=parseInt(e.target.value)||0;
+  updateGrid(i);
+});
+document.getElementById("minInput").addEventListener("change",()=>{
+  const v=parseFloat(document.getElementById("minInput").value);
+  localStorage.setItem("scaleMin", isFinite(v)? String(v): "15");
+  if(csvData.length) updateGrid(parseInt(document.getElementById("slider").value)||0);
+});
+document.getElementById("maxInput").addEventListener("change",()=>{
+  const v=parseFloat(document.getElementById("maxInput").value);
+  localStorage.setItem("scaleMax", isFinite(v)? String(v): "70");
+  if(csvData.length) updateGrid(parseInt(document.getElementById("slider").value)||0);
+});
 
-// --- Init ---
-loadPlan();
-loadCSV();
+/* ========= INIT ========= */
+(function init(){
+  try{
+    setTheme(localStorage.getItem("selectedTheme")||"orange");
+  }catch(e){ console.warn("setTheme a échoué", e); }
+  try{
+    hydrateFolderHeader();
+  }catch(e){ console.warn("hydrateFolderHeader a échoué", e); }
+  try{
+    loadPlan();
+  }catch(e){ console.error("loadPlan a échoué", e); }
+  try{
+    loadCSV();
+  }catch(e){ console.error("loadCSV a échoué", e); }
+})();
 </script>
-</body>
-</html>
