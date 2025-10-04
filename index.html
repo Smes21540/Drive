@@ -618,7 +618,7 @@ if (f.name.toLowerCase().endsWith(".csv")) {
 
       console.log("[DEBUG FLAME]", f.name, "idxInf:", idxInf, "idxSup:", idxSup, "count:", countFlame);
 
-      if (countFlame >= 5) {
+      if (countFlame >= 1) {
         tdName.innerHTML = `${f.name}&nbsp;&nbsp;&nbsp;<span class="flame" title="≥5 valeurs brûleur actives">🔥</span>`;
       }
     } catch(e) {
@@ -1064,3 +1064,4 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
