@@ -1,200 +1,260 @@
-<script>
-/* ========= Thème ========= */
-function applyThemeVars(vars){
-  const r=document.documentElement;
-  Object.entries(vars).forEach(([k,v])=>r.style.setProperty(k,v));
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Plan des sondes</title>
+
+<style>
+:root{
+  --bg:#fff5f5; --panel:#ffffff; --accent:#ff7043; --accent-darker:#e64a19;
+  --accent-muted:#ffccbc; --danger:#d84315; --text:#333;
+  --tile-size: 110px;
+  --cell-gap: 8px;
+  --split-gap: 0.3; /* 30% de la taille d’une case entre haut et bas */
 }
+*{box-sizing:border-box}
+body{
+  font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+  background:var(--bg); color:var(--text);
+  margin:0; padding:14px 16px;
+  display:flex; flex-direction:column; align-items:stretch; min-height:100vh;
+}
+.header{position:relative;display:flex;align-items:center;justify-content:center;min-height:60px;margin-bottom:6px;}
+.header .logo{height:50px;width:auto;}
+#currentFolderName{position:absolute;left:0;top:0;font-size:22px;font-weight:bold;color:var(--accent);}
+#fileNameContainer{position:absolute;right:0;top:0;text-align:right;}
+#fileName{font-size:18px;font-weight:bold;color:var(--accent-darker);}
+#lineCount{font-size:12px;color:var(--accent-darker);}
+.flame{display:inline-block;animation:flicker 1s infinite alternate;}
+@keyframes flicker{0%{transform:scale(1);}50%{transform:scale(1.1);}100%{transform:scale(1);}}
+#datetimeLabel{font-weight:bold;font-size:18px;text-align:center;margin:8px auto 10px;color:var(--danger);}
+#planWrap{position:relative;flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;}
+
+/* === Nouvelle structure de la grille === */
+#grid{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap: calc(var(--tile-size) * var(--split-gap)); /* écart haut/bas */
+}
+.grid-part{
+  display:grid;
+  gap: var(--cell-gap);
+  grid-auto-rows: var(--tile-size);
+  justify-content:center;
+}
+
+/* === Style des sondes === */
+.sonde{
+  width:var(--tile-size);height:var(--tile-size);background:var(--panel);border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 2px 5px rgba(0,0,0,0.2);padding:6px;
+}
+.sonde .label{font-size:13px;font-weight:bold;color:#000;margin-bottom:2px;}
+.sonde .consigne{font-size:11px;color:#555;font-style:italic;}
+.sonde .val{font-size:18px;font-weight:bold;color:#000;}
+
+.controlsBottom{display:flex;align-items:center;justify-content:center;gap:10px;margin:12px auto 6px;}
+#slider{width:80%;}
+#scaleBox{position:fixed;right:12px;bottom:12px;background:var(--panel);border:1px solid #ddd;border-radius:8px;
+  padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,0.12);font-size:13px;color:var(--text);}
+#scaleBox label{margin-right:6px;}
+#scaleBox input{width:70px;padding:4px;border:1px solid #ccc;border-radius:6px;}
+#scaleBox .sep{width:8px;display:inline-block;}
+button.btn{margin:6px;padding:8px 12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:bold;cursor:pointer;}
+button.btn:hover{background:var(--accent-darker);}
+#planWrap::-webkit-scrollbar{height:10px;width:10px;}
+#planWrap::-webkit-scrollbar-thumb{background:var(--accent);border-radius:10px;}
+#planWrap::-webkit-scrollbar-track{background:#eee;}
+
+/* === Positionnement des cases spéciales === */
+#SondeACsup{
+  position:absolute; left:20px; top:20%; transform:translateY(-50%);
+}
+#SondeACinf{
+  position:absolute; left:20px; top:80%; transform:translateY(-50%);
+}
+#TempGrain{
+  position:absolute; right:20px; top:80%; transform:translateY(-50%);
+}
+#TempExt{
+  position:absolute; left:20px; bottom:20px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div id="currentFolderName"></div>
+  <img src="img/logo.png" class="logo" alt="Logo"/>
+  <div id="fileNameContainer">
+    <div id="fileName"></div>
+    <div id="lineCount"></div>
+  </div>
+</div>
+
+<div style="text-align:center;">
+  <button class="btn" onclick="window.close()">⬅️ Retour</button>
+</div>
+
+<div id="datetimeLabel">-- / -- / ---- — --:--</div>
+
+<div id="planWrap">
+  <!-- Grille centrale -->
+  <div id="grid"></div>
+
+  <!-- Cases spéciales autour -->
+  <div class="sonde" id="SondeACsup">
+    <div class="label">Air chaud Supérieur</div>
+    <div class="consigne">-- °C</div>
+    <div class="val">-- °C</div>
+  </div>
+  <div class="sonde" id="SondeACinf">
+    <div class="label">Air chaud Inférieur</div>
+    <div class="consigne">-- °C</div>
+    <div class="val">-- °C</div>
+  </div>
+  <div class="sonde" id="TempGrain">
+    <div class="label">Température Grain</div>
+    <div class="consigne">-- °C</div>
+    <div class="val">-- °C</div>
+  </div>
+  <div class="sonde" id="TempExt" style="display:none;">
+    <div class="label">Température Extérieure</div>
+    <div class="consigne">-- °C</div>
+    <div class="val">-- °C</div>
+  </div>
+</div>
+
+<div class="controlsBottom">
+  <input type="range" id="slider" min="0" max="0" value="0"/>
+</div>
+
+<div id="scaleBox">
+  <label>Min</label><input type="number" id="minInput" step="0.1"/>
+  <span class="sep"></span>
+  <label>Max</label><input type="number" id="maxInput" step="0.1"/>
+</div>
+
+<script src="libs/papaparse.min.js"></script>
+<script>
+/* ======= Hydratation & Thème ======= */
+function applyThemeVars(vars){const r=document.documentElement;Object.entries(vars).forEach(([k,v])=>r.style.setProperty(k,v));}
 function setTheme(theme){
   localStorage.setItem("selectedTheme",theme);
-  if(theme==="orange") applyThemeVars({"--accent":"#ff7043","--accent-darker":"#e64a19","--accent-muted":"#ffccbc","--bg":"#fff5f5","--panel":"#ffffff","--danger":"#d84315","--text":"#333"});
-  if(theme==="blue")   applyThemeVars({"--accent":"#2196f3","--accent-darker":"#1976d2","--accent-muted":"#bbdefb","--bg":"#e3f2fd","--panel":"#ffffff","--danger":"#0d47a1","--text":"#0d47a1"});
-  if(theme==="green")  applyThemeVars({"--accent":"#4caf50","--accent-darker":"#2e7d32","--accent-muted":"#c8e6c9","--bg":"#f1f8e9","--panel":"#ffffff","--danger":"#1b5e20","--text":"#1b5e20"});
-  if(theme==="purple") applyThemeVars({"--accent":"#9c27b0","--accent-darker":"#6a1b9a","--accent-muted":"#e1bee7","--bg":"#f3e5f5","--panel":"#ffffff","--danger":"#4a148c","--text":"#4a148c"});
-  if(theme==="bordeaux")applyThemeVars({"--accent":"#800020","--accent-darker":"#4b0014","--accent-muted":"#d7a1a9","--bg":"#fff0f2","--panel":"#ffffff","--danger":"#600018","--text":"#4b0014"});
+  if(theme==="orange")applyThemeVars({"--accent":"#ff7043","--accent-darker":"#e64a19","--accent-muted":"#ffccbc","--bg":"#fff5f5","--panel":"#ffffff","--danger":"#d84315","--text":"#333"});
+  if(theme==="blue")applyThemeVars({"--accent":"#2196f3","--accent-darker":"#1976d2","--accent-muted":"#bbdefb","--bg":"#e3f2fd","--panel":"#ffffff","--danger":"#0d47a1","--text":"#0d47a1"});
+  if(theme==="green")applyThemeVars({"--accent":"#4caf50","--accent-darker":"#2e7d32","--accent-muted":"#c8e6c9","--bg":"#f1f8e9","--panel":"#ffffff","--danger":"#1b5e20","--text":"#1b5e20"});
 }
 
-/* ========= En-tête dossier (comme viewer02) ========= */
-function hydrateFolderHeader(){
-  const params=new URLSearchParams(window.location.search);
-  const fileId=params.get("fileId");
-  const fileName=params.get("fileName");
-  let title="";
-  try{
-    const list = JSON.parse(localStorage.getItem("csvFilesList")||"[]");
-    const f = list.find(x=>x.id===fileId);
-    if(f && f.parents && f.parents.length){
-      const parent = list.find(x=>x.id===f.parents[0]);
-      if(parent && parent.name){
-        title = parent.name;
-        if(parent.parents && parent.parents.length){
-          const root = list.find(x=>x.id===parent.parents[0]);
-          if(root && root.name) title = root.name+" / "+parent.name;
-        }
-      }
-    }
-  }catch(e){ console.warn("csvFilesList absent ou invalide", e); }
-  if(!title) title = decodeURIComponent(fileName||"");
-
-  const flameTitle = title.replace(/🔥/g,'<span class="flame" title="Brûleur(s) actuellement en fonctionnement">🔥</span>');
-  const el = document.getElementById("currentFolderName");
-  if(el) el.innerHTML = flameTitle;
-}
-
-/* ========= État global ========= */
+/* ======= Variables globales ======= */
 let csvData=[], headers=[], planLayout=[];
 let hasTempExt=false, rowsCount=0, colsCount=0;
-
 const params=new URLSearchParams(window.location.search);
 const fileId=params.get("fileId");
 const fileName=params.get("fileName");
 
-/* ========= Plan depuis localStorage ========= */
+/* ======= Lecture du plan ======= */
 function loadPlan(){
   const grid=document.getElementById("grid");
   const planRaw=localStorage.getItem("planSondes");
-  if(!planRaw){
-    grid.innerHTML="<b style='color:red'>❌ Aucun plan_sondes.csv trouvé dans localStorage (clé: planSondes)</b>";
-    console.error("planSondes manquant. Exemple rapide :", "localStorage.setItem('planSondes','01,02,03\\n04,05,06')");
-    return;
-  }
+  if(!planRaw){grid.innerHTML="<b style='color:red'>❌ Aucun plan_sondes.csv trouvé</b>";return;}
 
-  // Lignes vides = séparateurs visuels (on mettra null)
   const rows=planRaw.trim().split(/\r?\n/).map(l=>{
     const cols=l.split(",").map(v=>v.trim());
-    return cols.every(v=>v==="") ? null : cols;
+    return cols.every(v=>v==="")?null:cols;
   });
 
   planLayout=rows;
-  rowsCount = planLayout.filter(r=>r).length;
-  const firstNonEmpty = planLayout.find(r=>r);
-  colsCount = firstNonEmpty ? firstNonEmpty.length : 0;
-
+  rowsCount=planLayout.filter(r=>r).length;
+  colsCount=planLayout.find(r=>r)?.length||0;
   buildGrid();
 }
 
+/* ======= Construction propre ======= */
 function buildGrid(){
   const grid=document.getElementById("grid");
-  grid.style.gridTemplateColumns=`repeat(${colsCount}, var(--tile-size))`;
   grid.innerHTML="";
 
+  // Séparer haut et bas (ligne vide = coupure)
+  const parts=[]; let bloc=[];
   for(const row of planLayout){
-    if(!row){
-      // ligne vide = espace visuel (séparateur haut/bas)
-      const spacer=document.createElement("div");
-      spacer.style.gridColumn=`1 / span ${colsCount}`;
-      spacer.style.height="calc(var(--tile-size) * 0.3)";
-      spacer.style.display="block";
-      grid.appendChild(spacer);
-      continue;
-    }
-    for(const num of row){
-      if(!num) continue; // cellule vide éventuelle
-      const div=document.createElement("div");
-      div.className="sonde";
-      div.id="sonde"+num;
-      div.innerHTML=`
-        <div class="label">Sonde ${num}</div>
-        <div class="consigne">-- °C</div>
-        <div class="val">-- °C</div>`;
-      grid.appendChild(div);
-    }
+    if(!row){ if(bloc.length) parts.push(bloc); bloc=[]; }
+    else bloc.push(row);
   }
+  if(bloc.length) parts.push(bloc);
+
+  // Créer sous-grilles
+  const topPart=document.createElement("div");
+  topPart.className="grid-part";
+  topPart.style.gridTemplateColumns=`repeat(${colsCount}, var(--tile-size))`;
+  const bottomPart=document.createElement("div");
+  bottomPart.className="grid-part";
+  bottomPart.style.gridTemplateColumns=`repeat(${colsCount}, var(--tile-size))`;
+
+  grid.appendChild(topPart);
+  grid.appendChild(bottomPart);
+
+  const fill=(container,rows)=>{
+    for(const r of rows){
+      for(const num of r){
+        if(!num)continue;
+        const div=document.createElement("div");
+        div.className="sonde";
+        div.id="sonde"+num;
+        div.innerHTML=`
+          <div class="label">Sonde ${num}</div>
+          <div class="consigne">-- °C</div>
+          <div class="val">-- °C</div>`;
+        container.appendChild(div);
+      }
+    }
+  };
+
+  fill(topPart,parts[0]||[]);
+  fill(bottomPart,parts[1]||[]);
 }
 
-/* ========= CSV Google Drive ========= */
+/* ======= Chargement CSV Google Drive ======= */
 async function loadCSV(){
-  if(!fileId){ console.error("❌ fileId manquant dans l'URL"); return; }
-
-  // Affiche nom + compte lignes (quand dispo)
-  const fn=document.getElementById("fileName");
-  if(fn) fn.textContent = decodeURIComponent(fileName||"");
-
+  if(!fileId)return;
   const url=`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=AIzaSyCbEV3CS9bOcxq5eK-QXbjczGHjvzyXS6M`;
-  let text="";
-  try{
-    const res=await fetch(url);
-    if(!res.ok){
-      console.error("Échec fetch CSV", res.status, res.statusText);
-      return;
-    }
-    text=await res.text();
-  }catch(e){
-    console.error("Fetch CSV erreur réseau:", e);
-    return;
-  }
-
-  if(typeof Papa==="undefined"){
-    console.error("PapaParse introuvable. Vérifie libs/papaparse.min.js (ou utilise un CDN).");
-    return;
-  }
-
+  const response=await fetch(url);const text=await response.text();
   const seen={};
-  const results=Papa.parse(text,{
-    header:true, skipEmptyLines:true,
-    transformHeader:(h)=>{
-      h=(h||"").replace(/"/g,"").trim();
-      if(seen[h]){ seen[h]++; return h+"_"+seen[h]; }
-      else{ seen[h]=1; return h+"_1"; }
-    }
-  });
-
-  headers = results.meta?.fields || [];
-  csvData = results.data || [];
-
-  const lc=document.getElementById("lineCount");
-  if(lc) lc.textContent = (csvData?.length||0) + " ligne" + ((csvData?.length||0)>1?"s":"");
-
-  document.getElementById("slider").max = Math.max(0, (csvData.length||1)-1);
-
-  hasTempExt = headers.some(h => (h||"").toUpperCase().startsWith("T°C EXT"));
-  const extEl = document.getElementById("TempExt");
-  if(extEl) extEl.style.display = hasTempExt ? "flex" : "none";
-
-  const minInit=parseFloat(localStorage.getItem("scaleMin")||"15");
-  const maxInit=parseFloat(localStorage.getItem("scaleMax")||"70");
-  document.getElementById("minInput").value = isNaN(minInit)?15:minInit;
-  document.getElementById("maxInput").value = isNaN(maxInit)?70:maxInit;
-
+  const results=Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:(h)=>{h=(h||"").replace(/"/g,"").trim();if(seen[h]){seen[h]++;return h+"_"+seen[h];}else{seen[h]=1;return h+"_1";}}});
+  headers=results.meta.fields||[];csvData=results.data||[];
+  document.getElementById("slider").max=Math.max(0,csvData.length-1);
+  hasTempExt=headers.some(h=>(h||"").toUpperCase().startsWith("T°C EXT"));
+  document.getElementById("TempExt").style.display=hasTempExt?"flex":"none";
+  document.getElementById("minInput").value=parseFloat(localStorage.getItem("scaleMin")||"15");
+  document.getElementById("maxInput").value=parseFloat(localStorage.getItem("scaleMax")||"70");
   updateGrid(0);
 }
 
-/* ========= Affichage d’une ligne ========= */
+/* ======= Actualisation affichage ======= */
 function updateGrid(idx){
-  if(!csvData[idx]) return;
+  if(!csvData[idx])return;
   const row=csvData[idx];
-
   const dateKey=headers.find(h=>(h||"").toLowerCase().includes("date"));
-  const timeKey=headers.find(h=>{
-    const hh=(h||"").toLowerCase();
-    return hh.includes("heure") || hh.includes("time") || hh==="h";
-  });
-
+  const timeKey=headers.find(h=>(h||"").toLowerCase().includes("heure")||(h||"").toLowerCase().includes("time"));
   let dtLabel="";
-  if(dateKey && row[dateKey]) dtLabel += String(row[dateKey]);
-  if(timeKey && row[timeKey]) dtLabel += (dtLabel?" — ":"") + String(row[timeKey]);
-  document.getElementById("datetimeLabel").textContent = dtLabel||("");
+  if(dateKey&&row[dateKey])dtLabel+=row[dateKey];
+  if(timeKey&&row[timeKey])dtLabel+=(dtLabel?" — ":"")+row[timeKey];
+  document.getElementById("datetimeLabel").textContent=dtLabel;
 
-  // tuiles du plan
   planLayout.flat().forEach(i=>{
-    if(!i) return; // ignore séparateurs
+    if(!i)return;
     const sondeNum=String(i).padStart(2,"0");
     const consCol="Sonde"+sondeNum+"_1";
-    const valCol ="Sonde"+sondeNum+"_2";
+    const valCol="Sonde"+sondeNum+"_2";
     const div=document.getElementById("sonde"+i);
-    if(!div) return;
-
-    const cons=parseFloat(row[consCol]);
-    const val =parseFloat(row[valCol]);
-
-    div.querySelector(".consigne").textContent = isNaN(cons) ? "-- °C" : cons.toFixed(1)+" °C";
-    const valDiv = div.querySelector(".val");
-    if(!isNaN(val)){
-      valDiv.textContent = val.toFixed(1)+" °C";
-      div.style.background = getColor(val);
-    }else{
-      valDiv.textContent = "-- °C";
-      div.style.background = "#eee";
-    }
+    if(!div)return;
+    const cons=parseFloat(row[consCol]);const val=parseFloat(row[valCol]);
+    div.querySelector(".consigne").textContent=isNaN(cons)?"-- °C":cons.toFixed(1)+" °C";
+    const valDiv=div.querySelector(".val");
+    if(!isNaN(val)){valDiv.textContent=val.toFixed(1)+" °C";div.style.background=getColor(val);}else{valDiv.textContent="-- °C";div.style.background="#eee";}
   });
 
   updateSpecial("Sonde AC sup","SondeACsup",row);
@@ -204,73 +264,32 @@ function updateGrid(idx){
 }
 
 function updateSpecial(label,id,row){
-  const card=document.getElementById(id);
-  if(!card) return;
+  const div=document.getElementById(id);if(!div)return;
   const consCol=headers.find(h=>(h||"").toUpperCase()===label.toUpperCase()+"_1");
-  const valCol =headers.find(h=>(h||"").toUpperCase()===label.toUpperCase()+"_2");
-  if(!consCol || !valCol) return;
-
-  const cons=parseFloat(row[consCol]);
-  const val =parseFloat(row[valCol]);
-
-  card.querySelector(".consigne").textContent = isNaN(cons) ? "-- °C" : cons.toFixed(1)+" °C";
-  const valDiv = card.querySelector(".val");
-  if(!isNaN(val)){
-    valDiv.textContent = val.toFixed(1)+" °C";
-    card.style.background = getColor(val);
-  }else{
-    valDiv.textContent = "-- °C";
-    card.style.background = "#eee";
-  }
+  const valCol=headers.find(h=>(h||"").toUpperCase()===label.toUpperCase()+"_2");
+  if(!consCol||!valCol)return;
+  const cons=parseFloat(row[consCol]);const val=parseFloat(row[valCol]);
+  div.querySelector(".consigne").textContent=isNaN(cons)?"-- °C":cons.toFixed(1)+" °C";
+  const valDiv=div.querySelector(".val");
+  if(!isNaN(val)){valDiv.textContent=val.toFixed(1)+" °C";div.style.background=getColor(val);}else{valDiv.textContent="-- °C";div.style.background="#eee";}
 }
 
-/* ========= Palette couleur ========= */
-function getScale(){
-  let min=parseFloat(document.getElementById("minInput").value);
-  let max=parseFloat(document.getElementById("maxInput").value);
-  if(!isFinite(min)) min=15;
-  if(!isFinite(max)) max=70;
-  if(max<=min) max=min+1;
-  return {min,max};
-}
-function getColor(v){
-  const {min,max}=getScale();
-  let t=(v-min)/(max-min); t=Math.max(0,Math.min(1,t));
-  if(t<0.5){ const r=t/0.5; return `rgb(0,${Math.round(150+105*r)},${Math.round(255-255*r)})`; }
-  else if(t<0.75){ const r=(t-0.5)/0.25; return `rgb(${Math.round(255*r)},255,0)`; }
-  else if(t<0.9){ const r=(t-0.75)/0.15; return `rgb(255,${Math.round(255-90*r)},0)`; }
-  else{ const r=(t-0.9)/0.1; return `rgb(255,${Math.round(165-165*r)},0)`; }
+/* ======= Couleurs ======= */
+function getScale(){let min=parseFloat(document.getElementById("minInput").value);let max=parseFloat(document.getElementById("maxInput").value);if(!isFinite(min))min=15;if(!isFinite(max))max=70;if(max<=min)max=min+1;return {min,max};}
+function getColor(v){const {min,max}=getScale();let t=(v-min)/(max-min);t=Math.max(0,Math.min(1,t));
+  if(t<0.5){const r=t/0.5;return `rgb(0,${Math.round(150+105*r)},${Math.round(255-255*r)})`;}
+  else if(t<0.75){const r=(t-0.5)/0.25;return `rgb(${Math.round(255*r)},255,0)`;}
+  else if(t<0.9){const r=(t-0.75)/0.15;return `rgb(255,${Math.round(255-90*r)},0)`;}
+  else{const r=(t-0.9)/0.1;return `rgb(255,${Math.round(165-165*r)},0)`;}
 }
 
-/* ========= Listeners ========= */
-document.getElementById("slider").addEventListener("input",e=>{
-  const i=parseInt(e.target.value)||0;
-  updateGrid(i);
-});
-document.getElementById("minInput").addEventListener("change",()=>{
-  const v=parseFloat(document.getElementById("minInput").value);
-  localStorage.setItem("scaleMin", isFinite(v)? String(v): "15");
-  if(csvData.length) updateGrid(parseInt(document.getElementById("slider").value)||0);
-});
-document.getElementById("maxInput").addEventListener("change",()=>{
-  const v=parseFloat(document.getElementById("maxInput").value);
-  localStorage.setItem("scaleMax", isFinite(v)? String(v): "70");
-  if(csvData.length) updateGrid(parseInt(document.getElementById("slider").value)||0);
-});
+/* ======= Listeners ======= */
+document.getElementById("slider").addEventListener("input",e=>updateGrid(parseInt(e.target.value)||0));
+document.getElementById("minInput").addEventListener("change",()=>{const v=parseFloat(document.getElementById("minInput").value);localStorage.setItem("scaleMin",isFinite(v)?String(v):"15");if(csvData.length)updateGrid(parseInt(document.getElementById("slider").value)||0);});
+document.getElementById("maxInput").addEventListener("change",()=>{const v=parseFloat(document.getElementById("maxInput").value);localStorage.setItem("scaleMax",isFinite(v)?String(v):"70");if(csvData.length)updateGrid(parseInt(document.getElementById("slider").value)||0);});
 
-/* ========= INIT ========= */
-(function init(){
-  try{
-    setTheme(localStorage.getItem("selectedTheme")||"orange");
-  }catch(e){ console.warn("setTheme a échoué", e); }
-  try{
-    hydrateFolderHeader();
-  }catch(e){ console.warn("hydrateFolderHeader a échoué", e); }
-  try{
-    loadPlan();
-  }catch(e){ console.error("loadPlan a échoué", e); }
-  try{
-    loadCSV();
-  }catch(e){ console.error("loadCSV a échoué", e); }
-})();
+/* ======= INIT ======= */
+(function init(){setTheme(localStorage.getItem("selectedTheme")||"orange");loadPlan();loadCSV();})();
 </script>
+</body>
+</html>
