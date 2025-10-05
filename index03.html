@@ -247,19 +247,29 @@ function buildGrid(){
 
 // === Ajout différé des cases spéciales après lecture du CSV ===
 function addSpecialsAfterCSV() {
-  const hasExt = headers?.some(h => {
-    const norm = (h || "")
-      .normalize("NFD")
-      .replace(/[^\w]/g, "")
-      .toLowerCase();
-    return norm.includes("tcext") || norm.includes("temperatureexterieure") || norm.includes("tempext");
-  });
+  const normalize = s => (s || "").normalize("NFD").replace(/[^\w]/g, "").toLowerCase();
+
+  // ✅ Détection ultra tolérante sur les intitulés du CSV
+  const hasExt   = headers.some(h => normalize(h).includes("tcext") || normalize(h).includes("temperatureexterieure") || normalize(h).includes("tempext"));
+  const hasDebit = headers.some(h => normalize(h).includes("debit") || normalize(h).includes("debitth") || normalize(h).includes("dbit") || normalize(h).includes("tonne"));
+  const hasGaz   = headers.some(h => normalize(h).includes("gaz"));
+  const hasNorm  = headers.some(h => normalize(h).includes("normalis"));
+  const hasIpe   = headers.some(h => normalize(h).includes("ipe") || normalize(h).includes("ip") || normalize(h).includes("ipekwh"));
+
+  console.log("Colonnes détectées →", { hasExt, hasDebit, hasGaz, hasNorm, hasIpe });
 
   const specials = [
+    // 🔸 Sondes internes
     { id: "SondeACsup", label: "Air chaud Supérieur", col: "G", row: 4 },
     { id: "SondeACinf", label: "Air chaud Inférieur", col: "G", row: 8 },
-    { id: "TempGrain",  label: "Température Grain",  col: "P", row: 7 },
-    { id: "TempExt",    label: "Température Extérieure", col: "E", row: 10, optional: true }
+    { id: "TempGrain",  label: "Température Grain",   col: "P", row: 7 },
+    { id: "TempExt",    label: "Température Extérieure 🌡️", col: "E", row: 10, optional: true },
+
+    // 🔸 Nouvelles cases de suivi
+    { id: "DebitTH",   label: "Débit (Tonnes / Heure)", col: "D", row: 7, optional: true, bg: "#c8e6c9", active: hasDebit },
+    { id: "GazM3H",    label: "🔥 Consommation (m³ / Heure)", col: "D", row: 8, optional: true, bg: "#fff9c4", active: hasGaz },
+    { id: "Normalise", label: "🔥 Consommation (Nm³ / Heure)", col: "D", row: 9, optional: true, bg: "#fff9c4", active: hasNorm },
+    { id: "IPE",       label: "🔥 Ipé (kWh/tee)", col: "D", row: 10, optional: true, bg: "#fff9c4", active: hasIpe }
   ];
 
   function colIdx(letter){ return letter.toUpperCase().charCodeAt(0) - 64; }
@@ -270,24 +280,24 @@ function addSpecialsAfterCSV() {
     const d = document.createElement("div");
     d.className = "sonde special";
     d.id = s.id;
+    if (s.bg) d.style.background = s.bg;
     d.innerHTML = `
       <div class="label">${s.label}</div>
-      <div class="consigne">-- °C</div>
-      <div class="val">-- °C</div>`;
+      <div class="consigne">--</div>
+      <div class="val">--</div>`;
     const target = (row <= 6) ? document.getElementById("gridTop") : document.getElementById("gridBottom");
     d.style.gridColumn = `${col} / span 1`;
     d.style.gridRow = `${row <= 6 ? row : row - 6} / span 1`;
     target.appendChild(d);
   }
 
+  // Ajout conditionnel
   specials.forEach(s => {
-    if (s.optional && s.id === "TempExt") {
-      if (hasExt) placeSpecial(s);
-    } else {
-      placeSpecial(s);
-    }
+    if (!s.optional || s.active) placeSpecial(s);
   });
 }
+
+
 
 
 
@@ -385,18 +395,24 @@ function getColor(v){
 }
 
 /* =================== Actualisation d’une ligne =================== */
+/* =================== Actualisation d’une ligne =================== */
 function updateGrid(idx){
   if(!csvData[idx]) return;
   const row = csvData[idx];
 
-  // Date/Heure (tentes communes)
+  // Date/Heure
   const dateKey=headers.find(h=>(h||"").toLowerCase().includes("date"));
-  const timeKey=headers.find(h=>{const a=(h||"").toLowerCase(); return a.includes("heure")||a.includes("time")||a==="h";});
-  let dt=""; if(dateKey&&row[dateKey]) dt+=String(row[dateKey]); if(timeKey&&row[timeKey]) dt+=(dt?" — ":"")+String(row[timeKey]);
+  const timeKey=headers.find(h=>{
+    const a=(h||"").toLowerCase();
+    return a.includes("heure")||a.includes("time")||a==="h";
+  });
+  let dt=""; 
+  if(dateKey&&row[dateKey]) dt+=String(row[dateKey]); 
+  if(timeKey&&row[timeKey]) dt+=(dt?" — ":"")+String(row[timeKey]);
   document.getElementById("datetimeLabel").textContent = dt||"";
 
-  // Remplir toutes les “Sonde XX”
-  const allCells = document.querySelectorAll('.sonde:not(.special)'); // plan
+  // === Sondes normales ===
+  const allCells = document.querySelectorAll('.sonde:not(.special)');
   allCells.forEach(div=>{
     const n = div.id.replace("sonde","").padStart(2,"0");
     const consCol = "Sonde"+n+"_1";
@@ -405,75 +421,134 @@ function updateGrid(idx){
     const val  = parseFloat(row[valCol]);
     div.querySelector(".consigne").textContent = isNaN(cons) ? "-- °C" : cons.toFixed(1)+" °C";
     const vdiv = div.querySelector(".val");
-    if(!isNaN(val)){ vdiv.textContent=val.toFixed(1)+" °C"; div.style.background=getColor(val); }
-    else{ vdiv.textContent="-- °C"; div.style.background="#eee"; }
+    if(!isNaN(val)){
+      vdiv.textContent=val.toFixed(1)+" °C"; 
+      div.style.background=getColor(val);
+    } else {
+      vdiv.textContent="-- °C"; 
+      div.style.background="#eee";
+    }
   });
 
-  // Spéciales (avec détection tolérante et gestion du cas 1 seule colonne)
-  function updateSpecial(label, id, opts = {}) {
-    const { singleIsValue = false, altLabels = [] } = opts;
-    const el = document.getElementById(id);
-    if (!el) return;
+// 🔸 Fonction générique pour les cases spéciales
+function updateSpecial(label, id, opts = {}) {
+  const { altLabels = [], prefer = [] } = opts;
+  const el = document.getElementById(id);
+  if (!el) return;
 
-    const norm = s => (s || "")
-      .normalize("NFD")
-      .replace(/[^\w]/g, "")
-      .toLowerCase();
+  const norm = s => (s || "").normalize("NFD").replace(/[^\w]/g, "").toLowerCase();
+  const wanted  = [label, ...altLabels].map(norm);
+  const prefers = (prefer || []).map(norm);
 
-    const wanted = [label, ...altLabels].map(norm);
-
-    // On matche sur le nom SANS suffixe _1/_2
-    let consCol, valCol, anyCol;
+  // --- Recherche colonne exacte ---
+  let valCol = null;
+  for (const h of headers) {
+    const n = norm(h);
+    if (prefers.some(p => n === p || n.includes(p))) { valCol = h; break; }
+  }
+  if (!valCol) {
     for (const h of headers) {
-      const base = h.replace(/_\d+$/, "");
-      const baseNorm = norm(base);
-      if (!wanted.some(w => baseNorm.startsWith(w))) continue;
-      if (h.endsWith("_1")) consCol = h;
-      else if (h.endsWith("_2")) valCol = h;
-      else anyCol = h; // cas rare: pas de suffixe
-    }
-
-    // Si une seule colonne (ex: T°C Ext_1), on la prend comme valeur
-    if (!valCol && singleIsValue) {
-      valCol = anyCol || consCol;
-      consCol = undefined;
-    }
-
-    const cons = consCol ? parseFloat(row[consCol]) : NaN;
-    const val  = valCol  ? parseFloat(row[valCol])  : NaN;
-
-    el.querySelector(".consigne").textContent = isNaN(cons) ? "-- °C" : cons.toFixed(1) + " °C";
-    const vdiv = el.querySelector(".val");
-    if (!isNaN(val)) {
-      vdiv.textContent = val.toFixed(1) + " °C";
-      el.style.background = getColor(val);
-    } else {
-      vdiv.textContent = "-- °C";
-      el.style.background = "#eee";
+      const n = norm(h);
+      if (wanted.some(w => n.includes(w))) { valCol = h; break; }
     }
   }
 
-  // Appels :
-  updateSpecial("Sonde AC sup", "SondeACsup");
-  updateSpecial("Sonde AC inf", "SondeACinf");
-  updateSpecial("Temp Grain",    "TempGrain");
-  updateSpecial("T°C Ext",       "TempExt", {
-    singleIsValue: true,
-    altLabels: ["Temperature Exterieure","Temp Ext","TC Ext","T C Ext"]
-  });
+  const val = valCol ? parseFloat(row[valCol]) : NaN;
+
+  // --- Unités auto ---
+  let unit = "°C";
+  const L = norm(label);
+  if (L.includes("debit")) unit = "t/h";
+  else if (L.includes("gaz") && !L.includes("normal")) unit = "m³/h";
+  else if (L.includes("normal")) unit = "Nm³/h";
+  else if (L.includes("ip")) unit = "kWh/tee";
+
+  // --- Style valeur ---
+  const vdiv = el.querySelector(".val");
+  vdiv.style.fontSize = "clamp(11px, calc(var(--tile-size)*0.13), 17px)";
+  vdiv.textContent = isNaN(val) ? `-- ${unit}` : `${val.toFixed(1)} ${unit}`;
+
+  // --- Couleur fixe par type ---
+  if (L.includes("debit")) el.style.background = "#c8e6c9";
+  else if (L.includes("gaz") || L.includes("normal") || L.includes("ip")) el.style.background = "#fff9c4";
+  else el.style.background = isNaN(val) ? "#eee" : getColor(val);
+
+// --- Gestion de la consigne ---
+const consEl = el.querySelector(".consigne");
+
+// Affiche la consigne seulement pour ACsup / ACinf / TempGrain
+if (L.includes("acsup") || L.includes("acinf") || L.includes("grain")) {
+  // 🔹 Cherche la 1re occurrence pour consigne et la 2e pour valeur
+  let base = null;
+  let consCol = null, valCol = null;
+  let count = 0;
+
+  for (const h of headers) {
+    const n = norm(h);
+    if (n.includes(norm(label))) {
+      count++;
+      if (count === 1) consCol = h;
+      if (count === 2) valCol = h;
+    }
+  }
+
+  const consVal = consCol ? parseFloat(row[consCol]) : NaN;
+  const valVal  = valCol ? parseFloat(row[valCol])  : NaN;
+
+  // --- Affiche consigne + valeur ---
+  consEl.style.display = "block";
+  consEl.textContent = isNaN(consVal) ? "-- °C" : `${consVal.toFixed(1)} °C`;
+
+  const vdiv = el.querySelector(".val");
+  vdiv.textContent = isNaN(valVal) ? "-- °C" : `${valVal.toFixed(1)} °C`;
+  if (!isNaN(valVal)) el.style.background = getColor(valVal);
+
+} else {
+  consEl.style.display = "none";
+}
+
+
+
+}
+
+// 🔹 Appels
+updateSpecial("Sonde AC sup", "SondeACsup");
+updateSpecial("Sonde AC inf", "SondeACinf");
+updateSpecial("Temp Grain",    "TempGrain");
+updateSpecial("T°C Ext",       "TempExt", {
+  altLabels: ["Temperature Exterieure", "Temp Ext", "TC Ext", "T C Ext"]
+});
+
+// 🔹 Suivis (1 seule colonne)
+updateSpecial("Débit", "DebitTH", {
+  altLabels: ["D bit t/h", "Débit T/H", "Débit (Tonnes / Heure)"],
+  prefer: ["dbitth"]
+});
+updateSpecial("Gaz", "GazM3H", {
+  altLabels: ["Gaz m3/h", "GAZ M3/H", "Consommation (m3 / Heure)"],
+  prefer: ["gazm3h"]
+});
+updateSpecial("Normalisé", "Normalise", {
+  altLabels: ["Normalis", "Normalisé", "Consommation (Nm3 / Heure)"],
+  prefer: ["normalis"]
+});
+updateSpecial("Ipé", "IPE", {
+  altLabels: ["Ip", "Ipe", "Ipé (kWh/tee)", "IPE"],
+  prefer: ["ip"]
+});
 }
 
 /* =================== Listeners =================== */
 window.addEventListener("resize", updateTileSize);
-document.getElementById("slider").addEventListener("input",e=>updateGrid(parseInt(e.target.value)||0));
-document.getElementById("minInput").addEventListener("change",()=>{
+document.getElementById("slider").addEventListener("input", e => updateGrid(parseInt(e.target.value)||0));
+document.getElementById("minInput").addEventListener("change", ()=>{
   const v=parseFloat(document.getElementById("minInput").value);
-  localStorage.setItem("scaleMin", isFinite(v)? String(v): "30");
+  localStorage.setItem("scaleMin", isFinite(v)?String(v):"30");
   if(csvData.length) updateGrid(parseInt(document.getElementById("slider").value)||0);
 });
-document.getElementById("maxInput").addEventListener("change",()=>{
+document.getElementById("maxInput").addEventListener("change", ()=>{
   const v=parseFloat(document.getElementById("maxInput").value);
-  localStorage.setItem("scaleMax", isFinite(v)? String(v): "60");
+  localStorage.setItem("scaleMax", isFinite(v)?String(v):"60");
   if(csvData.length) updateGrid(parseInt(document.getElementById("slider").value)||0);
 });
 
@@ -481,10 +556,11 @@ document.getElementById("maxInput").addEventListener("change",()=>{
 (function init(){
   setTheme(localStorage.getItem("selectedTheme")||"orange");
   loadPlan();
-  buildGrid();       // construit la structure (au cas où)
-  updateTileSize();  // calcule la taille des cellules selon place
-  loadCSV();         // charge et fait un premier updateGrid(0)
+  buildGrid();
+  updateTileSize();
+  loadCSV();
 })();
+
 </script>
 </body>
 </html>
