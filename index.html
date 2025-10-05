@@ -328,6 +328,8 @@ const FLAME_THRESHOLD = 40.0;   // seuil déclencheur de la flamme 🔥
 let imageFiles=[], currentImageIndex=0;
 let filterStartDate="", filterEndDate="";
 let themeMenuTimer;
+let cancelScan = false; // 🛑 permet d’arrêter le scan si on clique ailleurs
+
 
 /* ----------- Utilitaires UI ----------- */
 const spinner=document.getElementById('spinner');
@@ -585,33 +587,39 @@ if (date) {
 const tdName = document.createElement('td');
 tdName.textContent = f.name;
 
-// === FLAMME FILE (corrigé) ===
+// === FLAMME FILE (avec cancelScan) ===
 if (f.name.toLowerCase().endsWith(".csv") &&
     (folderName.toLowerCase().includes("traça_temp") || folderName.toLowerCase().includes("traca_temp"))) {
+  
+  // Message provisoire
+  tdName.innerHTML = `${f.name}&nbsp;&nbsp;&nbsp;<span style="color:gray;font-size:11px;">(scan en cours...)</span>`;
+
   (async () => {
     try {
+      if (cancelScan) { tdName.innerHTML = f.name; return; } // 🛑 stop si demandé
+
       const url = `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media&key=${API_KEY}`;
       const res = await fetch(url);
-      if (!res.ok) return;
+      if (!res.ok) { tdName.innerHTML = f.name; return; }
+
       const text = await res.text();
+      if (cancelScan) { tdName.innerHTML = f.name; return; } // 🛑 stop si demandé
+
       const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
-      if (lines.length < 2) return;
+      if (lines.length < 2) { tdName.innerHTML = f.name; return; }
 
-      // En-têtes en minuscules + nettoyés
       const headers = lines[0].split(",").map(h => h.replace(/"/g,"").trim().toLowerCase());
-
-      // 2ème occurrence de "sonde ac inf" et "sonde ac sup"
       let idxInf = headers.map((h,i)=>({h,i})).filter(o=>o.h.includes("sonde ac inf"))[1]?.i;
       let idxSup = headers.map((h,i)=>({h,i})).filter(o=>o.h.includes("sonde ac sup"))[1]?.i;
 
-      if (idxInf === undefined && idxSup === undefined) return;
+      if (idxInf === undefined && idxSup === undefined) { tdName.innerHTML = f.name; return; }
 
       let countFlame = 0;
       for (let i = 1; i < lines.length; i++) {
+        if (cancelScan) { tdName.innerHTML = f.name; return; } // 🛑 stop en plein scan
         const cols = lines[i].split(",").map(c => c.replace(/"/g,"").trim());
         const vInf = idxInf !== undefined ? parseFloat(cols[idxInf]) : NaN;
         const vSup = idxSup !== undefined ? parseFloat(cols[idxSup]) : NaN;
-
         if ((isFinite(vInf) && vInf > FLAME_THRESHOLD) ||
             (isFinite(vSup) && vSup > FLAME_THRESHOLD)) {
           countFlame++;
@@ -620,13 +628,17 @@ if (f.name.toLowerCase().endsWith(".csv") &&
 
       if (countFlame >= 1) {
         tdName.innerHTML = `${f.name}&nbsp;&nbsp;&nbsp;<span class="flame" title="Brûleur actif détecté">🔥</span>`;
+      } else {
+        tdName.innerHTML = f.name;
       }
     } catch(e) {
       console.error("Erreur flamme fichier:", f.name, e);
+      tdName.innerHTML = f.name;
     }
   })();
 }
 // === FIN FLAMME FILE ===
+
 
 
 const tdFolder=document.createElement('td'); tdFolder.textContent=folderName;
@@ -676,6 +688,8 @@ if(f.name.toLowerCase().endsWith('.csv')){
 
 /* ----------- Open viewer (CSV list + index) ----------- */
 async function openViewer(viewer, id, name){
+  cancelScan = true; // 🛑 stoppe immédiatement tous les scans
+
   const active = document.querySelector('#folderTree .active-folder');
   if (!active) { alert("Sélectionnez un dossier !"); return; }
 
@@ -687,10 +701,8 @@ async function openViewer(viewer, id, name){
 
   // 🔗 Récupérer les Z3 préchargés
   const z3Files = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
-
   const allCsv = [...saFiles, ...z3Files];
 
-  // ⚡ Ajouter la hiérarchie de dossiers
   function addFolderHierarchy(li, acc){
     if (!li) return;
     const nameSpan = li.querySelector('.folder-name');
@@ -717,38 +729,28 @@ async function openViewer(viewer, id, name){
   const index = allCsv.findIndex(f => f.id === id);
   localStorage.setItem("csvFileIndex", index);
 
-  console.log("📦 Sauvegardé dans csvFilesList:", allCsv); // debug
+  // 🔍 Vérifier plan_sondes.csv
+  const planFile = files.find(f => f.name.toLowerCase() === "plan_sondes.csv");
+  let url = `${viewer}?fileId=${id}&fileName=${encodeURIComponent(name)}`;
 
-// 🔍 Vérifier si un plan_sondes.csv existe dans ce dossier
-const planFile = files.find(f => f.name.toLowerCase() === "plan_sondes.csv");
-let url = `${viewer}?fileId=${id}&fileName=${encodeURIComponent(name)}`;
-
-if (planFile) {
-  console.log("✅ plan_sondes.csv trouvé :", planFile);
-
-  try {
-    // Charger et stocker le plan dans localStorage
-    const urlPlan = `https://www.googleapis.com/drive/v3/files/${planFile.id}?alt=media&key=${API_KEY}`;
-    const respPlan = await fetch(urlPlan);
-    const textPlan = await respPlan.text();
-    localStorage.setItem("planSondes", textPlan);
-    console.log("📦 plan_sondes.csv stocké dans localStorage");
-  } catch (e) {
-    console.error("❌ Erreur lors du chargement du plan_sondes.csv", e);
+  if (planFile) {
+    try {
+      const urlPlan = `https://www.googleapis.com/drive/v3/files/${planFile.id}?alt=media&key=${API_KEY}`;
+      const respPlan = await fetch(urlPlan);
+      const textPlan = await respPlan.text();
+      localStorage.setItem("planSondes", textPlan);
+    } catch (e) {
+      console.error("❌ Erreur lors du chargement du plan_sondes.csv", e);
+    }
+  } else {
+    localStorage.removeItem("planSondes");
   }
-} else {
-  console.warn("⚠️ Aucun plan_sondes.csv trouvé dans ce dossier");
-  localStorage.removeItem("planSondes"); // nettoyage si pas de plan
-}
-
-
-  console.log("➡️ URL générée :", url);
 
   window.open(url,'_blank');
+
+  // 🔄 après un petit délai → réautoriser les scans
+  setTimeout(() => { cancelScan = false; }, 1000);
 }
-
-
-
 
 
 
