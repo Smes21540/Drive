@@ -85,7 +85,15 @@ body{
 .sonde .val{ font-size: clamp(14px, calc(var(--tile-size)*0.18), 22px); font-weight:bold; color:#000; }
 
 /* ===== Cases spéciales ===== */
-.sonde.special{ outline: 2px dashed var(--accent-muted); }
+.sonde.special {
+  outline: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;   /* ✅ centre verticalement */
+  text-align: center;        /* ✅ centre horizontalement */
+  padding: 0;                /* ✅ enlève les décalages internes */
+}
 
 /* ===== Sidebar temporelle (en dessous de la grille) ===== */
 #bottomBar{
@@ -259,17 +267,18 @@ function addSpecialsAfterCSV() {
   console.log("Colonnes détectées →", { hasExt, hasDebit, hasGaz, hasNorm, hasIpe });
 
   const specials = [
-    // 🔸 Sondes internes
-    { id: "SondeACsup", label: "Air chaud Supérieur", col: "G", row: 4 },
-    { id: "SondeACinf", label: "Air chaud Inférieur", col: "G", row: 8 },
-    { id: "TempGrain",  label: "Température Grain",   col: "P", row: 7 },
-    { id: "TempExt",    label: "Température Extérieure 🌡️", col: "E", row: 10, optional: true },
+// 🔸 Sondes internes
+{ id: "SondeACsup", label: "Air chaud Supérieur", col: "G", row: 4 },
+{ id: "SondeACinf", label: "Air chaud Inférieur", col: "G", row: 10 },
+{ id: "TempGrain",  label: "Température Grain",   col: "P", row: 7 },
+{ id: "TempExt",    label: "Température Extérieure 🌡️", col: "E", row: 10, optional: true, active: hasExt },
+
 
     // 🔸 Nouvelles cases de suivi
-    { id: "DebitTH",   label: "Débit (Tonnes / Heure)", col: "D", row: 7, optional: true, bg: "#c8e6c9", active: hasDebit },
-    { id: "GazM3H",    label: "🔥 Consommation (m³ / Heure)", col: "D", row: 8, optional: true, bg: "#fff9c4", active: hasGaz },
-    { id: "Normalise", label: "🔥 Consommation (Nm³ / Heure)", col: "D", row: 9, optional: true, bg: "#fff9c4", active: hasNorm },
-    { id: "IPE",       label: "🔥 Ipé (kWh/tee)", col: "D", row: 10, optional: true, bg: "#fff9c4", active: hasIpe }
+    { id: "DebitTH",   label: "Débit Séchage", col: "D", row: 7, optional: true, bg: "#00CCFF", active: hasDebit },
+    { id: "GazM3H",    label: "🔥 GAZ", col: "D", row: 8, optional: true, bg: "#FFCC33", active: hasGaz },
+    { id: "Normalise", label: "🔥 GAZ", col: "D", row: 9, optional: true, bg: "#FFCC33", active: hasNorm },
+    { id: "IPE",       label: "🔥 Ipé", col: "D", row: 10, optional: true, bg: "#33FF00", active: hasIpe }
   ];
 
   function colIdx(letter){ return letter.toUpperCase().charCodeAt(0) - 64; }
@@ -358,10 +367,7 @@ const hasExt = headers.some(h => {
   );
 });
 
-const extEl = document.getElementById("TempExt");
-if (extEl) {
-  extEl.style.display = hasExt ? "flex" : "none";
-}
+
 
 
 console.log("Colonnes CSV détectées :", headers);
@@ -370,9 +376,16 @@ console.log("Présence de T°C Ext :", hasExt);
 
 
 
-addSpecialsAfterCSV(); // 🧠 Ajoute la T°C Ext et autres cases spéciales après lecture CSV
+addSpecialsAfterCSV(); // 🧠 crée toutes les cases spéciales
 
-  updateGrid(0);
+// Déplacer ce bloc ICI après la création
+const extEl = document.getElementById("TempExt");
+if (extEl) {
+  extEl.style.display = hasExt ? "flex" : "none";
+}
+
+updateGrid(0); // et seulement ensuite on met à jour les valeurs
+
 
 }
 
@@ -468,10 +481,10 @@ function updateSpecial(label, id, opts = {}) {
   vdiv.style.fontSize = "clamp(11px, calc(var(--tile-size)*0.13), 17px)";
   vdiv.textContent = isNaN(val) ? `-- ${unit}` : `${val.toFixed(1)} ${unit}`;
 
-  // --- Couleur fixe par type ---
-  if (L.includes("debit")) el.style.background = "#c8e6c9";
-  else if (L.includes("gaz") || L.includes("normal") || L.includes("ip")) el.style.background = "#fff9c4";
-  else el.style.background = isNaN(val) ? "#eee" : getColor(val);
+// --- Couleur fixe (on garde la couleur d'origine) ---
+if (!el.hasAttribute("data-bg-fixed")) {
+  el.setAttribute("data-bg-fixed", "1");
+}
 
 // --- Gestion de la consigne ---
 const consEl = el.querySelector(".consigne");
