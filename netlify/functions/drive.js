@@ -19,7 +19,8 @@ export async function handler(event, context) {
   const allowedOrigins = [
     "https://smes21540.github.io/Drive",
     "https://smes21540.github.io/Oxyane",
-    "https://smes21540.github.io/Invivo_St_Usage"
+    "https://smes21540.github.io/Invivo_St_Usage",
+    "file://"                
   ];
   const allowOrigin =
     allowedOrigins.find(o => origin.startsWith(o)) ||
