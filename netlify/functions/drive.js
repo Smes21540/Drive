@@ -8,23 +8,23 @@ export async function handler(event, context) {
   const list = event.queryStringParameters.list === "true";
 
   if (!id) {
-    return {
-      statusCode: 400,
-      body: "Missing id parameter"
-    };
+    return { statusCode: 400, body: "Missing id parameter" };
   }
 
-const origin = event.headers.origin || "";
-const allowedOrigins = [
-  "https://smes21540.github.io/Drive",
-  "https://smes21540.github.io/Oxyane",
-  "https://smes21540.github.io/Invivo_St_Usage",
-  "file://",
-  "" // ⬅️ ajoute le cas “aucun origin” (ou null)
-];
-const allowOrigin =
-  allowedOrigins.find(o => origin.startsWith(o)) || "*"; // ⬅️ ici on autorise tout en local
+  // 🔐 Clé API stockée sur Netlify
+  const key = process.env.API_KEY;
 
+  // 🌍 Autorisation multi-origines (3 sous-sites + local)
+  const origin = event.headers.origin || "";
+  const allowedOrigins = [
+    "https://smes21540.github.io/Drive",
+    "https://smes21540.github.io/Oxyane",
+    "https://smes21540.github.io/Invivo_St_Usage",
+    "file://",
+    "" // pour les cas sans Origin (ex : file:// sans header)
+  ];
+  const allowOrigin =
+    allowedOrigins.find(o => origin.startsWith(o)) || "*"; // autorise tout en local
 
   // 🕓 Contrôle spécifique pour Invivo_St_Usage
   if (origin.includes("Invivo_St_Usage")) {
