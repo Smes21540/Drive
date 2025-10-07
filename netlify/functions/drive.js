@@ -1,4 +1,4 @@
-// === Variables globales (stockées en mémoire tant que la fonction reste chaude) ===
+// === Variables globales (gardées tant que la fonction reste chaude) ===
 let invivoSessionStart = null;
 let invivoBlockedUntil = null;
 
@@ -11,10 +11,7 @@ export async function handler(event, context) {
     return { statusCode: 400, body: "Missing id parameter" };
   }
 
-  // 🔐 Clé API stockée sur Netlify
   const key = process.env.API_KEY;
-
-  // 🌍 Autorisation multi-origines (3 sous-sites + local)
   const origin = event.headers.origin || "";
   const allowedOrigins = [
     "https://smes21540.github.io/Drive",
@@ -30,17 +27,21 @@ export async function handler(event, context) {
   if (origin.includes("Invivo_St_Usage")) {
     const now = Date.now();
 
-    // 🧾 Log du compteur Invivo dans la console Netlify
     console.log("[Invivo Timer]", {
       now,
       invivoSessionStart,
       invivoBlockedUntil,
-      secondsSinceStart: invivoSessionStart ? Math.round((now - invivoSessionStart) / 1000) : null,
-      secondsUntilUnblock: invivoBlockedUntil ? Math.round((invivoBlockedUntil - now) / 1000) : null
+      secondsSinceStart: invivoSessionStart
+        ? Math.round((now - invivoSessionStart) / 1000)
+        : null,
+      secondsUntilUnblock: invivoBlockedUntil
+        ? Math.round((invivoBlockedUntil - now) / 1000)
+        : null
     });
 
-    // Si déjà bloqué
+    // Déjà bloqué ?
     if (invivoBlockedUntil && now < invivoBlockedUntil) {
+      console.log("[Invivo Timer] 🚫 Blocage toujours actif.");
       return {
         statusCode: 403,
         headers: {
@@ -52,14 +53,14 @@ export async function handler(event, context) {
       };
     }
 
-    // Première utilisation → démarrage du chrono
+    // Démarrage de la session
     if (!invivoSessionStart) invivoSessionStart = now;
 
-    // Si plus de 1 min écoulée → blocage pour 1h
-    if (now - invivoSessionStart > 1 * 60 * 1000) { // ⏱️ 1 minute
-      invivoBlockedUntil = now + 60 * 60 * 1000; // 1h de blocage
+    // ⏱️ 1 minute de session gratuite
+    if (now - invivoSessionStart > 1 * 60 * 1000) {
+      invivoBlockedUntil = now + 60 * 60 * 1000; // blocage 1 h
       invivoSessionStart = null;
-      console.log("[Invivo Timer] 🔒 Accès bloqué pour 1h à partir de maintenant.");
+      console.log("[Invivo Timer] 🔒 Blocage déclenché pour 1 heure.");
       return {
         statusCode: 403,
         headers: {
@@ -72,16 +73,15 @@ export async function handler(event, context) {
     }
   }
 
-  // === Si autorisé, traitement normal ===
+  // === Si autorisé, comportement normal ===
   try {
-    // 🗂️ Liste de fichiers Drive
+    const base = "https://www.googleapis.com/drive/v3/files/";
     if (list) {
-      const url = `https://www.googleapis.com/drive/v3/files?q='${id}'+in+parents+and+trashed=false&key=${key}&fields=files(id,name,mimeType,size,createdTime,modifiedTime)`;
-      const response = await fetch(url);
-      const data = await response.json();
-
+      const url = `${base}?q='${id}'+in+parents+and+trashed=false&key=${key}&fields=files(id,name,mimeType,size,createdTime,modifiedTime)`;
+      const r = await fetch(url);
+      const data = await r.json();
       return {
-        statusCode: response.ok ? 200 : response.status,
+        statusCode: r.ok ? 200 : r.status,
         headers: {
           "Access-Control-Allow-Origin": allowOrigin,
           "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -93,18 +93,13 @@ export async function handler(event, context) {
       };
     }
 
-    // 🧾 Téléchargement du fichier
-    const url = `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${key}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      return { statusCode: response.status, body: "Erreur Google Drive" };
-    }
+    const url = `${base}${id}?alt=media&key=${key}`;
+    const r = await fetch(url);
+    if (!r.ok) return { statusCode: r.status, body: "Erreur Google Drive" };
 
-    const data = await response.arrayBuffer();
-
+    const data = await r.arrayBuffer();
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    const isTodayFile = name.includes(today);
-    const cacheSeconds = isTodayFile ? 60 : 3600;
+    const cacheSeconds = name.includes(today) ? 60 : 3600;
 
     return {
       statusCode: 200,
@@ -114,7 +109,7 @@ export async function handler(event, context) {
         "Access-Control-Allow-Headers": "Content-Type",
         "Cache-Control": `public, max-age=${cacheSeconds}, must-revalidate`,
         "Content-Type":
-          response.headers.get("content-type") || "application/octet-stream"
+          r.headers.get("content-type") || "application/octet-stream"
       },
       body: Buffer.from(data).toString("base64"),
       isBase64Encoded: true
