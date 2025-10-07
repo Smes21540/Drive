@@ -1,6 +1,7 @@
 export async function handler(event, context) {
   const id = event.queryStringParameters.id;
   const name = event.queryStringParameters.name || "";
+  const list = event.queryStringParameters.list === "true";
 
   if (!id) {
     return {
@@ -11,10 +12,31 @@ export async function handler(event, context) {
 
   // 🔐 Clé API stockée sur Netlify
   const key = process.env.API_KEY;
-  const url = `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${key}`;
 
   try {
+    // 🗂️ Si ?list=true → renvoie la liste des fichiers du dossier
+    if (list) {
+      const url = `https://www.googleapis.com/drive/v3/files?q='${id}'+in+parents+and+trashed=false&key=${key}&fields=files(id,name,mimeType,size,createdTime,modifiedTime)`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      return {
+        statusCode: response.ok ? 200 : response.status,
+        headers: {
+          "Access-Control-Allow-Origin": "https://smes21540.github.io",
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+          "Cache-Control": "public, max-age=30, must-revalidate",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      };
+    }
+
+    // 🧾 Sinon → télécharge le fichier (CSV, JPG, etc.)
+    const url = `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${key}`;
     const response = await fetch(url);
+
     if (!response.ok) {
       return {
         statusCode: response.status,
@@ -32,15 +54,10 @@ export async function handler(event, context) {
     return {
       statusCode: 200,
       headers: {
-        // 🔓 Autorise ton site GitHub Pages à accéder au proxy
         "Access-Control-Allow-Origin": "https://smes21540.github.io",
         "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
-
-        // 🕒 Cache intelligent
         "Cache-Control": `public, max-age=${cacheSeconds}, must-revalidate`,
-
-        // 📄 Type MIME du fichier (CSV, image, etc.)
         "Content-Type": response.headers.get("content-type") || "application/octet-stream"
       },
       body: Buffer.from(data).toString("base64"),
