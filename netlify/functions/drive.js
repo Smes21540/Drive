@@ -1,26 +1,6 @@
-// === Version persistante simple du blocage Invivo ===
-import fs from "fs";
-
-const STORAGE_FILE = "/tmp/invivo_status.json"; // Stockage temporaire persistant Netlify
-
-// 🔧 Chargement et sauvegarde
-function loadStatus() {
-  try {
-    if (fs.existsSync(STORAGE_FILE)) {
-      return JSON.parse(fs.readFileSync(STORAGE_FILE, "utf8"));
-    }
-  } catch (e) {
-    console.error("[Invivo Storage] Erreur lecture:", e);
-  }
-  return { sessionStart: null, blockedUntil: null };
-}
-function saveStatus(data) {
-  try {
-    fs.writeFileSync(STORAGE_FILE, JSON.stringify(data));
-  } catch (e) {
-    console.error("[Invivo Storage] Erreur écriture:", e);
-  }
-}
+// === Variables globales persistantes (tant que la fonction reste chaude) ===
+let invivoSessionStart = null;
+let invivoBlockedUntil = null;
 
 export async function handler(event, context) {
   const id = event.queryStringParameters.id;
@@ -30,27 +10,41 @@ export async function handler(event, context) {
   if (!id) return { statusCode: 400, body: "Missing id parameter" };
 
   const key = process.env.API_KEY;
+
+  // 🧭 Détection d’origine fiable (Origin > Referer)
   const origin = event.headers.origin || "";
-  const fullUrl = event.rawUrl || ""; // ✅ nouvelle ligne
+  const referer = event.headers.referer || "";
+  const siteURL = origin || referer || "";
+
+  // 🌍 Origines autorisées
   const allowedOrigins = [
     "https://smes21540.github.io/Drive",
     "https://smes21540.github.io/Oxyane",
     "https://smes21540.github.io/Invivo_St_Usage",
-    "file://",
+    "file://", // pour tests locaux
     ""
   ];
-  const allowOrigin = allowedOrigins.find(o => origin.startsWith(o)) || "*";
+  const allowOrigin = allowedOrigins.find(o => siteURL.startsWith(o)) || "*";
 
-  // 🕓 Contrôle spécifique pour Invivo_St_Usage
-  if (fullUrl.includes("Invivo_St_Usage")) {  // ✅ correction ici
+  // 🕓 Contrôle spécifique pour le site Invivo_St_Usage
+  if (siteURL.includes("Invivo_St_Usage")) {
     const now = Date.now();
-    let status = loadStatus();
 
-    console.log("[Invivo Persistant]", status);
+    console.log("[Invivo Timer]", {
+      now,
+      invivoSessionStart,
+      invivoBlockedUntil,
+      secondsSinceStart: invivoSessionStart
+        ? Math.round((now - invivoSessionStart) / 1000)
+        : null,
+      secondsUntilUnblock: invivoBlockedUntil
+        ? Math.round((invivoBlockedUntil - now) / 1000)
+        : null,
+    });
 
-    // Déjà bloqué ?
-    if (status.blockedUntil && now < status.blockedUntil) {
-      console.log("[Invivo] 🚫 Blocage encore actif.");
+    // 🔒 Si déjà bloqué
+    if (invivoBlockedUntil && now < invivoBlockedUntil) {
+      console.log("[Invivo] 🚫 Accès encore bloqué.");
       return {
         statusCode: 403,
         headers: {
@@ -62,18 +56,16 @@ export async function handler(event, context) {
       };
     }
 
-    // Démarrage de la session
-    if (!status.sessionStart) {
-      status.sessionStart = now;
-      saveStatus(status);
-      console.log("[Invivo] 🟢 Session démarrée.");
+    // 🟢 Première connexion → on démarre le chrono
+    if (!invivoSessionStart) {
+      invivoSessionStart = now;
+      console.log("[Invivo] 🟢 Session démarrée !");
     }
 
-    // ⏱️ 1 minute → blocage 1h
-    if (now - status.sessionStart > 1 * 60 * 1000) {
-      status.blockedUntil = now + 60 * 60 * 1000;
-      status.sessionStart = null;
-      saveStatus(status);
+    // ⏱️ Si plus d’1 minute → blocage 1 heure
+    if (now - invivoSessionStart > 1 * 60 * 1000) {
+      invivoBlockedUntil = now + 60 * 60 * 1000;
+      invivoSessionStart = null;
       console.log("[Invivo] 🔒 Blocage activé pour 1h !");
       return {
         statusCode: 403,
@@ -85,17 +77,9 @@ export async function handler(event, context) {
         body: "Accès suspendu : merci de régulariser votre abonnement."
       };
     }
-
-    // 🔁 reset manuel possible
-    if (event.queryStringParameters.reset === "true") {
-      status = { sessionStart: null, blockedUntil: null };
-      saveStatus(status);
-      console.log("[Invivo] 🔄 Reset manuel effectué.");
-      return { statusCode: 200, body: "Reset effectué" };
-    }
   }
 
-  // === Si autorisé, comportement normal ===
+  // === Fonctionnement normal ===
   try {
     const base = "https://www.googleapis.com/drive/v3/files/";
     if (list) {
