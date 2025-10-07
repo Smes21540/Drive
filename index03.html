@@ -335,9 +335,20 @@ function updateTileSize(){
 /* =================== CSV (Drive) =================== */
 async function loadCSV(){
   if(!fileId) return;
-  const url=`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=AIzaSyCbEV3CS9bOcxq5eK-QXbjczGHjvzyXS6M`;
-  let text="";
-  try{ const res=await fetch(url); text=await res.text(); }catch(e){ console.error(e); return; }
+
+  // 🔄 Passe maintenant par ton proxy Netlify sécurisé
+  const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${fileId}&name=${encodeURIComponent(fileName || "")}`;
+
+  let text = "";
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Erreur proxy Drive");
+    text = await res.text();
+  } catch (e) {
+    console.error("Erreur chargement CSV :", e);
+    return;
+  }
+
 
   const seen={};
   const results=Papa.parse(text,{header:true,skipEmptyLines:true,
@@ -577,3 +588,4 @@ document.getElementById("maxInput").addEventListener("change", ()=>{
 </script>
 </body>
 </html>
+
