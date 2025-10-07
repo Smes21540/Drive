@@ -14,17 +14,17 @@ export async function handler(event, context) {
     };
   }
 
-  const key = process.env.API_KEY;
-  const origin = event.headers.origin || "";
-  const allowedOrigins = [
-    "https://smes21540.github.io/Drive",
-    "https://smes21540.github.io/Oxyane",
-    "https://smes21540.github.io/Invivo_St_Usage",
-    "file://"                
-  ];
-  const allowOrigin =
-    allowedOrigins.find(o => origin.startsWith(o)) ||
-    "https://smes21540.github.io";
+const origin = event.headers.origin || "";
+const allowedOrigins = [
+  "https://smes21540.github.io/Drive",
+  "https://smes21540.github.io/Oxyane",
+  "https://smes21540.github.io/Invivo_St_Usage",
+  "file://",
+  "" // ⬅️ ajoute le cas “aucun origin” (ou null)
+];
+const allowOrigin =
+  allowedOrigins.find(o => origin.startsWith(o)) || "*"; // ⬅️ ici on autorise tout en local
+
 
   // 🕓 Contrôle spécifique pour Invivo_St_Usage
   if (origin.includes("Invivo_St_Usage")) {
