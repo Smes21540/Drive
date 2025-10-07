@@ -1,50 +1,46 @@
-// === Variables globales persistantes (tant que la fonction reste chaude) ===
-let invivoSessionStart = null;
-let invivoBlockedUntil = null;
+// === Variables globales (gardées tant que la fonction reste chaude) ===
+let sessionStart = null;
+let blockedUntil = null;
+
+// === Nom d’accès à bloquer ===
+// 👉 Si le paramètre &site= correspond à cette valeur → accès limité
+const BLOCKED_KEY = "Smes_Accès";
 
 export async function handler(event, context) {
   const id = event.queryStringParameters.id;
   const name = event.queryStringParameters.name || "";
   const list = event.queryStringParameters.list === "true";
+  const site = event.queryStringParameters.site || ""; // ⬅️ transmis par index.html
 
-  if (!id) return { statusCode: 400, body: "Missing id parameter" };
+  if (!id) {
+    return { statusCode: 400, body: "Missing id parameter" };
+  }
 
   const key = process.env.API_KEY;
-
-  // 🧭 Détection d’origine fiable (Origin > Referer)
   const origin = event.headers.origin || "";
-  const referer = event.headers.referer || "";
-  const siteURL = origin || referer || "";
-
-  // 🌍 Origines autorisées
   const allowedOrigins = [
     "https://smes21540.github.io/Drive",
     "https://smes21540.github.io/Oxyane",
     "https://smes21540.github.io/Invivo_St_Usage",
-    "file://", // pour tests locaux
+    "file://",
     ""
   ];
-  const allowOrigin = allowedOrigins.find(o => siteURL.startsWith(o)) || "*";
+  const allowOrigin = allowedOrigins.find(o => origin.startsWith(o)) || "*";
 
-  // 🕓 Contrôle spécifique pour le site Invivo_St_Usage
-  if (siteURL.includes("Invivo_St_Usage")) {
+  // 🕓 Si le site correspond à la clé bloquée → activer la limite
+  if (site === BLOCKED_KEY) {
     const now = Date.now();
 
-    console.log("[Invivo Timer]", {
+    console.log(`[${site}] Vérif chrono`, {
       now,
-      invivoSessionStart,
-      invivoBlockedUntil,
-      secondsSinceStart: invivoSessionStart
-        ? Math.round((now - invivoSessionStart) / 1000)
-        : null,
-      secondsUntilUnblock: invivoBlockedUntil
-        ? Math.round((invivoBlockedUntil - now) / 1000)
-        : null,
+      sessionStart,
+      blockedUntil,
+      depuis: sessionStart ? Math.round((now - sessionStart) / 1000) : null
     });
 
-    // 🔒 Si déjà bloqué
-    if (invivoBlockedUntil && now < invivoBlockedUntil) {
-      console.log("[Invivo] 🚫 Accès encore bloqué.");
+    // Déjà bloqué ?
+    if (blockedUntil && now < blockedUntil) {
+      console.log(`[${site}] ⛔ Blocage actif encore ${(blockedUntil - now)/1000}s`);
       return {
         statusCode: 403,
         headers: {
@@ -56,17 +52,14 @@ export async function handler(event, context) {
       };
     }
 
-    // 🟢 Première connexion → on démarre le chrono
-    if (!invivoSessionStart) {
-      invivoSessionStart = now;
-      console.log("[Invivo] 🟢 Session démarrée !");
-    }
+    // Démarrage de session
+    if (!sessionStart) sessionStart = now;
 
-    // ⏱️ Si plus d’1 minute → blocage 1 heure
-    if (now - invivoSessionStart > 1 * 60 * 1000) {
-      invivoBlockedUntil = now + 60 * 60 * 1000;
-      invivoSessionStart = null;
-      console.log("[Invivo] 🔒 Blocage activé pour 1h !");
+    // ⏱️ 1 minute d’accès gratuit
+    if (now - sessionStart > 1 * 60 * 1000) {
+      blockedUntil = now + 60 * 60 * 1000; // blocage 1h
+      sessionStart = null;
+      console.log(`[${site}] 🔒 Blocage activé pour 1h`);
       return {
         statusCode: 403,
         headers: {
@@ -79,7 +72,7 @@ export async function handler(event, context) {
     }
   }
 
-  // === Fonctionnement normal ===
+  // === Si autorisé, comportement normal ===
   try {
     const base = "https://www.googleapis.com/drive/v3/files/";
     if (list) {
