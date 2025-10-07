@@ -21,14 +21,23 @@ export async function handler(event, context) {
     "https://smes21540.github.io/Oxyane",
     "https://smes21540.github.io/Invivo_St_Usage",
     "file://",
-    "" // pour les cas sans Origin (ex : file:// sans header)
+    ""
   ];
   const allowOrigin =
-    allowedOrigins.find(o => origin.startsWith(o)) || "*"; // autorise tout en local
+    allowedOrigins.find(o => origin.startsWith(o)) || "*";
 
   // 🕓 Contrôle spécifique pour Invivo_St_Usage
   if (origin.includes("Invivo_St_Usage")) {
     const now = Date.now();
+
+    // 🧾 Log du compteur Invivo dans la console Netlify
+    console.log("[Invivo Timer]", {
+      now,
+      invivoSessionStart,
+      invivoBlockedUntil,
+      secondsSinceStart: invivoSessionStart ? Math.round((now - invivoSessionStart) / 1000) : null,
+      secondsUntilUnblock: invivoBlockedUntil ? Math.round((invivoBlockedUntil - now) / 1000) : null
+    });
 
     // Si déjà bloqué
     if (invivoBlockedUntil && now < invivoBlockedUntil) {
@@ -46,10 +55,11 @@ export async function handler(event, context) {
     // Première utilisation → démarrage du chrono
     if (!invivoSessionStart) invivoSessionStart = now;
 
-    // Si plus de 5 min écoulées → blocage pour 1h
-    if (now - invivoSessionStart > 5 * 60 * 1000) {
-      invivoBlockedUntil = now + 60 * 60 * 1000; // 1h
+    // Si plus de 1 min écoulée → blocage pour 1h
+    if (now - invivoSessionStart > 1 * 60 * 1000) { // ⏱️ 1 minute
+      invivoBlockedUntil = now + 60 * 60 * 1000; // 1h de blocage
       invivoSessionStart = null;
+      console.log("[Invivo Timer] 🔒 Accès bloqué pour 1h à partir de maintenant.");
       return {
         statusCode: 403,
         headers: {
