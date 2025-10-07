@@ -361,20 +361,26 @@ async function fetchFolderContents(folderId){
   if(!navigator.onLine){updateNetworkStatus();return [];}
   showSpinner();
   try{
-    const res=await fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&key=${API_KEY}&fields=files(id,name,mimeType,size,createdTime,modifiedTime)`);
-    const data=await res.json();
-    if(data.error){
-      alert("Erreur Drive: "+data.error.message);
-      console.error("Drive error:", data.error);
+    // 🔄 Appel au proxy Netlify (plus de clé API côté navigateur)
+    const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?list=true&id=${folderId}`);
+    const data = await res.json();
+
+    if(!res.ok || data.error){
+      console.error("Erreur proxy Drive:", data.error || res.statusText);
+      alert("Erreur Drive (proxy). Ouvre la console pour le détail.");
       return [];
     }
-    return data.files||[];
+
+    return data.files || [];
   }catch(e){
-    console.error("Erreur Drive:",e);
-    alert("Impossible de charger le dossier (réseau/API). Ouvre la console pour le détail.");
+    console.error("Erreur Drive:", e);
+    alert("Impossible de charger le dossier (réseau/proxy).");
     return [];
-  }finally{hideSpinner();}
+  }finally{
+    hideSpinner();
+  }
 }
+
 
 async function loadRootFolders(){
   const files = await fetchFolderContents(ROOT_FOLDER_ID);
@@ -1072,4 +1078,5 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
