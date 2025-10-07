@@ -1,10 +1,9 @@
 // === Version persistante simple du blocage Invivo ===
 import fs from "fs";
-import path from "path";
 
 const STORAGE_FILE = "/tmp/invivo_status.json"; // Stockage temporaire persistant Netlify
 
-// 🔧 Chargement de l'état (si existe)
+// 🔧 Chargement et sauvegarde
 function loadStatus() {
   try {
     if (fs.existsSync(STORAGE_FILE)) {
@@ -15,8 +14,6 @@ function loadStatus() {
   }
   return { sessionStart: null, blockedUntil: null };
 }
-
-// 💾 Sauvegarde de l'état
 function saveStatus(data) {
   try {
     fs.writeFileSync(STORAGE_FILE, JSON.stringify(data));
@@ -30,12 +27,11 @@ export async function handler(event, context) {
   const name = event.queryStringParameters.name || "";
   const list = event.queryStringParameters.list === "true";
 
-  if (!id) {
-    return { statusCode: 400, body: "Missing id parameter" };
-  }
+  if (!id) return { statusCode: 400, body: "Missing id parameter" };
 
   const key = process.env.API_KEY;
   const origin = event.headers.origin || "";
+  const fullUrl = event.rawUrl || ""; // ✅ nouvelle ligne
   const allowedOrigins = [
     "https://smes21540.github.io/Drive",
     "https://smes21540.github.io/Oxyane",
@@ -46,7 +42,7 @@ export async function handler(event, context) {
   const allowOrigin = allowedOrigins.find(o => origin.startsWith(o)) || "*";
 
   // 🕓 Contrôle spécifique pour Invivo_St_Usage
-  if (origin.includes("Invivo_St_Usage")) {
+  if (fullUrl.includes("Invivo_St_Usage")) {  // ✅ correction ici
     const now = Date.now();
     let status = loadStatus();
 
@@ -66,14 +62,14 @@ export async function handler(event, context) {
       };
     }
 
-    // Démarrage de la session si pas encore démarrée
+    // Démarrage de la session
     if (!status.sessionStart) {
       status.sessionStart = now;
       saveStatus(status);
       console.log("[Invivo] 🟢 Session démarrée.");
     }
 
-    // ⏱️ 1 minute d’accès → puis blocage 1h
+    // ⏱️ 1 minute → blocage 1h
     if (now - status.sessionStart > 1 * 60 * 1000) {
       status.blockedUntil = now + 60 * 60 * 1000;
       status.sessionStart = null;
@@ -90,10 +86,11 @@ export async function handler(event, context) {
       };
     }
 
-    // Option pour reset manuel
+    // 🔁 reset manuel possible
     if (event.queryStringParameters.reset === "true") {
       status = { sessionStart: null, blockedUntil: null };
       saveStatus(status);
+      console.log("[Invivo] 🔄 Reset manuel effectué.");
       return { statusCode: 200, body: "Reset effectué" };
     }
   }
