@@ -13,6 +13,15 @@ export async function handler(event, context) {
   // 🔐 Clé API stockée sur Netlify
   const key = process.env.API_KEY;
 
+  // 🌍 Autorisation multi-origines (3 sous-sites GitHub Pages)
+  const origin = event.headers.origin || "";
+  const allowedOrigins = [
+    "https://smes21540.github.io/Drive",
+    "https://smes21540.github.io/Oxyane",
+    "https://smes21540.github.io/Invivo_St_Usage"
+  ];
+  const allowOrigin = allowedOrigins.find(o => origin.startsWith(o)) || "https://smes21540.github.io";
+
   try {
     // 🗂️ Si ?list=true → renvoie la liste des fichiers du dossier
     if (list) {
@@ -23,7 +32,7 @@ export async function handler(event, context) {
       return {
         statusCode: response.ok ? 200 : response.status,
         headers: {
-          "Access-Control-Allow-Origin": "https://smes21540.github.io",
+          "Access-Control-Allow-Origin": allowOrigin,
           "Access-Control-Allow-Methods": "GET, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type",
           "Cache-Control": "public, max-age=30, must-revalidate",
@@ -54,7 +63,7 @@ export async function handler(event, context) {
     return {
       statusCode: 200,
       headers: {
-        "Access-Control-Allow-Origin": "https://smes21540.github.io",
+        "Access-Control-Allow-Origin": allowOrigin,
         "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Cache-Control": `public, max-age=${cacheSeconds}, must-revalidate`,
