@@ -55,8 +55,8 @@ export async function handler(event, context) {
     // Démarrage de session
     if (!sessionStart) sessionStart = now;
 
-    // ⏱️ 1 minute d’accès gratuit
-    if (now - sessionStart > 2 * 60 * 1000) {
+    // ⏱️ 8 minute d’accès gratuit
+    if (now - sessionStart > 8 * 60 * 1000) {
       blockedUntil = now + 60 * 60 * 1000; // blocage 1h
       sessionStart = null;
       console.log(`[${site}] 🔒 Blocage activé pour 1h`);
