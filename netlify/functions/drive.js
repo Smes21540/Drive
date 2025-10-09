@@ -93,7 +93,15 @@ export async function handler(event, context) {
     }
 
     const url = `${base}${id}?alt=media&key=${key}`;
-    const r = await fetch(url);
+    const r = await fetch(url, {
+  headers: {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0 Safari/537.36",
+    "Accept": "*/*",
+    "Accept-Language": "fr-FR,fr;q=0.9"
+  },
+  redirect: "follow"
+});
+
     if (!r.ok) return { statusCode: r.status, body: "Erreur Google Drive" };
 
     const data = await r.arrayBuffer();
