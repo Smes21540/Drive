@@ -454,7 +454,6 @@ function currentRowMinutes(idx){
 async function loadZ3ForSameDay() {
   z3Events = [];
 
-  // Extraire la date du CSV courant (ex : 20241005)
   const dayMatch = (fileName || "").match(/(\d{8})/);
   const day = dayMatch ? dayMatch[1] : null;
   if (!day) {
@@ -463,66 +462,35 @@ async function loadZ3ForSameDay() {
     return;
   }
 
-  // Lire la liste des Z3 préchargés depuis index.html
   const z3Files = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
-
-  // Filtrer ceux du même jour (même date dans le nom)
   const sameDay = z3Files.filter(f => f.name.includes(day));
 
   console.log(`🔍 Recherche Z3 du ${day} → ${sameDay.length} fichier(s) trouvé(s)`);
 
-for (const f of sameDay) {
-  let text = f.content;
+  for (const f of sameDay) {
+    let text = f.content;
 
-  // ✅ Vérifie si l'encodage semble cassé → re-décode en ISO-8859-1
-  if (text.includes("Ã") || text.includes("�") || text.includes("Â")) {
-    try {
-      const bytes = new TextEncoder().encode(text);
-      text = new TextDecoder("iso-8859-1").decode(bytes);
-      console.log(`🧩 Encodage corrigé (ISO-8859-1) pour : ${f.name}`);
-    } catch {}
-  }
-
-  // Nettoyage et parsing
-  const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
-  let startIndex = lines.findIndex(l => /trigger.?time/i.test(l));
-  if (startIndex === -1) startIndex = 0;
-  const csvClean = lines.slice(startIndex).join("\n");
-
-  const parsed = Papa.parse(csvClean, {
-    header: true,
-    skipEmptyLines: true,
-    dynamicTyping: false,
-    delimitersToGuess: [",", ";", "\t"],
-  });
-
-  const H = parsed.meta.fields || [];
-  const rows = parsed.data || [];
-
-  const timeCol = H.find(h => /trigger.?time|heure/i.test(h)) || H[1];
-  const msgCol  = H.find(h => /message/i.test(h)) || H[2];
-  const addrCol = H.find(h => /address ?1/i.test(h));
-
-  for (const r of rows) {
-    const t = String(r[timeCol] || "").trim();
-    const msg = String(r[msgCol] || "").trim();
-    const addr = String(r[addrCol] || "").trim();
-    const mins = toMinutes(t);
-    if (!isNaN(mins) && msg) {
-      z3Events.push({
-        timeText: t,
-        minutes: mins,
-        desc: addr ? `${msg} (${addr})` : msg,
-        fileId: f.id,
-        fileName: f.name,
-      });
+    // ✅ Vérifie si l'encodage semble cassé → re-décode en ISO-8859-1
+    if (text.includes("Ã") || text.includes("�") || text.includes("Â")) {
+      try {
+        const bytes = new TextEncoder().encode(text);
+        text = new TextDecoder("iso-8859-1").decode(bytes);
+        console.log(`🧩 Encodage corrigé (ISO-8859-1) pour : ${f.name}`);
+      } catch {}
     }
-  }
-}
 
+    // 🧹 Nettoyage et parsing CSV
+    const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+    let startIndex = lines.findIndex(l => /trigger.?time/i.test(l));
+    if (startIndex === -1) startIndex = 0;
+    const csvClean = lines.slice(startIndex).join("\n");
 
-
-
+    const parsed = Papa.parse(csvClean, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: false,
+      delimitersToGuess: [",", ";", "\t"],
+    });
 
     const H = parsed.meta.fields || [];
     const rows = parsed.data || [];
@@ -552,6 +520,7 @@ for (const f of sameDay) {
   renderZ3List();
   highlightZ3Near(currentRowMinutes(0));
 }
+
 
 
 function renderZ3List(){
@@ -974,6 +943,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
