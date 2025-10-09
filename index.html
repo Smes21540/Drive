@@ -549,8 +549,7 @@ const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?
 if (res.ok) {
   const blob = await res.blob();
   const buffer = await blob.arrayBuffer();
-  let text = new TextDecoder("utf-8").decode(buffer);
-
+  
 let text = new TextDecoder("utf-8").decode(buffer);
 z3.content = text;
 
@@ -1145,6 +1144,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
