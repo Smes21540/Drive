@@ -551,20 +551,24 @@ async function loadFolderFilesOnClick(li){
         if (z3Files.length) {
           for (const z3 of z3Files) {
             try {
-              const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${z3.id}&name=${encodeURIComponent(z3.name)}`);
-              if (res.ok) z3.content = await res.text(if (res.ok) {
+const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${z3.id}&name=${encodeURIComponent(z3.name)}`);
+if (res.ok) {
   const blob = await res.blob();
   const buffer = await blob.arrayBuffer();
   let text = new TextDecoder("utf-8").decode(buffer);
+
   if (text.includes("Ã") || text.includes("Â") || text.includes("�")) {
     try {
       text = new TextDecoder("iso-8859-1").decode(buffer);
-      console.log(`🧩 Encodage corrigé ISO-8859-1 pour ${z3.name}`);
-    } catch {}
+      console.log("🧩 Encodage corrigé ISO-8859-1 pour", z3.name);
+    } catch (e) {
+      console.warn("⚠️ Erreur tentative recodage ISO-8859-1:", e);
+    }
   }
+
   z3.content = text;
 }
-);
+
             } catch (err) {
               console.warn("⚠️ Erreur préchargement Z3:", z3.name, err);
             }
@@ -1161,5 +1165,6 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
