@@ -2,6 +2,7 @@
 let sessionStart = null;
 let blockedUntil = null;
 
+
 // === Nom d’accès à bloquer ===
 // 👉 Si le paramètre &site= correspond à cette valeur → accès limité
 const BLOCKED_KEY = "Smes_Acces";
