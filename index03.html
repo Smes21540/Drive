@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Plan des sondes + Z3</title>
 
+<!-- ✅ Police compatible accents (latin-ext) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap&subset=latin-ext" rel="stylesheet">
+
+
 <style>
 :root{
   /* Thème (identique viewer02) */
@@ -27,10 +33,12 @@
 
 *{box-sizing:border-box;margin:0;padding:0}
 body{
-  font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+  font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",
+               Arial,"Noto Sans","Liberation Sans","DejaVu Sans",sans-serif;
   background:var(--bg); color:var(--text);
   min-height:100vh; display:flex; flex-direction:column;
 }
+
 
 /* ===== Header (style viewer02) ===== */
 .header{
@@ -482,19 +490,7 @@ async function loadZ3ForSameDay() {
       delimitersToGuess: [",", ";", "\t"],
     });
 
-// --- Correction des caractères accentués mal encodés ---
-function fixEncoding(str) {
-  try {
-    return decodeURIComponent(escape(str));
-  } catch {
-    return str;
-  }
-}
-parsed.data = parsed.data.map(row => {
-  const fixed = {};
-  for (const k in row) fixed[k] = fixEncoding(row[k]);
-  return fixed;
-});
+
 
 
     const H = parsed.meta.fields || [];
@@ -671,7 +667,21 @@ function updateTileSize(){
 }
 
 /* =================== CSV (Drive ou LocalStorage) =================== */
-async function loadCSV(){
+// === Helper encodage intelligent ===
+function decodeSmart(arrayBuffer) {
+  // 1️⃣ tentative UTF-8
+  let txt = new TextDecoder("utf-8", { fatal: false }).decode(arrayBuffer);
+  // 2️⃣ détection de mojibake ("Ã", "Â", "�") → on retente ISO-8859-1
+  if (txt.includes("Ã") || txt.includes("Â") || txt.includes("�")) {
+    try {
+      txt = new TextDecoder("iso-8859-1").decode(arrayBuffer);
+    } catch {}
+  }
+  return txt;
+}
+
+  
+  async function loadCSV(){
   const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
   const idx = parseInt(localStorage.getItem("csvFileIndex") || "0");
   let file = list.find(f => f.id === fileId) || list[idx] || null;
@@ -686,18 +696,13 @@ async function loadCSV(){
   else if (file && file.id) {
     const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name || "")}`;
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Erreur proxy Drive");
-      text = await res.text();
+const res = await fetch(url);
+if (!res.ok) throw new Error("Erreur proxy Drive");
 
-// 🧩 Correction d'encodage ISO-8859-1 → UTF-8
-try {
-  const bytes = new TextEncoder().encode(text);
-  const decoder = new TextDecoder("utf-8", { fatal: false });
-  text = decoder.decode(bytes);
-} catch (e) {
-  console.warn("Encodage déjà UTF-8 ou non convertible :", e);
-}
+// ✅ Décodage intelligent UTF-8 / ISO-8859-1
+const buf = await res.arrayBuffer();
+text = decodeSmart(buf);
+
 
       
       console.log("🌐 CSV téléchargé depuis Drive :", file.name);
@@ -938,4 +943,5 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
