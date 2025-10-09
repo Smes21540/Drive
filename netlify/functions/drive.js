@@ -1,28 +1,17 @@
-// === Variables globales (gardées tant que la fonction reste chaude) ===
-let sessionStart = null;
-let blockedUntil = null;
-
-// === Nom d’accès à bloquer ===
-// 👉 Si le paramètre &site= correspond à cette valeur → accès limité
-const BLOCKED_KEY = "Smes_Acces";
+// === Variables globales (stockées en mémoire tant que la fonction reste chaude) ===
+let invivoSessionStart = null;
+let invivoBlockedUntil = null;
 
 export async function handler(event, context) {
-
-  // === 🔹 Ajout des headers CORS globaux ===
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
-
   const id = event.queryStringParameters.id;
   const name = event.queryStringParameters.name || "";
   const list = event.queryStringParameters.list === "true";
-  const site = event.queryStringParameters.site || ""; // ⬅️ transmis par index.html
 
-  // === Vérif paramètres ===
   if (!id) {
-    return { statusCode: 400, headers: corsHeaders, body: "Missing id parameter" };
+    return {
+      statusCode: 400,
+      body: "Missing id parameter"
+    };
   }
 
   const key = process.env.API_KEY;
@@ -30,62 +19,62 @@ export async function handler(event, context) {
   const allowedOrigins = [
     "https://smes21540.github.io/Drive",
     "https://smes21540.github.io/Oxyane",
-    "https://smes21540.github.io/Invivo_St_Usage",
-    "file://",
-    ""
+    "https://smes21540.github.io/Invivo_St_Usage"
   ];
-  const allowOrigin = allowedOrigins.find(o => origin.startsWith(o)) || "*";
+  const allowOrigin =
+    allowedOrigins.find(o => origin.startsWith(o)) ||
+    "https://smes21540.github.io";
 
-  // 🕓 Si le site correspond à la clé bloquée → activer la limite
-  if (site === BLOCKED_KEY) {
+  // 🕓 Contrôle spécifique pour Invivo_St_Usage
+  if (origin.includes("Invivo_St_Usage")) {
     const now = Date.now();
 
-    console.log(`[${site}] Vérif chrono`, {
-      now,
-      sessionStart,
-      blockedUntil,
-      depuis: sessionStart ? Math.round((now - sessionStart) / 1000) : null
-    });
-
-    // Déjà bloqué ?
-    if (blockedUntil && now < blockedUntil) {
-      console.log(`[${site}] ⛔ Blocage actif encore ${(blockedUntil - now)/1000}s`);
+    // Si déjà bloqué
+    if (invivoBlockedUntil && now < invivoBlockedUntil) {
       return {
         statusCode: 403,
-        headers: corsHeaders,
+        headers: {
+          "Access-Control-Allow-Origin": allowOrigin,
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type"
+        },
         body: "Accès suspendu : merci de régulariser votre abonnement."
       };
     }
 
-    // Démarrage de session
-    if (!sessionStart) sessionStart = now;
+    // Première utilisation → démarrage du chrono
+    if (!invivoSessionStart) invivoSessionStart = now;
 
-    // ⏱️ 8 minute d’accès gratuit
-    if (now - sessionStart > 8 * 60 * 1000) {
-      blockedUntil = now + 60 * 60 * 1000; // blocage 1h
-      sessionStart = null;
-      console.log(`[${site}] 🔒 Blocage activé pour 1h`);
+    // Si plus de 5 min écoulées → blocage pour 1h
+    if (now - invivoSessionStart > 5 * 60 * 1000) {
+      invivoBlockedUntil = now + 60 * 60 * 1000; // 1h
+      invivoSessionStart = null;
       return {
         statusCode: 403,
-        headers: corsHeaders,
+        headers: {
+          "Access-Control-Allow-Origin": allowOrigin,
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type"
+        },
         body: "Accès suspendu : merci de régulariser votre abonnement."
       };
     }
   }
 
-  // === Si autorisé, comportement normal ===
+  // === Si autorisé, traitement normal ===
   try {
-    const base = "https://www.googleapis.com/drive/v3/files/";
-
-    // 📂 Mode LISTE (dossier)
+    // 🗂️ Liste de fichiers Drive
     if (list) {
-      const url = `${base}?q='${id}'+in+parents+and+trashed=false&key=${key}&fields=files(id,name,mimeType,size,createdTime,modifiedTime)`;
-      const r = await fetch(url);
-      const data = await r.json();
+      const url = `https://www.googleapis.com/drive/v3/files?q='${id}'+in+parents+and+trashed=false&key=${key}&fields=files(id,name,mimeType,size,createdTime,modifiedTime)`;
+      const response = await fetch(url);
+      const data = await response.json();
+
       return {
-        statusCode: r.ok ? 200 : r.status,
+        statusCode: response.ok ? 200 : response.status,
         headers: {
-          ...corsHeaders,
+          "Access-Control-Allow-Origin": allowOrigin,
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
           "Cache-Control": "public, max-age=30, must-revalidate",
           "Content-Type": "application/json"
         },
@@ -93,44 +82,34 @@ export async function handler(event, context) {
       };
     }
 
-    // 📄 Mode FICHIER (CSV / Z3)
-    const url = `${base}${id}?alt=media&key=${key}`;
-    const r = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0 Safari/537.36",
-        "Accept": "*/*",
-        "Accept-Language": "fr-FR,fr;q=0.9"
-      },
-      redirect: "follow"
-    });
-
-    if (!r.ok) {
-      const errText = await r.text();
-      console.warn(`⚠️ Erreur Google Drive ${r.status}:`, errText.slice(0, 200));
-      return {
-        statusCode: r.status,
-        headers: corsHeaders,
-        body: `Erreur Google Drive (${r.status})`
-      };
+    // 🧾 Téléchargement du fichier
+    const url = `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${key}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      return { statusCode: response.status, body: "Erreur Google Drive" };
     }
 
-    const data = await r.arrayBuffer();
+    const data = await response.arrayBuffer();
+
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    const cacheSeconds = name.includes(today) ? 60 : 3600;
+    const isTodayFile = name.includes(today);
+    const cacheSeconds = isTodayFile ? 60 : 3600;
 
     return {
       statusCode: 200,
       headers: {
-        ...corsHeaders,
+        "Access-Control-Allow-Origin": allowOrigin,
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
         "Cache-Control": `public, max-age=${cacheSeconds}, must-revalidate`,
-        "Content-Type": r.headers.get("content-type") || "application/octet-stream"
+        "Content-Type":
+          response.headers.get("content-type") || "application/octet-stream"
       },
       body: Buffer.from(data).toString("base64"),
       isBase64Encoded: true
     };
-
   } catch (err) {
-    console.error("❌ Erreur proxy Drive:", err);
-    return { statusCode: 500, headers: corsHeaders, body: "Erreur interne proxy Drive" };
+    console.error("Erreur proxy Drive:", err);
+    return { statusCode: 500, body: "Erreur interne proxy Drive" };
   }
 }
