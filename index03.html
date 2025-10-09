@@ -471,13 +471,16 @@ async function loadZ3ForSameDay() {
     let text = f.content;
 
     // ✅ Vérifie si l'encodage semble cassé → re-décode en ISO-8859-1
-    if (text.includes("Ã") || text.includes("�") || text.includes("Â")) {
-      try {
-        const bytes = new TextEncoder().encode(text);
-        text = new TextDecoder("iso-8859-1").decode(bytes);
-        console.log(`🧩 Encodage corrigé (ISO-8859-1) pour : ${f.name}`);
-      } catch {}
-    }
+// ✅ Correction d'encodage uniquement si nécessaire (détection plus fine)
+if (/Ã|Â|�/.test(text) && !/Défaut|brûleur|Acquitté/.test(text)) {
+  try {
+    text = new TextDecoder("iso-8859-1").decode(
+      new TextEncoder().encode(text)
+    );
+    console.log(`🧩 Encodage corrigé pour : ${f.name}`);
+  } catch {}
+}
+
 
     // 🧹 Nettoyage et parsing CSV
     const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
@@ -943,6 +946,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
