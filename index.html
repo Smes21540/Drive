@@ -473,11 +473,22 @@ async function toggleFolder(li){
       const hist = siblings.find(s => s.mimeType === 'application/vnd.google-apps.folder' && s.name.toLowerCase().includes("historique"));
       if (hist) {
         const histFiles = await fetchFolderContents(hist.id);
-        const z3Files = histFiles.filter(ff => ff.name.toUpperCase().startsWith("Z3") && ff.name.toLowerCase().endsWith(".csv"));
-localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
-console.log("[Z3] Préchargés depuis Historique:", z3Files.length);
-showEventAlert();
 
+        // 🔸 Précharge aussi le contenu complet des Z3 (Historique)
+        const z3Files = histFiles.filter(ff => ff.name.toUpperCase().startsWith("Z3") && ff.name.toLowerCase().endsWith(".csv"));
+        if (z3Files.length) {
+          for (const z3 of z3Files) {
+            try {
+              const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${z3.id}&name=${encodeURIComponent(z3.name)}`);
+              if (res.ok) z3.content = await res.text();
+            } catch (err) {
+              console.warn("⚠️ Échec fetch Z3:", z3.name, err);
+            }
+          }
+        }
+        localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
+        console.log("[Z3] Préchargés depuis Historique (avec contenu):", z3Files.length);
+        showEventAlert();
       }
     }
 
@@ -522,27 +533,42 @@ async function loadFolderFilesOnClick(li){
 
       if (hist) {
         const histFiles = await fetchFolderContents(hist.id);
-        const z3Files = histFiles.filter(ff => 
-          ff.name.toUpperCase().startsWith("Z3") && 
-          ff.name.toLowerCase().endsWith(".csv")
+        const z3Files = histFiles.filter(ff =>
+          ff.name.toUpperCase().startsWith("Z3") && ff.name.toLowerCase().endsWith(".csv")
         );
+        if (z3Files.length) {
+          for (const z3 of z3Files) {
+            try {
+              const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${z3.id}&name=${encodeURIComponent(z3.name)}`);
+              if (res.ok) z3.content = await res.text();
+            } catch (err) {
+              console.warn("⚠️ Erreur préchargement Z3:", z3.name, err);
+            }
+          }
+        }
         localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
-        console.log("[Z3] Préchargés depuis Historique voisin:", z3Files.length);
-      } else {
-        localStorage.removeItem("csvZ3Files");
-        console.warn("[Z3] Aucun dossier Historique trouvé pour", nameSpan.textContent);
+        console.log("[Z3] Préchargés depuis Historique voisin (avec contenu):", z3Files.length);
       }
     }
   } 
   else if (folderName.includes("historique")) {
     // directement charger les Z3 de ce dossier
     const histFiles = await fetchFolderContents(li.dataset.id);
-    const z3Files = histFiles.filter(ff => 
-      ff.name.toUpperCase().startsWith("Z3") && 
-      ff.name.toLowerCase().endsWith(".csv")
+    const z3Files = histFiles.filter(ff =>
+      ff.name.toUpperCase().startsWith("Z3") && ff.name.toLowerCase().endsWith(".csv")
     );
+    if (z3Files.length) {
+      for (const z3 of z3Files) {
+        try {
+          const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${z3.id}&name=${encodeURIComponent(z3.name)}`);
+          if (res.ok) z3.content = await res.text();
+        } catch (err) {
+          console.warn("⚠️ Erreur préchargement Z3:", z3.name, err);
+        }
+      }
+    }
     localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
-    console.log("[Z3] Préchargés directement (Historique):", z3Files.length);
+    console.log("[Z3] Préchargés directement (Historique, avec contenu):", z3Files.length);
   } 
   else {
     // Sinon → effacer le cache Z3
@@ -1096,4 +1122,3 @@ window.onload=()=>{
 </script>
 </body>
 </html>
-
