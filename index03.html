@@ -472,13 +472,22 @@ async function loadZ3ForSameDay() {
   console.log(`🔍 Recherche Z3 du ${day} → ${sameDay.length} fichier(s) trouvé(s)`);
 
   for (const f of sameDay) {
-    if (!f.content) {
-      console.warn("⏭️ Z3 sans contenu ignoré :", f.name);
-      continue;
-    }
+let text = f.content;
 
-    // Nettoyage et parsing
-    const lines = f.content.split(/\r?\n/).filter(l => l.trim() !== "");
+// ✅ Vérifie si l'encodage semble cassé → re-décode en ISO-8859-1
+if (text.includes("Ã") || text.includes("�") || text.includes("Â")) {
+  try {
+    const bytes = new TextEncoder().encode(text);
+    text = new TextDecoder("iso-8859-1").decode(bytes);
+  } catch {}
+}
+
+// Nettoyage et parsing
+const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+let startIndex = lines.findIndex(l => /trigger.?time/i.test(l));
+if (startIndex === -1) startIndex = 0;
+const csvClean = lines.slice(startIndex).join("\n");
+
     let startIndex = lines.findIndex(l => /trigger.?time/i.test(l));
     if (startIndex === -1) startIndex = 0;
     const csvClean = lines.slice(startIndex).join("\n");
@@ -943,5 +952,6 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
