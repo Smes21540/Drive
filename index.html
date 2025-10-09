@@ -551,17 +551,9 @@ if (res.ok) {
   const buffer = await blob.arrayBuffer();
   let text = new TextDecoder("utf-8").decode(buffer);
 
-  if (text.includes("Ã") || text.includes("Â") || text.includes("�")) {
-    try {
-      text = new TextDecoder("iso-8859-1").decode(buffer);
-      console.log("🧩 Encodage corrigé ISO-8859-1 pour", z3.name);
-    } catch (e) {
-      console.warn("⚠️ Erreur tentative recodage ISO-8859-1:", e);
-    }
-  }
+let text = new TextDecoder("utf-8").decode(buffer);
+z3.content = text;
 
-  z3.content = text;
-}
 
             } catch (err) {
               console.warn("⚠️ Erreur préchargement Z3:", z3.name, err);
@@ -589,15 +581,9 @@ if (res.ok) {
   let text = new TextDecoder("utf-8").decode(buffer);
 
   // 🔍 Détection d'encodage corrompu → correction ISO-8859-1
-  if (text.includes("Ã") || text.includes("Â") || text.includes("�")) {
-    try {
-      text = new TextDecoder("iso-8859-1").decode(buffer);
-      console.log(`🧩 Encodage corrigé ISO-8859-1 pour ${z3.name}`);
-    } catch {}
-  }
+let text = new TextDecoder("utf-8").decode(buffer);
+z3.content = text;
 
-  z3.content = text;
-}
 
         } catch (err) {
           console.warn("⚠️ Erreur préchargement Z3:", z3.name, err);
@@ -1159,6 +1145,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
