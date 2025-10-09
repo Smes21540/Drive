@@ -4,7 +4,7 @@ let blockedUntil = null;
 
 // === Nom d’accès à bloquer ===
 // 👉 Si le paramètre &site= correspond à cette valeur → accès limité
-const BLOCKED_KEY = "Smes_Accès";
+const BLOCKED_KEY = "Smes_Acces";
 
 export async function handler(event, context) {
   const id = event.queryStringParameters.id;
