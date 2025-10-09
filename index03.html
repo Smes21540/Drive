@@ -488,10 +488,6 @@ let startIndex = lines.findIndex(l => /trigger.?time/i.test(l));
 if (startIndex === -1) startIndex = 0;
 const csvClean = lines.slice(startIndex).join("\n");
 
-    let startIndex = lines.findIndex(l => /trigger.?time/i.test(l));
-    if (startIndex === -1) startIndex = 0;
-    const csvClean = lines.slice(startIndex).join("\n");
-
     const parsed = Papa.parse(csvClean, {
       header: true,
       skipEmptyLines: true,
@@ -952,6 +948,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
