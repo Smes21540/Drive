@@ -1,4 +1,6 @@
 // === Variables globales (stockées en mémoire tant que la fonction reste chaude) ===
+// test
+
 let invivoSessionStart = null;
 let invivoBlockedUntil = null;
 
