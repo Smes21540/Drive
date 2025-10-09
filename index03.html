@@ -449,7 +449,7 @@ function currentRowMinutes(idx){
 }
 
 // =====================================================
-// ✅ Version simplifiée : utilise les Z3 déjà préchargés
+// ✅ Version stable (identique viewer02) — plus aucun souci d’accents
 // =====================================================
 async function loadZ3ForSameDay() {
   z3Events = [];
@@ -468,19 +468,7 @@ async function loadZ3ForSameDay() {
   console.log(`🔍 Recherche Z3 du ${day} → ${sameDay.length} fichier(s) trouvé(s)`);
 
   for (const f of sameDay) {
-    let text = f.content;
-
-    // ✅ Vérifie si l'encodage semble cassé → re-décode en ISO-8859-1
-// ✅ Correction d'encodage uniquement si nécessaire (détection plus fine)
-if (/Ã|Â|�/.test(text) && !/Défaut|brûleur|Acquitté/.test(text)) {
-  try {
-    text = new TextDecoder("iso-8859-1").decode(
-      new TextEncoder().encode(text)
-    );
-    console.log(`🧩 Encodage corrigé pour : ${f.name}`);
-  } catch {}
-}
-
+    let text = f.content; // ⚠️ NE PAS re-décoder ici
 
     // 🧹 Nettoyage et parsing CSV
     const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
@@ -523,6 +511,7 @@ if (/Ã|Â|�/.test(text) && !/Défaut|brûleur|Acquitté/.test(text)) {
   renderZ3List();
   highlightZ3Near(currentRowMinutes(0));
 }
+
 
 
 
@@ -946,6 +935,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
