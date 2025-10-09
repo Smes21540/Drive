@@ -689,6 +689,17 @@ async function loadCSV(){
       const res = await fetch(url);
       if (!res.ok) throw new Error("Erreur proxy Drive");
       text = await res.text();
+
+// 🧩 Correction d'encodage ISO-8859-1 → UTF-8
+try {
+  const bytes = new TextEncoder().encode(text);
+  const decoder = new TextDecoder("utf-8", { fatal: false });
+  text = decoder.decode(bytes);
+} catch (e) {
+  console.warn("Encodage déjà UTF-8 ou non convertible :", e);
+}
+
+      
       console.log("🌐 CSV téléchargé depuis Drive :", file.name);
 
       // On le sauvegarde dans le localStorage pour la prochaine fois
@@ -927,3 +938,4 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
