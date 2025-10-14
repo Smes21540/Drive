@@ -231,6 +231,14 @@ body{
   transition: background-color 0.4s ease, color 0.3s ease, transform 0.15s ease;
 }
 
+/* Lignes horaires (repères visuels) */
+.hour-mark {
+  opacity: 0.6;
+  font-style: italic;
+  background: var(--panel);
+  color: var(--accent-darker);
+  cursor: default;
+}
 
 
 /* Événement sélectionné */
@@ -608,39 +616,54 @@ function updateZ3Intensity(currentMinutes) {
 
 
 
-function renderZ3List(){
+// 🔁 Nouvelle version avec repères horaires toutes les 15 min
+function renderZ3List() {
   const box = document.getElementById("z3List");
   box.innerHTML = "";
-  if(!z3Events.length){
+
+  if (!z3Events.length) {
     box.innerHTML = `<div class="z3Item" style="opacity:.7;cursor:default;">
-      <span class="t">--:--</span><span class="d">Aucun evenement Z3</span>
+      <span class="t">--:--</span><span class="d">Aucun événement Z3</span>
     </div>`;
     return;
   }
 
-  const now = Date.now();
+  // --- Génère les jalons horaires toutes les 15 minutes (00:00 → 23:45)
+  const timeMarks = [];
+  for (let h = 0; h < 24; h++) {
+    for (let q = 0; q < 60; q += 15) {
+      const hh = String(h).padStart(2, "0");
+      const mm = String(q).padStart(2, "0");
+      timeMarks.push(`${hh}:${mm}`);
+    }
+  }
 
-  for (const ev of z3Events) {
-    const div = document.createElement("div");
-    const evTime = new Date(); // on part de la date du jour
-    const [hh, mm] = ev.timeText.split(":").map(v=>parseInt(v)||0);
-    evTime.setHours(hh, mm, 0, 0);
-    const diffMin = Math.abs((evTime - now) / 60000);
+  // --- Trie les événements par heure
+  const sorted = [...z3Events].sort((a, b) => a.minutes - b.minutes);
+  let idxEv = 0;
 
-    let intensity = 0;
-    if (diffMin < 2) intensity = 6;
-    else if (diffMin < 5) intensity = 5;
-    else if (diffMin < 10) intensity = 4;
-    else if (diffMin < 20) intensity = 3;
-    else if (diffMin < 40) intensity = 2;
-    else if (diffMin < 80) intensity = 1;
+  // --- Construit la liste complète : repères + événements
+  for (const mark of timeMarks) {
+    const markMin = toMinutes(mark);
 
-    div.className = `z3Item event-fade-${intensity}`;
-    div.innerHTML = `<span class="t">${ev.timeText || "--:--"}</span><span class="d">${ev.desc || ""}</span>`;
-    div.onclick = ()=> jumpSliderToClosest(ev.minutes);
-    box.appendChild(div);
+    // Ligne horaire visuelle
+    const markDiv = document.createElement("div");
+    markDiv.className = "z3Item hour-mark";
+    markDiv.innerHTML = `<span class="t">${mark}</span><span class="d"></span>`;
+    box.appendChild(markDiv);
+
+    // Tous les événements avant la prochaine marque (dans les 15 min)
+    while (idxEv < sorted.length && sorted[idxEv].minutes < markMin + 15) {
+      const ev = sorted[idxEv++];
+      const div = document.createElement("div");
+      div.className = "z3Item";
+      div.innerHTML = `<span class="t">${ev.timeText}</span><span class="d">${ev.desc}</span>`;
+      div.onclick = () => jumpSliderToClosest(ev.minutes);
+      box.appendChild(div);
+    }
   }
 }
+
 
 
 function highlightZ3Near(targetMinutes){
@@ -1125,6 +1148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
