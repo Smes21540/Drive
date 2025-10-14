@@ -105,9 +105,10 @@ body{
   box-shadow:0 2px 5px rgba(0,0,0,0.2); padding:6px;
   overflow:hidden;
 }
-.sonde .label{ font-size: clamp(10px, calc(var(--tile-size)*0.12), 14px); font-weight:bold; color:#000; margin-bottom:2px; }
-.sonde .consigne{ font-size: clamp(9px, calc(var(--tile-size)*0.10), 12px); color:#555; font-style:italic; }
-.sonde .val{ font-size: clamp(14px, calc(var(--tile-size)*0.18), 22px); font-weight:bold; color:#000; }
+.sonde .label{ font-size: clamp(9px, calc(var(--tile-size)*0.10), 13px); font-weight:bold; color:#000; margin-bottom:2px; }
+.sonde .consigne{ font-size: clamp(8px, calc(var(--tile-size)*0.08), 11px); color:#555; font-style:italic; }
+.sonde .val{ font-size: clamp(12px, calc(var(--tile-size)*0.15), 20px); font-weight:bold; color:#000; }
+
 
 /* ===== Cases spéciales ===== */
 .sonde.special {
@@ -392,9 +393,7 @@ body{
   </div>
 </div>
 
-        <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
-        <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
-      </div>
+
       <!-- Bouton optionnel plus tard : Fusion jours (désactivé par défaut) -->
       <!-- <button id="mergeDaysBtn" style="margin-left:12px;">Fusionner jours</button> -->
     </div>
@@ -1305,3 +1304,4 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
