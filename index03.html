@@ -67,9 +67,16 @@ body{
 }
 
 /* ===== PAGE LAYOUT : main (3/4) + side (1/4) ===== */
-#pageWrap{
-  flex:1; display:flex; gap:10px; padding:10px 12px; overflow:hidden;
+#pageWrap {
+  flex: 1;
+  display: flex;
+  align-items: stretch;        /* force les deux colonnes à rester côte à côte */
+  gap: 10px;
+  padding: 10px 12px;
+  overflow: hidden;
+  height: calc(100vh - 160px); /* verrouille la hauteur totale */
 }
+
 
 /* ===== Zone centrale : deux sous-grilles 22×6 centrées ===== */
 #mainCol{
@@ -182,19 +189,17 @@ body{
 
 /* ===== Événements Z3 (volet élargi + scrollbar + nuance centrée) ===== */
 #sideCol {
-  flex: 0 1 auto;             /* largeur s’adapte au contenu */
-  min-width: 360px;
-  max-width: 600px;           /* largeur max pour les longs textes */
+  flex: 0 1 420px;             /* largeur fixe cohérente avec l’espace principal */
   display: flex;
   flex-direction: column;
   background: var(--panel);
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  max-height: calc(100vh - 160px);
   overflow: hidden;
-  align-self: flex-start;
-  margin-bottom: 10px;
+  height: 100%;                /* occupe toute la hauteur de pageWrap */
+  align-self: stretch;
 }
+
 
 
 #sideHeader {
@@ -1304,4 +1309,5 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
