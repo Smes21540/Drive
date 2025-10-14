@@ -713,21 +713,6 @@ function highlightZ3Near(targetMinutes) {
 } // ✅ cette accolade ferme bien la fonction entière
 
 
-function jumpSliderToClosest(targetMinutes) {
-  if (!csvData.length) return;
-  let bestIdx = 0, bestDiff = Infinity;
-  for (let i = 0; i < csvData.length; i++) {
-    const mins = minutesFromRowTime(csvData[i]);
-    if (isNaN(mins)) continue;
-    const diff = Math.abs(mins - targetMinutes);
-    if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
-  }
-  const slider = document.getElementById("slider");
-  slider.value = String(bestIdx);
-  lastSliderIndex = bestIdx;
-  updateGrid(bestIdx);
-  highlightZ3Near(currentRowMinutes(bestIdx));
-}
 
 
 
@@ -818,16 +803,17 @@ function updateTileSize(){
 /* =================== CSV (Drive ou LocalStorage) =================== */
 // === Helper encodage intelligent ===
 function decodeSmart(arrayBuffer) {
-  // 1️⃣ tentative UTF-8
   let txt = new TextDecoder("utf-8", { fatal: false }).decode(arrayBuffer);
-  // 2️⃣ détection de mojibake ("Ã", "Â", "�") → on retente ISO-8859-1
   if (txt.includes("Ã") || txt.includes("Â") || txt.includes("�")) {
     try {
       txt = new TextDecoder("iso-8859-1").decode(arrayBuffer);
-    } catch {}
+    } catch (e) {
+      console.warn("Erreur de décodage ISO-8859-1", e);
+    }
   }
   return txt;
 }
+
 
   
   async function loadCSV(){
@@ -1189,6 +1175,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
