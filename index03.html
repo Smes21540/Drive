@@ -293,6 +293,29 @@ body{
   padding:6px 8px; cursor:pointer; display:none;
 }
 #floatOpen:hover{ background: var(--accent-darker); }
+
+/* 🔧 Correctif final : texte blanc dès qu’une intensité colore la case */
+.z3Item[data-intensity]:not([data-intensity="0"]),
+.hour-mark[data-intensity]:not([data-intensity="0"]) {
+  color: var(--text-light) !important;
+}
+
+.z3Item[data-intensity]:not([data-intensity="0"]) .t,
+.z3Item[data-intensity]:not([data-intensity="0"]) .d,
+.hour-mark[data-intensity]:not([data-intensity="0"]) .t,
+.hour-mark[data-intensity]:not([data-intensity="0"]) .d {
+  color: var(--text-light) !important;
+}
+
+/* Et un petit contraste pour le texte neutre (intensité 0) */
+.z3Item[data-intensity="0"] .t,
+.z3Item[data-intensity="0"] .d,
+.hour-mark[data-intensity="0"] .t,
+.hour-mark[data-intensity="0"] .d {
+  color: var(--text-dark) !important;
+}
+
+  
 </style>
 </head>
 <body>
@@ -1237,6 +1260,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
