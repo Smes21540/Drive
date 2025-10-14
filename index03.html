@@ -145,7 +145,9 @@ body{
 
 /* ===== Événements Z3 (volet élargi + scrollbar + nuance centrée) ===== */
 #sideCol {
-  flex: 0 0 340px;  /* un peu plus large pour respirer */
+  flex: 0 0 380px;           /* un peu plus large */
+  min-width: 360px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   background: var(--panel);
@@ -626,7 +628,40 @@ function updateZ3Intensity(currentMinutes) {
     const level = Math.round(ratio * MAX_INTENSITY);
     el.dataset.intensity = level;
   });
+  allItems.forEach(el => {
+    let minutes;
+    if (el.classList.contains("hour-mark")) {
+      minutes = toMinutes(el.querySelector(".t")?.textContent);
+    } else {
+      const idx = parseInt(el.dataset.evIndex || "-1");
+      minutes = z3Events[idx]?.minutes ?? NaN;
+    }
+
+    if (isNaN(minutes)) {
+      el.dataset.intensity = 0;
+      return;
+    }
+
+    const diff = Math.abs(minutes - currentMinutes);
+    const ratio = 1 - Math.min(diff / RANGE, 1);
+    const level = Math.round(ratio * MAX_INTENSITY);
+    el.dataset.intensity = level;
+  });
+
+  // 🔹 Lisibilité dynamique : texte clair sur fond sombre
+  allItems.forEach(el => {
+    const style = getComputedStyle(el);
+    const bg = style.backgroundColor;
+
+    // Convertit la couleur en luminance relative (perceptuelle)
+    const rgb = bg.match(/\d+/g)?.map(Number) || [255,255,255];
+    const luminance = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
+
+    // Détermine couleur texte : clair si fond sombre
+    el.style.color = luminance < 0.5 ? "var(--text-light)" : "var(--text-dark)";
+  });
 }
+
 
 
 
@@ -1188,3 +1223,4 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
