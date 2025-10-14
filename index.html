@@ -70,18 +70,7 @@ body{
 #folderTree li{cursor:pointer;margin:5px 0;}
 .folder-toggle{font-weight:bold;margin-right:5px;cursor:pointer;color:var(--accent);}
 .folder-name{cursor:pointer;}
-#folderTree li.active-folder {
-  background: var(--accent-muted);
-  border-radius: 4px;
-  padding: 2px 6px;
-}
-#folderTree li.active-folder > .folder-name {
-  font-weight: bold;
-  color: var(--accent-darker);
-}
-
-
-
+.active-folder{background:var(--accent-muted);border-radius:3px;padding:2px 4px;}
 
 /* Main */
 #main{flex:1;padding:10px 20px;display:flex;flex-direction:column;overflow:hidden;}
@@ -511,12 +500,10 @@ async function loadFolderFilesOnClick(li){
   await toggleFolder(li);
 
   // Réinitialiser la sélection visuelle
-  document.querySelectorAll('#folderTree li').forEach(s=>s.classList.remove('active-folder'));
-
+  document.querySelectorAll('#folderTree li span.folder-name').forEach(s=>s.classList.remove('active-folder'));
   const nameSpan = li.querySelector('span.folder-name');
   if(nameSpan){ 
-    nameSpan.classLili.classList.add('active-folder');
-st.add('active-folder'); 
+    nameSpan.classList.add('active-folder'); 
   }
   localStorage.setItem('lastFolderId', li.dataset.id);
 
@@ -1109,5 +1096,3 @@ window.onload=()=>{
 </script>
 </body>
 </html>
-
-
