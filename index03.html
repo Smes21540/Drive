@@ -141,18 +141,17 @@ body{
 
 /* ===== Événements Z3 (volet élargi + scrollbar + nuance centrée) ===== */
 #sideCol {
-  flex: 0 0 320px;          /* largeur fixe confortable */
+  flex: 0 0 340px;  /* un peu plus large pour respirer */
   display: flex;
   flex-direction: column;
   background: var(--panel);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  max-height: calc(100vh - 150px);  /* 🔹 limite la hauteur pour ne pas dépasser la barre temporelle */
-  overflow: hidden;                 /* garde le header fixe */
-  align-self: flex-start;           /* évite qu’il s’étire à cause du flex parent */
-  margin-bottom: 10px;              /* petit espace au-dessus du slider temporel */
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  max-height: calc(100vh - 160px);
+  overflow: hidden;
+  align-self: flex-start;
+  margin-bottom: 10px;
 }
-
 
 #sideHeader {
   font-weight: 600;
@@ -166,8 +165,8 @@ body{
 
 #z3List {
   flex: 1;
-  overflow-y: auto;        /* ✅ scroll interne si trop d’événements */
-  background: #fafafa;
+  overflow-y: auto; /* ✅ scroll si trop d’événements */
+  background: var(--panel);
   padding: 8px 10px;
   font-family: "Inter", system-ui, sans-serif;
 }
@@ -182,40 +181,41 @@ body{
   border-radius: 6px;
   font-size: 13px;
   line-height: 1.2;
-  transition: background 0.25s, color 0.25s, transform 0.15s;
   cursor: pointer;
+  transition: background 0.25s, color 0.25s, transform 0.15s;
 }
 .z3Item .t {
   font-family: ui-monospace, Menlo, Consolas, monospace;
   font-size: 12px;
-  color: #555;
+  color: var(--accent-darker);
   min-width: 52px;
 }
 .z3Item .d {
   flex: 1;
-  color: #222;
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Intensité dynamique centrée (±60 min autour) */
-.z3Item[data-intensity="0"] { background-color: rgba(255,160,130,0.05); }
-.z3Item[data-intensity="1"] { background-color: rgba(255,160,130,0.15); }
-.z3Item[data-intensity="2"] { background-color: rgba(255,140,110,0.25); }
-.z3Item[data-intensity="3"] { background-color: rgba(255,100,60,0.45); color:#fff; }
-.z3Item[data-intensity="4"] { background-color: rgba(230,74,25,0.8); color:#fff; transform: scale(1.02); }
+/* Dégradé centré sur l’événement (0 → 4) */
+.z3Item[data-intensity="0"] { background-color: rgba(255, 112, 67, 0.05); }
+.z3Item[data-intensity="1"] { background-color: rgba(255, 112, 67, 0.15); }
+.z3Item[data-intensity="2"] { background-color: rgba(255, 112, 67, 0.30); color:#fff; }
+.z3Item[data-intensity="3"] { background-color: rgba(230, 74, 25, 0.55); color:#fff; }
+.z3Item[data-intensity="4"] { background-color: var(--danger); color:#fff; transform: scale(1.02); }
 
 /* Événement sélectionné */
 .z3Item.active {
   outline: 2px solid var(--accent);
-  background: #ffe0d0;
+  background: var(--accent-muted);
+  color: var(--accent-darker);
 }
 
 /* Scrollbar esthétique */
 #z3List::-webkit-scrollbar { width: 8px; }
 #z3List::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 6px; }
-#z3List::-webkit-scrollbar-track { background: #eee; }
+#z3List::-webkit-scrollbar-track { background: var(--accent-muted); }
 
 
 
@@ -608,7 +608,7 @@ function updateZ3Intensity(currentMinutes) {
   const items = document.querySelectorAll("#z3List .z3Item");
   if (!items.length) return;
 
-  const RANGE = 20;          // influence ±20 min
+  const RANGE = 60;          // influence ±60 min autour
   const MAX_INTENSITY = 4;   // 0→4 correspond aux niveaux CSS
 
   items.forEach((el, i) => {
@@ -616,12 +616,13 @@ function updateZ3Intensity(currentMinutes) {
     if (!ev) return;
 
     const diff = Math.abs(ev.minutes - currentMinutes);
-    const t = Math.max(0, 1 - diff / RANGE);  // proportion linéaire
-    const level = Math.round(t * MAX_INTENSITY);
+    const ratio = 1 - Math.min(diff / RANGE, 1);
+    const level = Math.round(ratio * MAX_INTENSITY);
 
     el.dataset.intensity = level;
   });
 }
+
 
 
 
@@ -1054,6 +1055,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
