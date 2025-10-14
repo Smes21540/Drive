@@ -1149,12 +1149,28 @@ async function loadNeighborDay(direction = 1) {
       csvData = rows.concat(csvData);
     }
 
-    // 🔁 Réglage du slider : nouveau domaine et position à 1/24e
-    const newMax = csvData.length - 1;
-    const newValue = Math.floor(newMax / 24);
-    slider.max = newMax;
-    slider.value = newValue;
-    updateGrid(newValue);
+// 🔁 Réglage du slider : recalage après fusion
+const newMax = csvData.length - 1;
+slider.max = newMax;
+
+// Si on ajoute un jour APRÈS → rester à la même minute dans le flux étendu
+if (direction > 0) {
+  const prevRatio = parseInt(slider.value) / (slider.max - rows.length || 1);
+  const newValue = Math.floor(prevRatio * newMax);
+  slider.value = newValue;
+}
+// Si on ajoute un jour AVANT → décaler le curseur vers la fin du bloc ajouté
+else {
+  const offset = rows.length;
+  const newValue = parseInt(slider.value) + offset;
+  slider.value = newValue;
+}
+
+// Mets à jour la vue et les événements
+updateGrid(parseInt(slider.value));
+updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
+highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
+
 
 // 🧭 Mise à jour cohérente après fusion
 updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
@@ -1465,6 +1481,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
