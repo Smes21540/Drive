@@ -129,6 +129,55 @@ body{
   width: calc(var(--timebar-cols) * var(--tile-size) + (var(--timebar-cols) - 1) * var(--cell-gap));
   display:flex; align-items:center; justify-content:center;
 }
+#sliderTimeLabel {
+  font-family: ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-darker);
+  text-align: center;
+  margin-bottom: 6px;
+  background: var(--panel);
+  padding: 2px 8px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+/* Slider esthétique */
+#slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(to right, var(--accent) 0%, var(--accent-muted) 100%);
+  outline: none;
+  transition: opacity 0.2s;
+}
+#slider:hover { opacity: 0.9; }
+
+#slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-darker);
+  cursor: pointer;
+  border: 2px solid var(--panel);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: transform 0.15s;
+}
+#slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+#slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-darker);
+  border: 2px solid var(--panel);
+  cursor: pointer;
+}
+
 #slider{ width:100%; height: calc(var(--tile-size) * 0.35); }
 
 #scaleBox{
@@ -346,9 +395,11 @@ body{
 
     <!-- ===== Sidebar temporelle + min/max ===== -->
     <div id="bottomBar">
-      <div id="timeBar">
-        <input type="range" id="slider" min="0" max="0" value="0"/>
-      </div>
+<div id="timeBar">
+  <div id="sliderTimeLabel">--:--</div>
+  <input type="range" id="slider" min="0" max="0" value="0"/>
+</div>
+
       <div id="scaleBox" title="Réglage des bornes couleurs">
         <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
         <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
@@ -1255,8 +1306,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("load", updateTileSize);
 });
 
+function updateSliderTimeLabel(idx) {
+  if (!csvData[idx]) return;
+  const row = csvData[idx];
+  const timeKey = headers.find(h => {
+    const a = (h || "").toLowerCase();
+    return a.includes("heure") || a.includes("time") || a === "h";
+  });
+  const timeText = timeKey ? String(row[timeKey] || "").trim() : "--:--";
+  document.getElementById("sliderTimeLabel").textContent = timeText || "--:--";
+}
+document.getElementById("slider").addEventListener("input", e => {
+  const idx = parseInt(e.target.value) || 0;
+  updateGrid(idx);
+  updateSliderTimeLabel(idx); // ✅ mise à jour de l'heure au-dessus du slider
+});
 
 
 </script>
 </body>
 </html>
+
