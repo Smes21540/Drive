@@ -147,9 +147,12 @@ body{
   background: var(--panel);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  height: calc(100vh - 100px);   /* occupe toute la hauteur visible */
-  overflow: hidden;
+  max-height: calc(100vh - 150px);  /* 🔹 limite la hauteur pour ne pas dépasser la barre temporelle */
+  overflow: hidden;                 /* garde le header fixe */
+  align-self: flex-start;           /* évite qu’il s’étire à cause du flex parent */
+  margin-bottom: 10px;              /* petit espace au-dessus du slider temporel */
 }
+
 
 #sideHeader {
   font-weight: 600;
@@ -1051,6 +1054,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
