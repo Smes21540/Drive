@@ -424,7 +424,7 @@ body{
 <!-- ===== PAGE WRAP (main + side) ===== -->
 <div id="pageWrap">
 
-  <!-- ===== MAIN (inchangé dans l’esprit) ===== -->
+  <!-- MAIN -->
   <div id="mainCol">
     <div id="gridWrap">
       <div id="grid">
@@ -433,28 +433,27 @@ body{
       </div>
     </div>
 
-    <!-- ===== Sidebar temporelle + min/max ===== -->
-<div id="bottomBar">
-  <div id="timeBar">
-    <input type="range" id="slider" min="0" max="0" value="0"/>
-    <div id="sliderTimeLabel">--:--</div>
+    <!-- Barre temporelle + min/max -->
+    <div id="bottomBar">
+      <div id="timeBar">
+        <input type="range" id="slider" min="0" max="0" value="0"/>
+        <div id="sliderTimeLabel">--:--</div>
+      </div>
+      <div id="scaleBox" title="Réglage des bornes couleurs">
+        <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
+        <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
+      </div>
+    </div>
   </div>
-  <div id="scaleBox" title="Réglage des bornes couleurs">
-    <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
-    <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
-  </div>
+
+  <!-- ✅ Le volet d'événements devient un voisin, plus un enfant -->
+  <aside id="sideCol">
+    <div id="sideHeader">🧰 Evenements</div>
+    <div id="z3List"></div>
+  </aside>
+
 </div>
 
-
-  <!-- ===== SIDE (Z3 EVENTS) ===== -->
-<aside id="sideCol">
-  <div id="sideHeader">🧰 Evenements</div>
-  <div id="z3List"></div>
-</aside>
-
-
-    
-</div>
 
 <script src="libs/papaparse.min.js"></script>
 <script>
@@ -1372,6 +1371,7 @@ slider.addEventListener("input", e => {
 </script>
 </body>
 </html>
+
 
 
 
