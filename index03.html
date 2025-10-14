@@ -1356,34 +1356,61 @@ function updateGrid(idx){
 /* =================== Listeners =================== */
 window.addEventListener("resize", updateTileSize);
 
-// === 🎚️ GESTION DU SLIDER INTELLIGENT ===
-const slider = document.getElementById("slider");
-const timeDisplay = document.getElementById("currentTimeDisplay");
+// ===================================================
+// 🕒 Slider temporel : calcule l’échelle en minutes réelles
+// ===================================================
 
-slider.addEventListener("input", async e => {
-  const idx = parseInt(e.target.value) || 0;
-  updateGrid(idx);
+// Donne le min et max du temps réel (en minutes)
+function getTimeRange() {
+  if (!csvData.length) return { minTime: 0, maxTime: 0 };
+  const times = csvData.map(row => minutesFromRowTime(row)).filter(t => !isNaN(t));
+  const minTime = Math.min(...times);
+  const maxTime = Math.max(...times);
+  return { minTime, maxTime };
+}
 
-updateZ3Intensity(currentRowMinutes(idx));
-highlightZ3Near(currentRowMinutes(idx));
+// Trouve l’index de ligne la plus proche d’un temps donné (en minutes)
+function findClosestRowByMinutes(targetMinutes) {
+  let bestIdx = 0, bestDiff = Infinity;
+  for (let i = 0; i < csvData.length; i++) {
+    const m = minutesFromRowTime(csvData[i]);
+    if (isNaN(m)) continue;
+    const diff = Math.abs(m - targetMinutes);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
 
   
-  // === Halo visuel + position ===
-  const ratio = idx / (parseInt(e.target.max) || 1);
+// === 🎚️ GESTION DU SLIDER TEMPOREL INTELLIGENT ===
+slider.addEventListener("input", async e => {
+  if (!csvData.length) return;
+
+  const { minTime, maxTime } = getTimeRange();
+  const ratio = parseFloat(e.target.value) / parseFloat(e.target.max || 1);
+  const targetMinutes = minTime + (maxTime - minTime) * ratio;
+  const idx = findClosestRowByMinutes(targetMinutes);
+
+  updateGrid(idx);
+  updateZ3Intensity(currentRowMinutes(idx));
+  highlightZ3Near(currentRowMinutes(idx));
+
+  // === Affichage de l’heure ===
+  const mins = currentRowMinutes(idx);
+  if (!isNaN(mins)) {
+    const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+    const mm = String(Math.floor(mins % 60)).padStart(2, "0");
+    timeDisplay.textContent = `${hh}:${mm}`;
+  }
+
+  // === Halo dynamique aux bords
   slider.style.setProperty("--glow-pos", `${ratio * 100}%`);
   slider.style.setProperty("--glow-opacity", `${Math.max(0, Math.abs(0.5 - ratio) * 1.5)}`);
 
-  // === Affichage de l'heure ===
-  if (typeof currentRowMinutes === "function") {
-    const mins = currentRowMinutes(idx);
-    if (!isNaN(mins)) {
-      const hh = String(Math.floor(mins / 60)).padStart(2, "0");
-      const mm = String(Math.floor(mins % 60)).padStart(2, "0");
-      timeDisplay.textContent = `${hh}:${mm}`;
-    }
-  }
-
-  // === Approche des bords ===
+  // === Chargement automatique des jours voisins
   if (ratio > 0.97) {
     console.log("➡️ Fin du jour : chargement du jour suivant...");
     await loadNeighborDay(+1);
@@ -1392,6 +1419,7 @@ highlightZ3Near(currentRowMinutes(idx));
     await loadNeighborDay(-1);
   }
 });
+
 
 // === Échelle couleur ===
 document.getElementById("minInput").addEventListener("change", () => {
@@ -1481,6 +1509,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
