@@ -444,15 +444,15 @@ body{
         <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
       </div>
     </div>
-  </div>
+  </div> <!-- ✅ fermeture de mainCol -->
 
-  <!-- ✅ Le volet d'événements devient un voisin, plus un enfant -->
+  <!-- ✅ Le volet d'événements est désormais à côté, pas en dessous -->
   <aside id="sideCol">
     <div id="sideHeader">🧰 Evenements</div>
     <div id="z3List"></div>
   </aside>
+</div> <!-- fin de pageWrap -->
 
-</div>
 
 
 <script src="libs/papaparse.min.js"></script>
@@ -1371,6 +1371,7 @@ slider.addEventListener("input", e => {
 </script>
 </body>
 </html>
+
 
 
 
