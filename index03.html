@@ -123,6 +123,13 @@ body{
   box-shadow:0 2px 5px rgba(0,0,0,0.2); padding:6px;
   overflow:hidden;
 }
+  /* Cases vides visibles pour garder la grille homogène */
+.sonde.empty {
+  background: #fafafa;
+  border: 1px dashed #ddd;
+  opacity: 0.4;
+}
+
 .sonde .label{ font-size: clamp(10px, calc(var(--tile-size)*0.12), 14px); font-weight:bold; color:#000; margin-bottom:2px; }
 .sonde .consigne{ font-size: clamp(9px, calc(var(--tile-size)*0.10), 12px); color:#555; font-style:italic; }
 .sonde .val{ font-size: clamp(14px, calc(var(--tile-size)*0.18), 22px); font-weight:bold; color:#000; }
@@ -537,25 +544,38 @@ function buildGrid(){
 
   const cols = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cols')) || 22;
 
-  function placeRows(container, rows){
-    if(!rows || !rows.length) return;
-    const planCols = rows[0].length;
-    const startCol = Math.max(1, Math.floor((cols - planCols)/2) + 1); // centre dans 22
-    rows.forEach(r=>{
-      r.forEach((num, j)=>{
-        if(!num) return;
-        const d=document.createElement("div");
-        d.className="sonde";
-        d.id="sonde"+num;
-        d.style.gridColumn = (startCol + j) + " / span 1";
+function placeRows(container, rows) {
+  const planCols = rows?.[0]?.length || 0;
+  const startCol = Math.max(1, Math.floor((cols - planCols) / 2) + 1);
+
+  // ✅ Génère une grille de 22 colonnes × 6 lignes “vides” par défaut
+  const totalRows = 6;
+  for (let r = 0; r < totalRows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const d = document.createElement("div");
+      d.className = "sonde empty";
+      container.appendChild(d);
+    }
+  }
+
+  // ✅ Place les sondes réelles par-dessus
+  if (rows && rows.length) {
+    rows.forEach((r, i) => {
+      r.forEach((num, j) => {
+        if (!num) return;
+        const d = container.children[i * cols + (startCol - 1 + j)];
+        if (!d) return;
+        d.classList.remove("empty");
+        d.id = "sonde" + num;
         d.innerHTML = `
           <div class="label">Sonde ${num}</div>
           <div class="consigne">-- °C</div>
           <div class="val">-- °C</div>`;
-        container.appendChild(d);
       });
     });
   }
+}
+
 
   placeRows(gridTop, planTop);
   placeRows(gridBottom, planBottom);
@@ -1377,6 +1397,7 @@ slider.addEventListener("input", e => {
 </script>
 </body>
 </html>
+
 
 
 
