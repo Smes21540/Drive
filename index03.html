@@ -67,41 +67,23 @@ body{
 }
 
 /* ===== PAGE LAYOUT : main (3/4) + side (1/4) ===== */
-#pageWrap {
-  flex: 1;
-  display: flex;
-  align-items: flex-start;   /* ✅ garde le volet collé en haut */
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  overflow: hidden;
-  min-height: 0;             /* évite les débordements */
+#pageWrap{
+  flex:1; display:flex; gap:10px; padding:10px 12px; overflow:hidden;
 }
-
 
 /* ===== Zone centrale : deux sous-grilles 22×6 centrées ===== */
-#mainCol {
-  flex: 3;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between; /* ✅ regroupe grille + slider */
-  overflow: hidden;
+#mainCol{
+  flex:3; min-width:0;
+  display:flex; flex-direction:column;
+  overflow:hidden;
   background: transparent;
-  min-height: 0;                  /* libère la hauteur totale */
+  min-height:70vh; /* ✅ assure un espace suffisant pour la grille */
 }
 
-
-#gridWrap {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
-  max-height: calc(100vh - 160px); /* ✅ même hauteur que le volet d’événements */
-  box-sizing: border-box;
+#gridWrap{
+  flex:1; display:flex; align-items:center; justify-content:center;
+  overflow:auto;
 }
-
 #grid{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap: calc(var(--tile-size) * var(--split-gap)); /* espace vertical entre top/bottom */
@@ -123,22 +105,6 @@ body{
   box-shadow:0 2px 5px rgba(0,0,0,0.2); padding:6px;
   overflow:hidden;
 }
-  /* Cases vides visibles pour garder la grille homogène */
-.sonde.empty {
-  background: #fafafa;
-  border: 1px dashed #ddd;
-  opacity: 0.4;
-}
-
-/* Cases neutres (grille de fond visible mais ignorée par le code) */
-.sonde.placeholder {
-  background: #f5f5f5;
-  border: 1px dashed #ddd;
-  opacity: 0.35;
-  pointer-events: none; /* évite les clics */
-}
-
-  
 .sonde .label{ font-size: clamp(10px, calc(var(--tile-size)*0.12), 14px); font-weight:bold; color:#000; margin-bottom:2px; }
 .sonde .consigne{ font-size: clamp(9px, calc(var(--tile-size)*0.10), 12px); color:#555; font-style:italic; }
 .sonde .val{ font-size: clamp(14px, calc(var(--tile-size)*0.18), 22px); font-weight:bold; color:#000; }
@@ -155,99 +121,58 @@ body{
 }
 
 /* ===== Sidebar temporelle (en dessous de la grille) ===== */
-/* ===== Barre temporelle stylisée ===== */
-#bottomBar {
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:16px;
+#bottomBar{
+  display:flex; align-items:center; justify-content:center; gap:16px;
   padding:10px 0 14px;
 }
-
-/* ✅ Nouveau design du slider */
 #timeBar {
-  position: relative;
   width: calc(var(--timebar-cols) * var(--tile-size) + (var(--timebar-cols) - 1) * var(--cell-gap));
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  position: relative;
+  gap: 6px;
 }
 
-/* Barre principale */
+#sliderTime {
+  font-weight: bold;
+  color: var(--accent-darker);
+  font-size: 1rem;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
 #slider {
   -webkit-appearance: none;
   width: 100%;
-  height: 10px;
+  height: 8px;
   border-radius: 8px;
   background: linear-gradient(to right, var(--accent-muted), var(--accent));
   outline: none;
   cursor: pointer;
-  transition: background 0.3s;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2) inset;
 }
 
-/* Curseur stylé */
 #slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--accent-darker);
-  box-shadow: 0 0 0 3px var(--panel), 0 2px 6px rgba(0,0,0,0.3);
-  transition: transform 0.15s, background 0.3s;
+  border: 2px solid white;
+  box-shadow: 0 0 4px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease;
 }
 #slider::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-  background: var(--accent);
-}
-#slider::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--accent-darker);
-  border: 3px solid var(--panel);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  transition: transform 0.15s, background 0.3s;
-}
-#slider::-moz-range-thumb:hover {
-  transform: scale(1.1);
-  background: var(--accent);
+  transform: scale(1.2);
 }
 
-/* Label heure au-dessus du curseur */
-#sliderTimeLabel {
-  position: absolute;
-  top: -28px;
-  font-size: 14px;
-  font-weight: bold;
-  color: var(--accent-darker);
-  background: var(--panel);
-  padding: 2px 6px;
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  transform: translateX(-50%);
-  pointer-events: none;
-  white-space: nowrap;
-}
 
-#scaleBox {
-  background: var(--panel);
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 8px 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-  font-size: 13px;
-  color: var(--text);
+#scaleBox{
+  background:var(--panel); border:1px solid #ddd; border-radius:8px;
+  padding:8px 10px; box-shadow:0 2px 8px rgba(0,0,0,0.12); font-size:13px; color:var(--text);
 }
-#scaleBox label { margin-right: 6px; }
-#scaleBox input {
-  width: 70px;
-  padding: 4px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
+#scaleBox label{ margin-right:6px; }
+#scaleBox input{ width:70px; padding:4px; border:1px solid #ccc; border-radius:6px; }
 
 /* Scrollbars (grille) */
 #gridWrap::-webkit-scrollbar{height:10px;width:10px;}
@@ -446,7 +371,7 @@ body{
 <!-- ===== PAGE WRAP (main + side) ===== -->
 <div id="pageWrap">
 
-  <!-- MAIN -->
+  <!-- ===== MAIN (inchangé dans l’esprit) ===== -->
   <div id="mainCol">
     <div id="gridWrap">
       <div id="grid">
@@ -455,27 +380,35 @@ body{
       </div>
     </div>
 
-    <!-- Barre temporelle + min/max -->
-    <div id="bottomBar">
-      <div id="timeBar">
-        <input type="range" id="slider" min="0" max="0" value="0"/>
-        <div id="sliderTimeLabel">--:--</div>
-      </div>
-      <div id="scaleBox" title="Réglage des bornes couleurs">
+    <!-- ===== Sidebar temporelle + min/max ===== -->
+<div id="bottomBar">
+  <div id="timeBar">
+    <div id="sliderTime">--:--</div>
+    <input type="range" id="slider" min="0" max="0" value="0"/>
+  </div>
+  <div id="scaleBox" title="Réglage des bornes couleurs">
+    <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
+    <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
+  </div>
+</div>
+
         <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
         <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
       </div>
+      <!-- Bouton optionnel plus tard : Fusion jours (désactivé par défaut) -->
+      <!-- <button id="mergeDaysBtn" style="margin-left:12px;">Fusionner jours</button> -->
     </div>
-  </div> <!-- ✅ fermeture de mainCol -->
+  </div>
 
-  <!-- ✅ Le volet d'événements est désormais à côté, pas en dessous -->
-  <aside id="sideCol">
-    <div id="sideHeader">🧰 Evenements</div>
-    <div id="z3List"></div>
-  </aside>
-</div> <!-- fin de pageWrap -->
+  <!-- ===== SIDE (Z3 EVENTS) ===== -->
+<aside id="sideCol">
+  <div id="sideHeader">🧰 Evenements</div>
+  <div id="z3List"></div>
+</aside>
 
 
+    
+</div>
 
 <script src="libs/papaparse.min.js"></script>
 <script>
@@ -545,54 +478,37 @@ function loadPlan(){
 }
 
 /* =================== Construction de la grille centrée =================== */
-function buildGrid() {
+function buildGrid(){
   const gridTop = document.getElementById("gridTop");
   const gridBottom = document.getElementById("gridBottom");
-  gridTop.innerHTML = "";
+  gridTop.innerHTML = ""; 
   gridBottom.innerHTML = "";
 
-  const cols = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cols")) || 22;
-  const totalRows = 6;
+  const cols = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cols')) || 22;
 
-  function placeRows(container, rows) {
-    // Crée 22x6 cases vides par défaut
-    for (let r = 0; r < totalRows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const d = document.createElement("div");
-        d.className = "sonde empty";
-        container.appendChild(d);
-      }
-    }
-
-    if (!rows || !rows.length) return;
-
-    // Centre le plan réel
+  function placeRows(container, rows){
+    if(!rows || !rows.length) return;
     const planCols = rows[0].length;
-    const startCol = Math.max(0, Math.floor((cols - planCols) / 2));
-
-    // Remplace les cases vides par les vraies sondes
-    rows.forEach((r, i) => {
-      r.forEach((num, j) => {
-        if (!num) return;
-        const index = i * cols + (startCol + j);
-        const d = container.children[index];
-        if (!d) return;
-        d.classList.remove("empty");
-        d.id = "sonde" + num;
+    const startCol = Math.max(1, Math.floor((cols - planCols)/2) + 1); // centre dans 22
+    rows.forEach(r=>{
+      r.forEach((num, j)=>{
+        if(!num) return;
+        const d=document.createElement("div");
+        d.className="sonde";
+        d.id="sonde"+num;
+        d.style.gridColumn = (startCol + j) + " / span 1";
         d.innerHTML = `
           <div class="label">Sonde ${num}</div>
           <div class="consigne">-- °C</div>
           <div class="val">-- °C</div>`;
+        container.appendChild(d);
       });
     });
   }
 
   placeRows(gridTop, planTop);
   placeRows(gridBottom, planBottom);
-}
-
-
-
+} // 🔹 Fin de buildGrid()
 
 /* ============ RIGHT PANEL: load + render Z3 (auto-fetch if missing content) ============ */
 function yyyymmddFromName(name){
@@ -1147,7 +1063,10 @@ function updateGrid(idx){
   if(dateKey&&row[dateKey]) dt+=String(row[dateKey]); 
   if(timeKey&&row[timeKey]) dt+=(dt?" — ":"")+String(row[timeKey]);
   document.getElementById("datetimeLabel").textContent = dt||"";
+document.getElementById("sliderTime").textContent = String(row[timeKey] || "--:--");
 
+
+  
   // === Sondes normales ===
   const allCells = document.querySelectorAll('.sonde:not(.special)');
   allCells.forEach(div=>{
@@ -1381,45 +1300,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("load", updateTileSize);
 });
 
-// 🎚️ Mise à jour dynamique de l'heure au-dessus du slider
-const slider = document.getElementById("slider");
-const sliderLabel = document.getElementById("sliderTimeLabel");
-
-slider.addEventListener("input", e => {
-  const idx = parseInt(e.target.value) || 0;
-  updateGrid(idx);
-
-  // Position horizontale du label
-  const percent = idx / (slider.max || 1);
-  const sliderRect = slider.getBoundingClientRect();
-  const labelX = sliderRect.left + percent * sliderRect.width;
-  sliderLabel.style.left = `${labelX - sliderRect.left}px`;
-
-  // Heure affichée
-  const mins = currentRowMinutes(idx);
-  if (!isNaN(mins)) {
-    const hh = String(Math.floor(mins / 60)).padStart(2, "0");
-    const mm = String(Math.round(mins % 60)).padStart(2, "0");
-    sliderLabel.textContent = `${hh}:${mm}`;
-  } else {
-    sliderLabel.textContent = "--:--";
-  }
-});
 
 
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
