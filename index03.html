@@ -590,13 +590,16 @@ async function loadZ3ForSameDay() {
   highlightZ3Near(currentRowMinutes(0));
 }
 function updateZ3Intensity(currentMinutes) {
-  const items = document.querySelectorAll("#z3List .z3Item");
-  if (!items.length) return;
+  if (!z3Events.length) return;
 
   const RANGE = 60;          // influence ±60 min autour
   const MAX_INTENSITY = 4;   // 0→4 correspond aux niveaux CSS
 
-  items.forEach((el, i) => {
+  // Sélectionne uniquement les vrais événements (ignore les repères horaires)
+  const eventItems = Array.from(document.querySelectorAll("#z3List .z3Item"))
+    .filter(el => !el.classList.contains("hour-mark"));
+
+  eventItems.forEach((el, i) => {
     const ev = z3Events[i];
     if (!ev) return;
 
@@ -607,6 +610,7 @@ function updateZ3Intensity(currentMinutes) {
     el.dataset.intensity = level;
   });
 }
+
 
 
 
@@ -1148,6 +1152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
