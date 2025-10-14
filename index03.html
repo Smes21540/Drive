@@ -67,18 +67,30 @@ body{
 }
 
 /* ===== PAGE LAYOUT : main (3/4) + side (1/4) ===== */
-#pageWrap{
-  flex:1; display:flex; gap:10px; padding:10px 12px; overflow:hidden;
+#pageWrap {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;   /* ✅ garde le volet collé en haut */
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  overflow: hidden;
+  min-height: 0;             /* évite les débordements */
 }
 
+
 /* ===== Zone centrale : deux sous-grilles 22×6 centrées ===== */
-#mainCol{
-  flex:3; min-width:0;
-  display:flex; flex-direction:column;
-  overflow:hidden;
+#mainCol {
+  flex: 3;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* ✅ regroupe grille + slider */
+  overflow: hidden;
   background: transparent;
-  min-height:70vh; /* ✅ assure un espace suffisant pour la grille */
+  min-height: 0;                  /* libère la hauteur totale */
 }
+
 
 #gridWrap{
   flex:1; display:flex; align-items:center; justify-content:center;
@@ -1360,6 +1372,7 @@ slider.addEventListener("input", e => {
 </script>
 </body>
 </html>
+
 
 
 
