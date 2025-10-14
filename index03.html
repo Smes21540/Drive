@@ -289,8 +289,6 @@ body{
 
 <script src="libs/papaparse.min.js"></script>
 <script>
-/* =================== Thème =================== */
-function applyThemeVars(vars){const r=document.documentElement;Object.entries(vars).forEach(([k,v])=>r.style.setProperty(k,v));}
 /* =================== Thème (hérité de index.html / viewer02) =================== */
 function applyThemeVars(vars){
   const r=document.documentElement;
@@ -1043,18 +1041,96 @@ document.getElementById("maxInput").addEventListener("change", ()=>{
 
 
 /* =================== INIT =================== */
+
+  /* ----------- Thèmes + persistance ----------- */
+function setTheme(theme){
+  const r=document.documentElement;
+  localStorage.setItem("selectedTheme",theme);
+
+  if(theme==="orange"){
+    r.style.setProperty("--accent","#ff7043");
+    r.style.setProperty("--accent-darker","#e64a19");
+    r.style.setProperty("--accent-muted","#ffccbc");
+    r.style.setProperty("--bg","#fff5f5");
+    r.style.setProperty("--panel","#ffffff");
+    r.style.setProperty("--sidebar-bg","#ffe5d9");
+    r.style.setProperty("--danger","#d84315");
+    r.style.setProperty("--text","#333");
+    r.style.setProperty("--row-even","#ffe5d9");
+    r.style.setProperty("--row-odd","#fff5f5");
+  }
+  if(theme==="blue"){
+    r.style.setProperty("--accent","#2196f3");
+    r.style.setProperty("--accent-darker","#1976d2");
+    r.style.setProperty("--accent-muted","#bbdefb");
+    r.style.setProperty("--bg","#e3f2fd");
+    r.style.setProperty("--panel","#ffffff");
+    r.style.setProperty("--sidebar-bg","#bbdefb");
+    r.style.setProperty("--danger","#0d47a1");
+    r.style.setProperty("--text","#0d47a1");
+    r.style.setProperty("--row-even","#bbdefb");
+    r.style.setProperty("--row-odd","#e3f2fd");
+  }
+  if(theme==="green"){
+    r.style.setProperty("--accent","#4caf50");
+    r.style.setProperty("--accent-darker","#2e7d32");
+    r.style.setProperty("--accent-muted","#c8e6c9");
+    r.style.setProperty("--bg","#f1f8e9");
+    r.style.setProperty("--panel","#ffffff");
+    r.style.setProperty("--sidebar-bg","#c8e6c9");
+    r.style.setProperty("--danger","#1b5e20");
+    r.style.setProperty("--text","#1b5e20");
+    r.style.setProperty("--row-even","#c8e6c9");
+    r.style.setProperty("--row-odd","#f1f8e9");
+  }
+  if(theme==="purple"){
+    r.style.setProperty("--accent","#9c27b0");
+    r.style.setProperty("--accent-darker","#6a1b9a");
+    r.style.setProperty("--accent-muted","#e1bee7");
+    r.style.setProperty("--bg","#f3e5f5");
+    r.style.setProperty("--panel","#ffffff");
+    r.style.setProperty("--sidebar-bg","#e1bee7");
+    r.style.setProperty("--danger","#4a148c");
+    r.style.setProperty("--text","#4a148c");
+    r.style.setProperty("--row-even","#e1bee7");
+    r.style.setProperty("--row-odd","#f3e5f5");
+  }
+  if(theme==="bordeaux"){
+    r.style.setProperty("--accent","#800020");
+    r.style.setProperty("--accent-darker","#4b0014");
+    r.style.setProperty("--accent-muted","#d7a1a9");
+    r.style.setProperty("--bg","#fff0f2");
+    r.style.setProperty("--panel","#ffffff");
+    r.style.setProperty("--sidebar-bg","#f3cdd3");
+    r.style.setProperty("--danger","#600018");
+    r.style.setProperty("--text","#4b0014");
+    r.style.setProperty("--row-even","#f3cdd3");
+    r.style.setProperty("--row-odd","#fff0f2");
+  }
+}
+
+  const savedTheme = localStorage.getItem("selectedTheme") || "orange";
+setTheme(savedTheme);
+
+
+  
 document.addEventListener("DOMContentLoaded", async () => {
-  setTheme(localStorage.getItem("selectedTheme") || "orange");
-  await ensureZ3FilesLoaded(); // 🧩 s'assure que les Z3 sont disponibles
+  // 🔹 Force le thème dès le départ
+  const theme = localStorage.getItem("selectedTheme") || "orange";
+  setTheme(theme);
+
+  await ensureZ3FilesLoaded();
   loadPlan();
   requestAnimationFrame(updateTileSize);
   loadCSV();
   window.addEventListener("load", updateTileSize);
 });
 
+
 </script>
 </body>
 </html>
+
 
 
 
