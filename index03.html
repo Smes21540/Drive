@@ -554,9 +554,13 @@ async function loadZ3ForSameDay() {
     const H = parsed.meta.fields || [];
     const rows = parsed.data || [];
 
-    const timeCol = H.find(h => /trigger.?time|heure/i.test(h)) || H[1];
-    const msgCol  = H.find(h => /message/i.test(h)) || H[2];
-    const addrCol = H.find(h => /address ?1/i.test(h));
+// 🔍 Détection plus tolérante des colonnes (FR / EN / variantes)
+const timeCol = H.find(h => /(trigger.?time|heure|horodatage|time|temps)/i.test(h)) || H[0];
+const msgCol  = H.find(h => /(message|desc|description|evenement|event)/i.test(h)) || H[1];
+const addrCol = H.find(h => /(address|adresse|addr|zone|address ?1)/i.test(h)) || null;
+
+console.log("🧩 Colonnes Z3 détectées :", { timeCol, msgCol, addrCol });
+
 
     for (const r of rows) {
       const t = String(r[timeCol] || "").trim();
@@ -1004,6 +1008,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
