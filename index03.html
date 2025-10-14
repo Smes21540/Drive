@@ -1032,6 +1032,9 @@ text = decodeSmart(buf);
   addSpecialsAfterCSV();
   updateGrid(0);
 
+    updateSliderTimeLabel(0);
+
+
   // 5️⃣ Les fichiers Z3 → uniquement depuis localStorage
   loadZ3ForSameDay();
 }
@@ -1326,4 +1329,5 @@ document.getElementById("slider").addEventListener("input", e => {
 </script>
 </body>
 </html>
+
 
