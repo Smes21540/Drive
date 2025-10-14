@@ -995,20 +995,27 @@ function decodeSmart(arrayBuffer) {
 }
 
 function findNeighborFile(direction = 1) {
-  // direction = +1 (suivant), -1 (précédent)
   if (!fileName) return null;
   const match = fileName.match(/(\d{8})/);
   if (!match) return null;
-  const currentDate = match[1];
-  const y = parseInt(currentDate.slice(0, 4), 10);
-  const m = parseInt(currentDate.slice(4, 6), 10);
-  const d = parseInt(currentDate.slice(6, 8), 10);
-  const dt = new Date(y, m - 1, d + direction);
 
-  const nextDay = dt.toISOString().slice(0, 10).replace(/-/g, "");
+  // Calcul manuel du jour suivant / précédent
+  const y = parseInt(match[1].slice(0, 4), 10);
+  const m = parseInt(match[1].slice(4, 6), 10);
+  const d = parseInt(match[1].slice(6, 8), 10);
+  const dateObj = new Date(y, m - 1, d);
+  dateObj.setDate(dateObj.getDate() + direction);
+
+  // Extraction sans fuseau horaire
+  const nextYear = dateObj.getFullYear();
+  const nextMonth = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const nextDay = String(dateObj.getDate()).padStart(2, "0");
+  const nextDate = `${nextYear}${nextMonth}${nextDay}`;
+
   const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
-  return list.find(f => f.name.includes(nextDay)) || null;
+  return list.find(f => f.name.includes(nextDate)) || null;
 }
+
 
   
   async function loadCSV(){
@@ -1416,6 +1423,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
