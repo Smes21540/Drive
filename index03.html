@@ -1094,26 +1094,36 @@ text = decodeSmart(buf);
   document.getElementById("minInput").value = isNaN(minInit) ? 30 : minInit;
   document.getElementById("maxInput").value = isNaN(maxInit) ? 60 : maxInit;
 
-  // 4️⃣ Ajout des cases spéciales et affichage initial
   addSpecialsAfterCSV();
   updateGrid(0);
 
- 
-
+  // 🔸 Positionne le slider à 1/24e du total au chargement
+  const slider = document.getElementById("slider");
+  if (slider && csvData.length > 0) {
+    slider.value = Math.floor(slider.max / 24);
+    updateGrid(parseInt(slider.value));
+  }
 
   // 5️⃣ Les fichiers Z3 → uniquement depuis localStorage
   loadZ3ForSameDay();
 }
 
+
 async function loadNeighborDay(direction = 1) {
+  const slider = document.getElementById("slider");
+
+  // 🔒 Anti-boucle de chargement
+  if (slider.dataset.loadingNeighbor === "1") return;
+  slider.dataset.loadingNeighbor = "1";
+
   const neighbor = findNeighborFile(direction);
-  if (!neighbor) {
-    console.warn("⛔ Aucun fichier voisin trouvé.");
+  if (!neighbor || neighbor.name === fileName) {
+    console.warn("⚠️ Aucun fichier voisin différent trouvé.");
+    slider.dataset.loadingNeighbor = "0";
     return;
   }
 
-  // Halo visuel pendant le chargement
-  const slider = document.getElementById("slider");
+  // 🌈 Halo visuel
   slider.style.setProperty("--glow-opacity", "1");
   slider.style.setProperty("--glow-pos", direction > 0 ? "95%" : "5%");
 
@@ -1127,28 +1137,46 @@ async function loadNeighborDay(direction = 1) {
     const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
     const rows = parsed.data || [];
 
-    // Fusion avec csvData existant
+    // Fusion selon direction
     if (direction > 0) {
       csvData = csvData.concat(rows);
     } else {
       csvData = rows.concat(csvData);
     }
 
-    document.getElementById("slider").max = csvData.length - 1;
-    // Recentre le slider au milieu du nouveau domaine
-    document.getElementById("slider").value = Math.floor(csvData.length / 2);
-    updateGrid(parseInt(document.getElementById("slider").value));
+    // 🔁 Réglage du slider : nouveau domaine et position à 1/24e
+    const newMax = csvData.length - 1;
+    const newValue = Math.floor(newMax / 24);
+    slider.max = newMax;
+    slider.value = newValue;
+    updateGrid(newValue);
 
     console.log(`✅ Fichier fusionné : ${neighbor.name}`);
+
+    // 🗓️ Bandeau de transition de jour
+    const transition = document.getElementById("dayTransition");
+    if (transition) {
+      const dateStr = neighbor.name.match(/(\d{8})/);
+      if (dateStr) {
+        const y = dateStr[1].slice(0, 4),
+          m = dateStr[1].slice(4, 6),
+          d = dateStr[1].slice(6, 8);
+        transition.textContent = `📅 Passage au ${d}/${m}/${y}`;
+        transition.style.opacity = "1";
+        setTimeout(() => (transition.style.opacity = "0"), 2000);
+      }
+    }
   } catch (err) {
     console.error("❌ Erreur de chargement du voisin :", err);
   } finally {
-    // Retrait du halo
+    // 🔓 Libère le verrou et retire le halo
+    slider.dataset.loadingNeighbor = "0";
     setTimeout(() => {
       slider.style.setProperty("--glow-opacity", "0");
     }, 800);
   }
 }
+
 
 
 /* =================== Couleurs =================== */
@@ -1423,6 +1451,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
