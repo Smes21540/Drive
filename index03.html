@@ -121,22 +121,99 @@ body{
 }
 
 /* ===== Sidebar temporelle (en dessous de la grille) ===== */
-#bottomBar{
-  display:flex; align-items:center; justify-content:center; gap:16px;
+/* ===== Barre temporelle stylisée ===== */
+#bottomBar {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
   padding:10px 0 14px;
 }
-#timeBar{
-  width: calc(var(--timebar-cols) * var(--tile-size) + (var(--timebar-cols) - 1) * var(--cell-gap));
-  display:flex; align-items:center; justify-content:center;
-}
-#slider{ width:100%; height: calc(var(--tile-size) * 0.35); }
 
-#scaleBox{
-  background:var(--panel); border:1px solid #ddd; border-radius:8px;
-  padding:8px 10px; box-shadow:0 2px 8px rgba(0,0,0,0.12); font-size:13px; color:var(--text);
+/* ✅ Nouveau design du slider */
+#timeBar {
+  position: relative;
+  width: calc(var(--timebar-cols) * var(--tile-size) + (var(--timebar-cols) - 1) * var(--cell-gap));
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-#scaleBox label{ margin-right:6px; }
-#scaleBox input{ width:70px; padding:4px; border:1px solid #ccc; border-radius:6px; }
+
+/* Barre principale */
+#slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 8px;
+  background: linear-gradient(to right, var(--accent-muted), var(--accent));
+  outline: none;
+  cursor: pointer;
+  transition: background 0.3s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2) inset;
+}
+
+/* Curseur stylé */
+#slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-darker);
+  box-shadow: 0 0 0 3px var(--panel), 0 2px 6px rgba(0,0,0,0.3);
+  transition: transform 0.15s, background 0.3s;
+}
+#slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  background: var(--accent);
+}
+#slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-darker);
+  border: 3px solid var(--panel);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  transition: transform 0.15s, background 0.3s;
+}
+#slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  background: var(--accent);
+}
+
+/* Label heure au-dessus du curseur */
+#sliderTimeLabel {
+  position: absolute;
+  top: -28px;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--accent-darker);
+  background: var(--panel);
+  padding: 2px 6px;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+#scaleBox {
+  background: var(--panel);
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  font-size: 13px;
+  color: var(--text);
+}
+#scaleBox label { margin-right: 6px; }
+#scaleBox input {
+  width: 70px;
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
 
 /* Scrollbars (grille) */
 #gridWrap::-webkit-scrollbar{height:10px;width:10px;}
@@ -345,18 +422,17 @@ body{
     </div>
 
     <!-- ===== Sidebar temporelle + min/max ===== -->
-    <div id="bottomBar">
-      <div id="timeBar">
-        <input type="range" id="slider" min="0" max="0" value="0"/>
-      </div>
-      <div id="scaleBox" title="Réglage des bornes couleurs">
-        <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
-        <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
-      </div>
-      <!-- Bouton optionnel plus tard : Fusion jours (désactivé par défaut) -->
-      <!-- <button id="mergeDaysBtn" style="margin-left:12px;">Fusionner jours</button> -->
-    </div>
+<div id="bottomBar">
+  <div id="timeBar">
+    <input type="range" id="slider" min="0" max="0" value="0"/>
+    <div id="sliderTimeLabel">--:--</div>
   </div>
+  <div id="scaleBox" title="Réglage des bornes couleurs">
+    <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
+    <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
+  </div>
+</div>
+
 
   <!-- ===== SIDE (Z3 EVENTS) ===== -->
 <aside id="sideCol">
@@ -1255,11 +1331,36 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("load", updateTileSize);
 });
 
+// 🎚️ Mise à jour dynamique de l'heure au-dessus du slider
+const slider = document.getElementById("slider");
+const sliderLabel = document.getElementById("sliderTimeLabel");
+
+slider.addEventListener("input", e => {
+  const idx = parseInt(e.target.value) || 0;
+  updateGrid(idx);
+
+  // Position horizontale du label
+  const percent = idx / (slider.max || 1);
+  const sliderRect = slider.getBoundingClientRect();
+  const labelX = sliderRect.left + percent * sliderRect.width;
+  sliderLabel.style.left = `${labelX - sliderRect.left}px`;
+
+  // Heure affichée
+  const mins = currentRowMinutes(idx);
+  if (!isNaN(mins)) {
+    const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+    const mm = String(Math.round(mins % 60)).padStart(2, "0");
+    sliderLabel.textContent = `${hh}:${mm}`;
+  } else {
+    sliderLabel.textContent = "--:--";
+  }
+});
 
 
 </script>
 </body>
 </html>
+
 
 
 
