@@ -264,10 +264,58 @@ body{
 <script>
 /* =================== Thème =================== */
 function applyThemeVars(vars){const r=document.documentElement;Object.entries(vars).forEach(([k,v])=>r.style.setProperty(k,v));}
-function setTheme(theme){
-  localStorage.setItem("selectedTheme",theme);
-  if(theme==="orange") applyThemeVars({"--accent":"#ff7043","--accent-darker":"#e64a19","--accent-muted":"#ffccbc","--bg":"#fff5f5","--panel":"#ffffff","--danger":"#d84315","--text":"#333"});
+/* =================== Thème (hérité de index.html / viewer02) =================== */
+function applyThemeVars(vars){
+  const r=document.documentElement;
+  Object.entries(vars).forEach(([k,v])=>r.style.setProperty(k,v));
 }
+
+function setTheme(theme){
+  localStorage.setItem("selectedTheme", theme);
+
+  const THEMES = {
+    orange: {
+      "--accent": "#ff7043",
+      "--accent-darker": "#e64a19",
+      "--accent-muted": "#ffccbc",
+      "--bg": "#fff5f5",
+      "--panel": "#ffffff",
+      "--danger": "#d84315",
+      "--text": "#333",
+    },
+    ocean: {
+      "--accent": "#00bcd4",
+      "--accent-darker": "#008ba3",
+      "--accent-muted": "#b2ebf2",
+      "--bg": "#e0f7fa",
+      "--panel": "#ffffff",
+      "--danger": "#006064",
+      "--text": "#023e4a",
+    },
+    forest: {
+      "--accent": "#388e3c",
+      "--accent-darker": "#1b5e20",
+      "--accent-muted": "#c8e6c9",
+      "--bg": "#f1f8e9",
+      "--panel": "#ffffff",
+      "--danger": "#2e7d32",
+      "--text": "#1a1a1a",
+    },
+    night: {
+      "--accent": "#90caf9",
+      "--accent-darker": "#1565c0",
+      "--accent-muted": "#1e1e1e",
+      "--bg": "#121212",
+      "--panel": "#1e1e1e",
+      "--danger": "#bb86fc",
+      "--text": "#f0f0f0",
+    },
+  };
+
+  const vars = THEMES[theme] || THEMES.orange;
+  applyThemeVars(vars);
+}
+
 
 /* =================== Globals =================== */
 let csvData=[], headers=[], planTop=[], planBottom=[];
@@ -980,6 +1028,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
