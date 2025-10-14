@@ -536,34 +536,37 @@ function loadPlan(){
 }
 
 /* =================== Construction de la grille centrée =================== */
-function buildGrid(){
+function buildGrid() {
   const gridTop = document.getElementById("gridTop");
   const gridBottom = document.getElementById("gridBottom");
-  gridTop.innerHTML = ""; 
+  gridTop.innerHTML = "";
   gridBottom.innerHTML = "";
 
-  const cols = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cols')) || 22;
-
-function placeRows(container, rows) {
-  const planCols = rows?.[0]?.length || 0;
-  const startCol = Math.max(1, Math.floor((cols - planCols) / 2) + 1);
-
-  // ✅ Génère une grille de 22 colonnes × 6 lignes “vides” par défaut
+  const cols = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cols")) || 22;
   const totalRows = 6;
-  for (let r = 0; r < totalRows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const d = document.createElement("div");
-      d.className = "sonde empty";
-      container.appendChild(d);
-    }
-  }
 
-  // ✅ Place les sondes réelles par-dessus
-  if (rows && rows.length) {
+  function placeRows(container, rows) {
+    // ✅ crée une grille complète 22x6 vide
+    for (let r = 0; r < totalRows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const d = document.createElement("div");
+        d.className = "sonde empty";
+        container.appendChild(d);
+      }
+    }
+
+    if (!rows || !rows.length) return;
+
+    // ✅ calcule le décalage pour centrer le plan réel
+    const planCols = rows[0].length;
+    const startCol = Math.max(0, Math.floor((cols - planCols) / 2));
+
+    // ✅ remplace les cases vides par les vraies sondes
     rows.forEach((r, i) => {
       r.forEach((num, j) => {
         if (!num) return;
-        const d = container.children[i * cols + (startCol - 1 + j)];
+        const index = i * cols + (startCol + j);
+        const d = container.children[index];
         if (!d) return;
         d.classList.remove("empty");
         d.id = "sonde" + num;
@@ -574,12 +577,11 @@ function placeRows(container, rows) {
       });
     });
   }
-}
-
 
   placeRows(gridTop, planTop);
   placeRows(gridBottom, planBottom);
-} // 🔹 Fin de buildGrid()
+}
+
 
 /* ============ RIGHT PANEL: load + render Z3 (auto-fetch if missing content) ============ */
 function yyyymmddFromName(name){
@@ -1397,6 +1399,7 @@ slider.addEventListener("input", e => {
 </script>
 </body>
 </html>
+
 
 
 
