@@ -496,7 +496,7 @@ async function ensureZ3FilesLoaded() {
 
   
 // =====================================================
-// ✅ Version stable (identique viewer02) — plus aucun souci d’accents
+// ✅ Version identique à viewer02 — complète et robuste
 // =====================================================
 async function loadZ3ForSameDay() {
   z3Events = [];
@@ -509,14 +509,34 @@ async function loadZ3ForSameDay() {
     return;
   }
 
-  // ✅ Nouvelle version : s'assure que les fichiers Z3 sont bien chargés
+  // 🔹 Récupération ou rechargement des fichiers Z3
   const z3Files = await ensureZ3FilesLoaded();
   const sameDay = z3Files.filter(f => f.name.includes(day));
-
   console.log(`🔍 Recherche Z3 du ${day} → ${sameDay.length} fichier(s) trouvé(s)`);
 
   for (const f of sameDay) {
-    let text = f.content; // ⚠️ NE PAS re-décoder ici
+    let text = f.content;
+
+    // 🔸 Si pas de contenu en mémoire, on le télécharge
+    if (!text && f.path) {
+      try {
+        console.log("🌐 Téléchargement du Z3 :", f.name);
+        const res = await fetch(`/api/file?path=${encodeURIComponent(f.path)}`);
+        if (!res.ok) throw new Error("Erreur de lecture Z3 " + f.name);
+        text = await res.text();
+
+        // On garde une trace du contenu pour les futures sessions
+        f.content = text;
+        const all = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
+        const updated = all.map(x => x.name === f.name ? f : x);
+        localStorage.setItem("csvZ3Files", JSON.stringify(updated));
+      } catch (err) {
+        console.error("❌ Erreur chargement fichier Z3 :", f.name, err);
+        continue;
+      }
+    }
+
+    if (!text) continue;
 
     // 🧹 Nettoyage et parsing CSV
     const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
@@ -559,6 +579,7 @@ async function loadZ3ForSameDay() {
   renderZ3List();
   highlightZ3Near(currentRowMinutes(0));
 }
+
 
 
 
@@ -983,6 +1004,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
