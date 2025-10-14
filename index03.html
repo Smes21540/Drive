@@ -1091,7 +1091,7 @@ text = decodeSmart(buf);
   addSpecialsAfterCSV();
   updateGrid(0);
 
-    updateSliderTimeLabel(0);
+ 
 
 
   // 5️⃣ Les fichiers Z3 → uniquement depuis localStorage
@@ -1441,26 +1441,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("load", updateTileSize);
 });
 
-function updateSliderTimeLabel(idx) {
-  if (!csvData[idx]) return;
-  const row = csvData[idx];
-  const timeKey = headers.find(h => {
-    const a = (h || "").toLowerCase();
-    return a.includes("heure") || a.includes("time") || a === "h";
-  });
-  const timeText = timeKey ? String(row[timeKey] || "").trim() : "--:--";
-  document.getElementById("sliderTimeLabel").textContent = timeText || "--:--";
-}
-document.getElementById("slider").addEventListener("input", e => {
-  const idx = parseInt(e.target.value) || 0;
-  updateGrid(idx);
-  updateSliderTimeLabel(idx); // ✅ mise à jour de l'heure au-dessus du slider
-});
+
 
 
 </script>
 </body>
 </html>
+
 
 
 
