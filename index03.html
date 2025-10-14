@@ -139,54 +139,55 @@ body{
 #gridWrap::-webkit-scrollbar-thumb{background:var(--accent);border-radius:10px;}
 #gridWrap::-webkit-scrollbar-track{background:#eee;}
 
-/* ===== Événements Z3 modernisés ===== */
+/* ===== Événements Z3 (style original + intensité dynamique) ===== */
 #z3List {
-  display: block;
+  flex: 1;
   overflow-y: auto;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background: #fff;
-  max-height: calc(100vh - 90px);
+  background: #fafafa;
+  border-left: 2px solid var(--accent);
+  padding: 6px 8px;
   font-family: "Inter", system-ui, sans-serif;
 }
 
 .z3Item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-bottom: 1px solid #eee;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 5px 6px;
+  margin-bottom: 3px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.2;
+  transition: background 0.25s, color 0.25s, transform 0.15s;
   cursor: pointer;
-  transition: background 0.3s, color 0.3s, transform 0.2s;
-}
-
-.z3Item:hover {
-  background: #fff2eb;
 }
 
 .z3Item .t {
   font-family: ui-monospace, Menlo, Consolas, monospace;
   font-size: 12px;
-  color: #666;
-  min-width: 56px;
+  color: #555;
+  min-width: 52px;
 }
 
 .z3Item .d {
   flex: 1;
-  font-size: 13px;
   color: #222;
-  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Intensité dynamique selon la distance à l'heure du slider */
-.z3Item[data-intensity="0"] { background-color: rgba(255, 160, 130, 0.10); }
-.z3Item[data-intensity="1"] { background-color: rgba(255, 160, 130, 0.20); }
-.z3Item[data-intensity="2"] { background-color: rgba(255, 160, 130, 0.35); }
-.z3Item[data-intensity="3"] { background-color: rgba(255, 100, 60, 0.50); color: #fff; }
-.z3Item[data-intensity="4"] { background-color: #e64a19; color: #fff; transform: scale(1.02); }
+/* États visuels dynamiques (intensité liée au slider) */
+.z3Item[data-intensity="0"] { background-color: rgba(255, 160, 130, 0.05); }
+.z3Item[data-intensity="1"] { background-color: rgba(255, 160, 130, 0.15); }
+.z3Item[data-intensity="2"] { background-color: rgba(255, 140, 110, 0.25); }
+.z3Item[data-intensity="3"] { background-color: rgba(255, 100, 60, 0.45); color: #fff; }
+.z3Item[data-intensity="4"] { background-color: rgba(230, 74, 25, 0.8); color: #fff; transform: scale(1.02); }
 
+/* Sélection courante */
 .z3Item.active {
-  outline: 2px solid #ff7043;
+  outline: 2px solid var(--accent);
   background: #ffe0d0;
 }
 
@@ -531,24 +532,24 @@ async function loadZ3ForSameDay() {
 function updateZ3Intensity(currentMinutes) {
   const items = document.querySelectorAll("#z3List .z3Item");
   if (!items.length) return;
-  const MAX_DIFF = 30; // minutes d'influence
+  const MAX_DIFF = 60; // minutes d'influence étendue à 1h
 
   items.forEach((el, i) => {
     const ev = z3Events[i];
     if (!ev) return;
     const diff = Math.abs(ev.minutes - currentMinutes);
 
-    // Intensité selon la distance
     let level = 0;
     if (diff <= 2) level = 4;
-    else if (diff <= 5) level = 3;
-    else if (diff <= 10) level = 2;
-    else if (diff <= 20) level = 1;
+    else if (diff <= 10) level = 3;
+    else if (diff <= 20) level = 2;
+    else if (diff <= 40) level = 1;
     else level = 0;
 
     el.dataset.intensity = level;
   });
 }
+
 
 
 
@@ -979,6 +980,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
