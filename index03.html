@@ -202,29 +202,35 @@ body{
   white-space: nowrap;
 }
 
-/* Dégradé centré sur l’événement (0 → 4) */
-/* Dégradé centré sur l’événement (0 → 4) + lisibilité texte */
+
+/* Dégradé centré sur l’événement (0 → 4) + adaptation au thème */
 .z3Item[data-intensity="0"] {
-  background-color: rgba(255, 112, 67, 0.05);
+  background-color: color-mix(in srgb, var(--accent) 5%, var(--panel));
   color: var(--text-dark);
 }
 .z3Item[data-intensity="1"] {
-  background-color: rgba(255, 112, 67, 0.15);
+  background-color: color-mix(in srgb, var(--accent) 15%, var(--panel));
   color: var(--text-dark);
 }
 .z3Item[data-intensity="2"] {
-  background-color: rgba(255, 112, 67, 0.30);
+  background-color: color-mix(in srgb, var(--accent) 35%, var(--panel));
   color: var(--text-light);
 }
 .z3Item[data-intensity="3"] {
-  background-color: rgba(230, 74, 25, 0.65);
+  background-color: color-mix(in srgb, var(--accent) 55%, var(--panel));
   color: var(--text-light);
 }
 .z3Item[data-intensity="4"] {
-  background-color: var(--danger);
+  background-color: var(--accent-darker);
   color: var(--text-light);
   transform: scale(1.02);
 }
+
+/* Lissage des transitions de couleur et lisibilité */
+.z3Item {
+  transition: background-color 0.4s ease, color 0.3s ease, transform 0.15s ease;
+}
+
 
 
 /* Événement sélectionné */
@@ -1031,6 +1037,9 @@ function setTheme(theme){
     r.style.setProperty("--text","#333");
     r.style.setProperty("--row-even","#ffe5d9");
     r.style.setProperty("--row-odd","#fff5f5");
+    r.style.setProperty("--text-light", "#fff");
+r.style.setProperty("--text-dark", "#222");
+
   }
   if(theme==="blue"){
     r.style.setProperty("--accent","#2196f3");
@@ -1043,6 +1052,9 @@ function setTheme(theme){
     r.style.setProperty("--text","#0d47a1");
     r.style.setProperty("--row-even","#bbdefb");
     r.style.setProperty("--row-odd","#e3f2fd");
+    r.style.setProperty("--text-light", "#fff");
+r.style.setProperty("--text-dark", "#222");
+
   }
   if(theme==="green"){
     r.style.setProperty("--accent","#4caf50");
@@ -1055,6 +1067,9 @@ function setTheme(theme){
     r.style.setProperty("--text","#1b5e20");
     r.style.setProperty("--row-even","#c8e6c9");
     r.style.setProperty("--row-odd","#f1f8e9");
+    r.style.setProperty("--text-light", "#fff");
+r.style.setProperty("--text-dark", "#222");
+
   }
   if(theme==="purple"){
     r.style.setProperty("--accent","#9c27b0");
@@ -1067,6 +1082,9 @@ function setTheme(theme){
     r.style.setProperty("--text","#4a148c");
     r.style.setProperty("--row-even","#e1bee7");
     r.style.setProperty("--row-odd","#f3e5f5");
+    r.style.setProperty("--text-light", "#fff");
+r.style.setProperty("--text-dark", "#222");
+
   }
   if(theme==="bordeaux"){
     r.style.setProperty("--accent","#800020");
@@ -1079,6 +1097,9 @@ function setTheme(theme){
     r.style.setProperty("--text","#4b0014");
     r.style.setProperty("--row-even","#f3cdd3");
     r.style.setProperty("--row-odd","#fff0f2");
+    r.style.setProperty("--text-light", "#fff");
+r.style.setProperty("--text-dark", "#222");
+
   }
 
   r.style.setProperty("--text-light", "#fff");
@@ -1104,6 +1125,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
