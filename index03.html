@@ -1294,6 +1294,7 @@ function updateGrid(idx){
 
 /* =================== Listeners =================== */
 window.addEventListener("resize", updateTileSize);
+
 // === 🎚️ GESTION DU SLIDER INTELLIGENT ===
 const slider = document.getElementById("slider");
 const timeDisplay = document.getElementById("currentTimeDisplay");
@@ -1302,7 +1303,7 @@ slider.addEventListener("input", async e => {
   const idx = parseInt(e.target.value) || 0;
   updateGrid(idx);
 
-  // === Halo et position ===
+  // === Halo visuel + position ===
   const ratio = idx / (parseInt(e.target.max) || 1);
   slider.style.setProperty("--glow-pos", `${ratio * 100}%`);
   slider.style.setProperty("--glow-opacity", `${Math.max(0, Math.abs(0.5 - ratio) * 1.5)}`);
@@ -1327,112 +1328,82 @@ slider.addEventListener("input", async e => {
   }
 });
 
-document.getElementById("minInput").addEventListener("change", ()=>{
-  const v=parseFloat(document.getElementById("minInput").value);
-  localStorage.setItem("scaleMin", isFinite(v)?String(v):"30");
-  if(csvData.length) updateGrid(parseInt(document.getElementById("slider").value)||0);
+// === Échelle couleur ===
+document.getElementById("minInput").addEventListener("change", () => {
+  const v = parseFloat(document.getElementById("minInput").value);
+  localStorage.setItem("scaleMin", isFinite(v) ? String(v) : "30");
+  if (csvData.length) updateGrid(parseInt(slider.value) || 0);
 });
-document.getElementById("maxInput").addEventListener("change", ()=>{
-  const v=parseFloat(document.getElementById("maxInput").value);
-  localStorage.setItem("scaleMax", isFinite(v)?String(v):"60");
-  if(csvData.length) updateGrid(parseInt(document.getElementById("slider").value)||0);
+document.getElementById("maxInput").addEventListener("change", () => {
+  const v = parseFloat(document.getElementById("maxInput").value);
+  localStorage.setItem("scaleMax", isFinite(v) ? String(v) : "60");
+  if (csvData.length) updateGrid(parseInt(slider.value) || 0);
 });
-
-
 
 /* =================== INIT =================== */
+function setTheme(theme) {
+  const r = document.documentElement;
+  localStorage.setItem("selectedTheme", theme);
 
-  /* ----------- Thèmes + persistance ----------- */
-function setTheme(theme){
-  const r=document.documentElement;
-  localStorage.setItem("selectedTheme",theme);
-
-  if(theme==="orange"){
-    r.style.setProperty("--accent","#ff7043");
-    r.style.setProperty("--accent-darker","#e64a19");
-    r.style.setProperty("--accent-muted","#ffccbc");
-    r.style.setProperty("--bg","#fff5f5");
-    r.style.setProperty("--panel","#ffffff");
-    r.style.setProperty("--sidebar-bg","#ffe5d9");
-    r.style.setProperty("--danger","#d84315");
-    r.style.setProperty("--text","#333");
-    r.style.setProperty("--row-even","#ffe5d9");
-    r.style.setProperty("--row-odd","#fff5f5");
-    r.style.setProperty("--text-light", "#fff");
-r.style.setProperty("--text-dark", "#222");
-
+  if (theme === "orange") {
+    r.style.setProperty("--accent", "#ff7043");
+    r.style.setProperty("--accent-darker", "#e64a19");
+    r.style.setProperty("--accent-muted", "#ffccbc");
+    r.style.setProperty("--bg", "#fff5f5");
+    r.style.setProperty("--panel", "#ffffff");
+    r.style.setProperty("--sidebar-bg", "#ffe5d9");
+    r.style.setProperty("--danger", "#d84315");
+    r.style.setProperty("--text", "#333");
   }
-  if(theme==="blue"){
-    r.style.setProperty("--accent","#2196f3");
-    r.style.setProperty("--accent-darker","#1976d2");
-    r.style.setProperty("--accent-muted","#bbdefb");
-    r.style.setProperty("--bg","#e3f2fd");
-    r.style.setProperty("--panel","#ffffff");
-    r.style.setProperty("--sidebar-bg","#bbdefb");
-    r.style.setProperty("--danger","#0d47a1");
-    r.style.setProperty("--text","#0d47a1");
-    r.style.setProperty("--row-even","#bbdefb");
-    r.style.setProperty("--row-odd","#e3f2fd");
-    r.style.setProperty("--text-light", "#fff");
-r.style.setProperty("--text-dark", "#222");
-
+  if (theme === "blue") {
+    r.style.setProperty("--accent", "#2196f3");
+    r.style.setProperty("--accent-darker", "#1976d2");
+    r.style.setProperty("--accent-muted", "#bbdefb");
+    r.style.setProperty("--bg", "#e3f2fd");
+    r.style.setProperty("--panel", "#ffffff");
+    r.style.setProperty("--sidebar-bg", "#bbdefb");
+    r.style.setProperty("--danger", "#0d47a1");
+    r.style.setProperty("--text", "#0d47a1");
   }
-  if(theme==="green"){
-    r.style.setProperty("--accent","#4caf50");
-    r.style.setProperty("--accent-darker","#2e7d32");
-    r.style.setProperty("--accent-muted","#c8e6c9");
-    r.style.setProperty("--bg","#f1f8e9");
-    r.style.setProperty("--panel","#ffffff");
-    r.style.setProperty("--sidebar-bg","#c8e6c9");
-    r.style.setProperty("--danger","#1b5e20");
-    r.style.setProperty("--text","#1b5e20");
-    r.style.setProperty("--row-even","#c8e6c9");
-    r.style.setProperty("--row-odd","#f1f8e9");
-    r.style.setProperty("--text-light", "#fff");
-r.style.setProperty("--text-dark", "#222");
-
+  if (theme === "green") {
+    r.style.setProperty("--accent", "#4caf50");
+    r.style.setProperty("--accent-darker", "#2e7d32");
+    r.style.setProperty("--accent-muted", "#c8e6c9");
+    r.style.setProperty("--bg", "#f1f8e9");
+    r.style.setProperty("--panel", "#ffffff");
+    r.style.setProperty("--sidebar-bg", "#c8e6c9");
+    r.style.setProperty("--danger", "#1b5e20");
+    r.style.setProperty("--text", "#1b5e20");
   }
-  if(theme==="purple"){
-    r.style.setProperty("--accent","#9c27b0");
-    r.style.setProperty("--accent-darker","#6a1b9a");
-    r.style.setProperty("--accent-muted","#e1bee7");
-    r.style.setProperty("--bg","#f3e5f5");
-    r.style.setProperty("--panel","#ffffff");
-    r.style.setProperty("--sidebar-bg","#e1bee7");
-    r.style.setProperty("--danger","#4a148c");
-    r.style.setProperty("--text","#4a148c");
-    r.style.setProperty("--row-even","#e1bee7");
-    r.style.setProperty("--row-odd","#f3e5f5");
-    r.style.setProperty("--text-light", "#fff");
-r.style.setProperty("--text-dark", "#222");
-
+  if (theme === "purple") {
+    r.style.setProperty("--accent", "#9c27b0");
+    r.style.setProperty("--accent-darker", "#6a1b9a");
+    r.style.setProperty("--accent-muted", "#e1bee7");
+    r.style.setProperty("--bg", "#f3e5f5");
+    r.style.setProperty("--panel", "#ffffff");
+    r.style.setProperty("--sidebar-bg", "#e1bee7");
+    r.style.setProperty("--danger", "#4a148c");
+    r.style.setProperty("--text", "#4a148c");
   }
-  if(theme==="bordeaux"){
-    r.style.setProperty("--accent","#800020");
-    r.style.setProperty("--accent-darker","#4b0014");
-    r.style.setProperty("--accent-muted","#d7a1a9");
-    r.style.setProperty("--bg","#fff0f2");
-    r.style.setProperty("--panel","#ffffff");
-    r.style.setProperty("--sidebar-bg","#f3cdd3");
-    r.style.setProperty("--danger","#600018");
-    r.style.setProperty("--text","#4b0014");
-    r.style.setProperty("--row-even","#f3cdd3");
-    r.style.setProperty("--row-odd","#fff0f2");
-    r.style.setProperty("--text-light", "#fff");
-r.style.setProperty("--text-dark", "#222");
-
+  if (theme === "bordeaux") {
+    r.style.setProperty("--accent", "#800020");
+    r.style.setProperty("--accent-darker", "#4b0014");
+    r.style.setProperty("--accent-muted", "#d7a1a9");
+    r.style.setProperty("--bg", "#fff0f2");
+    r.style.setProperty("--panel", "#ffffff");
+    r.style.setProperty("--sidebar-bg", "#f3cdd3");
+    r.style.setProperty("--danger", "#600018");
+    r.style.setProperty("--text", "#4b0014");
   }
 
+  // Valeurs neutres
   r.style.setProperty("--text-light", "#fff");
   r.style.setProperty("--text-dark", "#222");
-
 }
 
-  const savedTheme = localStorage.getItem("selectedTheme") || "orange";
+const savedTheme = localStorage.getItem("selectedTheme") || "orange";
 setTheme(savedTheme);
 
-
-  
 document.addEventListener("DOMContentLoaded", async () => {
   await ensureZ3FilesLoaded();
   loadPlan();
@@ -1442,11 +1413,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 
-
-
 </script>
 </body>
 </html>
+
 
 
 
