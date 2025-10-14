@@ -448,6 +448,53 @@ function currentRowMinutes(idx){
   return minutesFromRowTime(csvData[idx]);
 }
 
+/* =====================================================
+   🔁 Synchronisation automatique des fichiers Z3
+   - Vérifie que le cache est chargé depuis index.html
+   - Recharge si besoin à partir du dossier "Historique"
+   ===================================================== */
+async function ensureZ3FilesLoaded() {
+  const cached = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
+  if (cached.length) {
+    console.log(`📦 ${cached.length} fichiers Z3 déjà présents dans le cache`);
+    return cached;
+  }
+
+  console.warn("⚠️ Aucun Z3 préchargé trouvé, tentative de rechargement…");
+
+  try {
+    const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+    const first = list.find(
+      f => f.name &&
+      (f.name.toLowerCase().includes("traça_temp") || f.name.toLowerCase().includes("traca_temp"))
+    );
+    if (!first) throw new Error("Pas de dossier Traça_Temp détecté");
+
+    const parentFolder = first.folder.split('/').slice(0, -1).join('/');
+    const historiqueFolder = `${parentFolder}/Historique`;
+
+    const res = await fetch(`/api/list?path=${encodeURIComponent(historiqueFolder)}`);
+    if (!res.ok) throw new Error("Erreur de lecture API");
+    const files = await res.json();
+
+    const z3Files = files
+      .filter(f => f.name.startsWith("Z3") && f.name.endsWith(".csv"))
+      .map(f => ({
+        name: f.name,
+        path: `${historiqueFolder}/${f.name}`,
+        folder: historiqueFolder
+      }));
+
+    localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
+    console.log(`✅ ${z3Files.length} fichiers Z3 rechargés depuis "${historiqueFolder}"`);
+    return z3Files;
+  } catch (err) {
+    console.error("❌ Impossible de recharger les fichiers Z3 :", err);
+    return [];
+  }
+}
+
+  
 // =====================================================
 // ✅ Version stable (identique viewer02) — plus aucun souci d’accents
 // =====================================================
@@ -462,7 +509,8 @@ async function loadZ3ForSameDay() {
     return;
   }
 
-  const z3Files = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
+  // ✅ Nouvelle version : s'assure que les fichiers Z3 sont bien chargés
+  const z3Files = await ensureZ3FilesLoaded();
   const sameDay = z3Files.filter(f => f.name.includes(day));
 
   console.log(`🔍 Recherche Z3 du ${day} → ${sameDay.length} fichier(s) trouvé(s)`);
@@ -935,6 +983,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
