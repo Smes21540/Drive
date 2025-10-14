@@ -204,27 +204,33 @@ body{
 
 
 /* Dégradé centré sur l’événement (0 → 4) + adaptation au thème */
-.z3Item[data-intensity="0"] {
+.z3Item[data-intensity="0"],
+.hour-mark[data-intensity="0"] {
   background-color: color-mix(in srgb, var(--accent) 5%, var(--panel));
   color: var(--text-dark);
 }
-.z3Item[data-intensity="1"] {
-  background-color: color-mix(in srgb, var(--accent) 15%, var(--panel));
+.z3Item[data-intensity="1"],
+.hour-mark[data-intensity="1"] {
+  background-color: color-mix(in srgb, var(--accent) 20%, var(--panel));
   color: var(--text-dark);
 }
-.z3Item[data-intensity="2"] {
-  background-color: color-mix(in srgb, var(--accent) 35%, var(--panel));
+.z3Item[data-intensity="2"],
+.hour-mark[data-intensity="2"] {
+  background-color: color-mix(in srgb, var(--accent) 40%, var(--panel));
   color: var(--text-light);
 }
-.z3Item[data-intensity="3"] {
-  background-color: color-mix(in srgb, var(--accent) 55%, var(--panel));
+.z3Item[data-intensity="3"],
+.hour-mark[data-intensity="3"] {
+  background-color: color-mix(in srgb, var(--accent) 60%, var(--panel));
   color: var(--text-light);
 }
-.z3Item[data-intensity="4"] {
+.z3Item[data-intensity="4"],
+.hour-mark[data-intensity="4"] {
   background-color: var(--accent-darker);
   color: var(--text-light);
   transform: scale(1.02);
 }
+
 
 /* Lissage des transitions de couleur et lisibilité */
 .z3Item {
@@ -595,26 +601,33 @@ highlightZ3Near(currentRowMinutes(0));
 
 }
 function updateZ3Intensity(currentMinutes) {
-  if (!z3Events.length) return;
-
-  const RANGE = 60;          // influence ±60 min autour
+  const RANGE = 15;          // influence ±15 min autour
   const MAX_INTENSITY = 4;   // 0→4 correspond aux niveaux CSS
 
-  // Sélectionne uniquement les vrais événements (ignore les repères horaires)
-  const eventItems = Array.from(document.querySelectorAll("#z3List .z3Item"))
-    .filter(el => !el.classList.contains("hour-mark"));
+  const allItems = Array.from(document.querySelectorAll("#z3List .z3Item, #z3List .hour-mark"));
+  if (!allItems.length) return;
 
-  eventItems.forEach((el, i) => {
-    const ev = z3Events[i];
-    if (!ev) return;
+  allItems.forEach(el => {
+    let minutes;
+    if (el.classList.contains("hour-mark")) {
+      minutes = toMinutes(el.querySelector(".t")?.textContent);
+    } else {
+      const idx = parseInt(el.dataset.evIndex || "-1");
+      minutes = z3Events[idx]?.minutes ?? NaN;
+    }
 
-    const diff = Math.abs(ev.minutes - currentMinutes);
+    if (isNaN(minutes)) {
+      el.dataset.intensity = 0;
+      return;
+    }
+
+    const diff = Math.abs(minutes - currentMinutes);
     const ratio = 1 - Math.min(diff / RANGE, 1);
     const level = Math.round(ratio * MAX_INTENSITY);
-
     el.dataset.intensity = level;
   });
 }
+
 
 
 
@@ -1175,6 +1188,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
