@@ -498,6 +498,9 @@ async function ensureZ3FilesLoaded() {
 // =====================================================
 // ✅ Version identique à viewer02 — complète et robuste
 // =====================================================
+// =====================================================
+// ✅ Version identique à viewer02 — complète et robuste
+// =====================================================
 async function loadZ3ForSameDay() {
   z3Events = [];
 
@@ -517,15 +520,16 @@ async function loadZ3ForSameDay() {
   for (const f of sameDay) {
     let text = f.content;
 
-    // 🔸 Si pas de contenu en mémoire, on le télécharge
-    if (!text && f.path) {
+    // 🔸 Si pas de contenu, téléchargement via proxy Drive (identique viewer02)
+    if (!text && f.id) {
       try {
-        console.log("🌐 Téléchargement du Z3 :", f.name);
-        const res = await fetch(`/api/file?path=${encodeURIComponent(f.path)}`);
-        if (!res.ok) throw new Error("Erreur de lecture Z3 " + f.name);
-        text = await res.text();
+        console.log("🌐 Téléchargement Z3 depuis Drive :", f.name);
+        const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name || "")}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Erreur proxy Drive");
+        const buf = await res.arrayBuffer();
+        text = decodeSmart(buf); // même décodage que CSV principal
 
-        // On garde une trace du contenu pour les futures sessions
         f.content = text;
         const all = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
         const updated = all.map(x => x.name === f.name ? f : x);
@@ -540,7 +544,7 @@ async function loadZ3ForSameDay() {
 
     // 🧹 Nettoyage et parsing CSV
     const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
-    let startIndex = lines.findIndex(l => /trigger.?time/i.test(l));
+    let startIndex = lines.findIndex(l => /trigger.?time|horodatage/i.test(l));
     if (startIndex === -1) startIndex = 0;
     const csvClean = lines.slice(startIndex).join("\n");
 
@@ -554,13 +558,12 @@ async function loadZ3ForSameDay() {
     const H = parsed.meta.fields || [];
     const rows = parsed.data || [];
 
-// 🔍 Détection plus tolérante des colonnes (FR / EN / variantes)
-const timeCol = H.find(h => /(trigger.?time|heure|horodatage|time|temps)/i.test(h)) || H[0];
-const msgCol  = H.find(h => /(message|desc|description|evenement|event)/i.test(h)) || H[1];
-const addrCol = H.find(h => /(address|adresse|addr|zone|address ?1)/i.test(h)) || null;
+    // 🔍 Détection des colonnes (FR / EN / variantes)
+    const timeCol = H.find(h => /(trigger.?time|heure|horodatage|time|temps)/i.test(h)) || H[0];
+    const msgCol  = H.find(h => /(message|desc|description|evenement|event)/i.test(h)) || H[1];
+    const addrCol = H.find(h => /(address|adresse|addr|zone|address ?1)/i.test(h)) || null;
 
-console.log("🧩 Colonnes Z3 détectées :", { timeCol, msgCol, addrCol });
-
+    console.log("🧩 Colonnes Z3 détectées :", { timeCol, msgCol, addrCol });
 
     for (const r of rows) {
       const t = String(r[timeCol] || "").trim();
@@ -583,6 +586,7 @@ console.log("🧩 Colonnes Z3 détectées :", { timeCol, msgCol, addrCol });
   renderZ3List();
   highlightZ3Near(currentRowMinutes(0));
 }
+
 
 
 
@@ -998,16 +1002,19 @@ document.getElementById("maxInput").addEventListener("change", ()=>{
 
 
 /* =================== INIT =================== */
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   setTheme(localStorage.getItem("selectedTheme") || "orange");
+  await ensureZ3FilesLoaded(); // 🧩 s'assure que les Z3 sont disponibles
   loadPlan();
   requestAnimationFrame(updateTileSize);
   loadCSV();
   window.addEventListener("load", updateTileSize);
 });
+
 </script>
 </body>
 </html>
+
 
 
 
