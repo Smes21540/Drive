@@ -1104,6 +1104,11 @@ text = decodeSmart(buf);
     updateGrid(parseInt(slider.value));
   }
 
+// 🔁 Synchronise la liste Z3 avec l’heure initiale
+updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
+highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
+
+    
   // 5️⃣ Les fichiers Z3 → uniquement depuis localStorage
   loadZ3ForSameDay();
 }
@@ -1151,6 +1156,11 @@ async function loadNeighborDay(direction = 1) {
     slider.value = newValue;
     updateGrid(newValue);
 
+// 🧭 Mise à jour cohérente après fusion
+updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
+highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
+
+    
     console.log(`✅ Fichier fusionné : ${neighbor.name}`);
 
     // 🗓️ Bandeau de transition de jour
@@ -1338,6 +1348,10 @@ slider.addEventListener("input", async e => {
   const idx = parseInt(e.target.value) || 0;
   updateGrid(idx);
 
+updateZ3Intensity(currentRowMinutes(idx));
+highlightZ3Near(currentRowMinutes(idx));
+
+  
   // === Halo visuel + position ===
   const ratio = idx / (parseInt(e.target.max) || 1);
   slider.style.setProperty("--glow-pos", `${ratio * 100}%`);
@@ -1451,6 +1465,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
