@@ -192,6 +192,47 @@ body{
 #gridWrap::-webkit-scrollbar-thumb{background:var(--accent);border-radius:10px;}
 #gridWrap::-webkit-scrollbar-track{background:#eee;}
 
+#sliderWrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#currentTimeDisplay {
+  font-weight: bold;
+  color: var(--danger);
+  margin-bottom: 6px;
+  font-size: 15px;
+  text-shadow: 0 0 3px rgba(0,0,0,0.15);
+}
+
+#slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, var(--accent-muted), var(--accent));
+  outline: none;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* Halo dynamique quand on approche des bords */
+#slider::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--glow-pos, 50%) 50%, var(--accent-darker) 0%, transparent 70%);
+  opacity: var(--glow-opacity, 0);
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+  
 /* ===== Événements Z3 (volet élargi + scrollbar + nuance centrée) ===== */
 #sideCol {
   flex: 0 1 auto;             /* largeur s’adapte au contenu */
@@ -396,9 +437,12 @@ body{
     <!-- ===== Sidebar temporelle + min/max ===== -->
     <div id="bottomBar">
 <div id="timeBar">
-  <div id="sliderTimeLabel">--:--</div>
-  <input type="range" id="slider" min="0" max="0" value="0"/>
+  <div id="sliderWrap">
+    <div id="currentTimeDisplay">--:--</div>
+    <input type="range" id="slider" min="0" max="0" value="0"/>
+  </div>
 </div>
+
 
       <div id="scaleBox" title="Réglage des bornes couleurs">
         <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
@@ -950,6 +994,21 @@ function decodeSmart(arrayBuffer) {
   return txt;
 }
 
+function findNeighborFile(direction = 1) {
+  // direction = +1 (suivant), -1 (précédent)
+  if (!fileName) return null;
+  const match = fileName.match(/(\d{8})/);
+  if (!match) return null;
+  const currentDate = match[1];
+  const y = parseInt(currentDate.slice(0, 4), 10);
+  const m = parseInt(currentDate.slice(4, 6), 10);
+  const d = parseInt(currentDate.slice(6, 8), 10);
+  const dt = new Date(y, m - 1, d + direction);
+
+  const nextDay = dt.toISOString().slice(0, 10).replace(/-/g, "");
+  const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+  return list.find(f => f.name.includes(nextDay)) || null;
+}
 
   
   async function loadCSV(){
@@ -1039,6 +1098,50 @@ text = decodeSmart(buf);
   loadZ3ForSameDay();
 }
 
+async function loadNeighborDay(direction = 1) {
+  const neighbor = findNeighborFile(direction);
+  if (!neighbor) {
+    console.warn("⛔ Aucun fichier voisin trouvé.");
+    return;
+  }
+
+  // Halo visuel pendant le chargement
+  const slider = document.getElementById("slider");
+  slider.style.setProperty("--glow-opacity", "1");
+  slider.style.setProperty("--glow-pos", direction > 0 ? "95%" : "5%");
+
+  try {
+    console.log(`⏳ Chargement du fichier voisin ${neighbor.name}...`);
+    const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${neighbor.id}&name=${encodeURIComponent(neighbor.name)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Erreur proxy Drive");
+    const buf = await res.arrayBuffer();
+    const text = decodeSmart(buf);
+    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+    const rows = parsed.data || [];
+
+    // Fusion avec csvData existant
+    if (direction > 0) {
+      csvData = csvData.concat(rows);
+    } else {
+      csvData = rows.concat(csvData);
+    }
+
+    document.getElementById("slider").max = csvData.length - 1;
+    // Recentre le slider au milieu du nouveau domaine
+    document.getElementById("slider").value = Math.floor(csvData.length / 2);
+    updateGrid(parseInt(document.getElementById("slider").value));
+
+    console.log(`✅ Fichier fusionné : ${neighbor.name}`);
+  } catch (err) {
+    console.error("❌ Erreur de chargement du voisin :", err);
+  } finally {
+    // Retrait du halo
+    setTimeout(() => {
+      slider.style.setProperty("--glow-opacity", "0");
+    }, 800);
+  }
+}
 
 
 /* =================== Couleurs =================== */
@@ -1191,10 +1294,39 @@ function updateGrid(idx){
 
 /* =================== Listeners =================== */
 window.addEventListener("resize", updateTileSize);
-document.getElementById("slider").addEventListener("input", e => {
-  const idx = parseInt(e.target.value)||0;
+// === 🎚️ GESTION DU SLIDER INTELLIGENT ===
+const slider = document.getElementById("slider");
+const timeDisplay = document.getElementById("currentTimeDisplay");
+
+slider.addEventListener("input", async e => {
+  const idx = parseInt(e.target.value) || 0;
   updateGrid(idx);
+
+  // === Halo et position ===
+  const ratio = idx / (parseInt(e.target.max) || 1);
+  slider.style.setProperty("--glow-pos", `${ratio * 100}%`);
+  slider.style.setProperty("--glow-opacity", `${Math.max(0, Math.abs(0.5 - ratio) * 1.5)}`);
+
+  // === Affichage de l'heure ===
+  if (typeof currentRowMinutes === "function") {
+    const mins = currentRowMinutes(idx);
+    if (!isNaN(mins)) {
+      const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+      const mm = String(Math.floor(mins % 60)).padStart(2, "0");
+      timeDisplay.textContent = `${hh}:${mm}`;
+    }
+  }
+
+  // === Approche des bords ===
+  if (ratio > 0.97) {
+    console.log("➡️ Fin du jour : chargement du jour suivant...");
+    await loadNeighborDay(+1);
+  } else if (ratio < 0.03) {
+    console.log("⬅️ Début du jour : chargement du jour précédent...");
+    await loadNeighborDay(-1);
+  }
 });
+
 document.getElementById("minInput").addEventListener("change", ()=>{
   const v=parseFloat(document.getElementById("minInput").value);
   localStorage.setItem("scaleMin", isFinite(v)?String(v):"30");
@@ -1329,5 +1461,6 @@ document.getElementById("slider").addEventListener("input", e => {
 </script>
 </body>
 </html>
+
 
 
