@@ -585,9 +585,14 @@ async function loadZ3ForSameDay() {
     }
   }
 
-  console.log("✅ Total événements Z3 chargés :", z3Events.length);
-  renderZ3List();
-  highlightZ3Near(currentRowMinutes(0));
+console.log("✅ Total événements Z3 chargés :", z3Events.length);
+
+// ✅ Aligne l'ordre logique : DOM des événements <-> z3Events
+z3Events.sort((a, b) => a.minutes - b.minutes);
+
+renderZ3List();
+highlightZ3Near(currentRowMinutes(0));
+
 }
 function updateZ3Intensity(currentMinutes) {
   if (!z3Events.length) return;
@@ -620,7 +625,7 @@ function updateZ3Intensity(currentMinutes) {
 
 
 
-// 🔁 Nouvelle version avec repères horaires toutes les 15 min
+// 🔁 Version alignée : z3Events trié + repères 15 min intercalés
 function renderZ3List() {
   const box = document.getElementById("z3List");
   box.innerHTML = "";
@@ -632,7 +637,7 @@ function renderZ3List() {
     return;
   }
 
-  // --- Génère les jalons horaires toutes les 15 minutes (00:00 → 23:45)
+  // Repères horaires 00:00 → 23:45 (toutes les 15 min)
   const timeMarks = [];
   for (let h = 0; h < 24; h++) {
     for (let q = 0; q < 60; q += 15) {
@@ -642,58 +647,71 @@ function renderZ3List() {
     }
   }
 
-  // --- Trie les événements par heure
-  const sorted = [...z3Events].sort((a, b) => a.minutes - b.minutes);
-  let idxEv = 0;
+  // z3Events est DÉJÀ TRIÉ par minutes
+  let evIdx = 0;
 
-  // --- Construit la liste complète : repères + événements
   for (const mark of timeMarks) {
     const markMin = toMinutes(mark);
 
-    // Ligne horaire visuelle
+    // Ligne de repère
     const markDiv = document.createElement("div");
     markDiv.className = "z3Item hour-mark";
     markDiv.innerHTML = `<span class="t">${mark}</span><span class="d"></span>`;
     box.appendChild(markDiv);
 
-    // Tous les événements avant la prochaine marque (dans les 15 min)
-    while (idxEv < sorted.length && sorted[idxEv].minutes < markMin + 15) {
-      const ev = sorted[idxEv++];
+    // Ajoute tous les événements qui tombent dans ce quart d'heure
+    while (evIdx < z3Events.length && z3Events[evIdx].minutes < markMin + 15) {
+      const ev = z3Events[evIdx];
       const div = document.createElement("div");
       div.className = "z3Item";
+      // stocke l’index logique de l’événement (optionnel mais utile)
+      div.dataset.evIndex = String(evIdx);
       div.innerHTML = `<span class="t">${ev.timeText}</span><span class="d">${ev.desc}</span>`;
       div.onclick = () => jumpSliderToClosest(ev.minutes);
       box.appendChild(div);
+      evIdx++;
     }
+
+    if (evIdx >= z3Events.length) break; // plus d'événements : on peut s’arrêter tôt
   }
 }
 
 
 
-function highlightZ3Near(targetMinutes){
-  const list = document.querySelectorAll("#z3List .z3Item");
-  list.forEach(el => el.classList.remove("active"));
-  if(isNaN(targetMinutes)) return;
 
-  let best = null, bestDiff = Infinity;
+function highlightZ3Near(targetMinutes) {
+  // Nettoie tout
+  document.querySelectorAll("#z3List .z3Item").forEach(el => el.classList.remove("active"));
+  if (isNaN(targetMinutes) || !z3Events.length) return;
+
+  // Trouve l’index de l’événement le plus proche
+  let bestIdx = -1, bestDiff = Infinity;
   z3Events.forEach((ev, idx) => {
     const diff = Math.abs(ev.minutes - targetMinutes);
-    if(diff < bestDiff){ bestDiff = diff; best = { idx, ev }; }
+    if (diff < bestDiff) { bestDiff = diff; bestIdx = idx; }
   });
-  if(best && bestDiff <= Z3_HILITE_TOL_MIN){
-    const items = document.querySelectorAll("#z3List .z3Item");
-    const el = items[best.idx];
-    if(el){
-      el.classList.add("active");
-      // scroll dans la vue si besoin
-      const box = document.getElementById("z3List");
-      const boxRect = box.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
-      if(elRect.top < boxRect.top || elRect.bottom > boxRect.bottom){
-        box.scrollTop = el.offsetTop - box.clientHeight/2 + el.clientHeight/2;
-      }
+
+  // Tolérance
+  if (bestIdx === -1 || bestDiff > Z3_HILITE_TOL_MIN) return;
+
+  // Récupère la N-ième tuile événement (en ignorant les repères)
+  const eventItems = Array.from(document.querySelectorAll("#z3List .z3Item"))
+    .filter(el => !el.classList.contains("hour-mark"));
+
+  const el = eventItems[bestIdx];
+  if (el) {
+    el.classList.add("active");
+
+    // Scroll dans la vue si besoin
+    const box = document.getElementById("z3List");
+    const boxRect = box.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    if (elRect.top < boxRect.top || elRect.bottom > boxRect.bottom) {
+      box.scrollTop = el.offsetTop - box.clientHeight / 2 + el.clientHeight / 2;
     }
   }
+}
+
 }
 
 function jumpSliderToClosest(targetMinutes){
@@ -1152,6 +1170,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
