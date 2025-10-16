@@ -1291,6 +1291,60 @@ async function mergeNeighborDay(offset) {
     return;
   }
 
+  async function mergeZ3ForDay(dayStr) {
+  const z3Files = await ensureZ3FilesLoaded();
+  const sameDay = z3Files.filter(f => f.name.includes(dayStr));
+  if (!sameDay.length) {
+    console.log(`⚠️ Aucun fichier Z3 trouvé pour ${dayStr}`);
+    return;
+  }
+
+  for (const f of sameDay) {
+    try {
+      console.log("🌐 Téléchargement Z3 voisin :", f.name);
+      const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name || "")}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Erreur proxy Drive");
+      const buf = await res.arrayBuffer();
+      const text = decodeSmart(buf);
+      const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+      const startIndex = lines.findIndex(l => /trigger.?time|horodatage/i.test(l));
+      const csvClean = lines.slice(startIndex >= 0 ? startIndex : 0).join("\n");
+      const parsed = Papa.parse(csvClean, { header: true, skipEmptyLines: true });
+
+      const H = parsed.meta.fields || [];
+      const rows = parsed.data || [];
+
+      const timeCol = H.find(h => /(trigger.?time|heure|horodatage|time|temps)/i.test(h)) || H[0];
+      const msgCol  = H.find(h => /(message|desc|description|evenement|event)/i.test(h)) || H[1];
+      const addrCol = H.find(h => /(address|adresse|addr|zone|address ?1)/i.test(h)) || null;
+
+      for (const r of rows) {
+        const t = String(r[timeCol] || "").trim();
+        const msg = String(r[msgCol] || "").trim();
+        const addr = String(r[addrCol] || "").trim();
+        const mins = toMinutes(t);
+        if (!isNaN(mins) && msg) {
+          z3Events.push({
+            timeText: t,
+            minutes: mins,
+            desc: addr ? `${msg} (${addr})` : msg,
+            fileId: f.id,
+            fileName: f.name,
+          });
+        }
+      }
+    } catch (err) {
+      console.error("❌ Erreur fusion Z3 du voisin :", f.name, err);
+    }
+  }
+
+  console.log(`✅ Fusion des événements Z3 du jour ${dayStr} terminée (${sameDay.length} fichier(s)).`);
+  z3Events.sort((a, b) => a.minutes - b.minutes);
+  renderZ3List();
+}
+
+
   console.log(`⏳ Chargement du fichier voisin SA00001_${nextDay}.csv...`);
   const list = JSON.parse(localStorage.getItem("csvFilesList")||"[]");
   const neighbor = list.find(f => f.name.includes(nextDay));
@@ -1315,6 +1369,10 @@ async function mergeNeighborDay(offset) {
 
     console.log(`✅ Fichier fusionné : ${neighbor.name} (${data.length} lignes)`);
     console.log(`📊 Fusion réussie → ${csvData.length} lignes au total`);
+    // 🔄 Fusion Z3 associée au jour fusionné
+console.log(`🔍 Recherche Z3 du voisin ${nextDay} →`);
+await mergeZ3ForDay(nextDay);
+
   } catch(err) {
     console.error("❌ Erreur fusion jour", err);
   }
@@ -1325,4 +1383,5 @@ async function mergeNeighborDay(offset) {
 </script>
 </body>
 </html>
+
 
