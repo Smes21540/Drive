@@ -840,44 +840,61 @@ function renderZ3List() {
     return;
   }
 
-  // Repères horaires 00:00 → 23:45 (toutes les 15 min)
+  // 🔹 Étendue réelle des événements (peut inclure jours précédents/suivants)
+  const minMin = Math.min(...z3Events.map(ev => ev.minutes));
+  const maxMin = Math.max(...z3Events.map(ev => ev.minutes));
+
+  const startHour = Math.floor(minMin / 60);
+  const endHour = Math.ceil(maxMin / 60);
+
+  // 🔹 Crée des repères horaires toutes les 15 minutes
   const timeMarks = [];
-  for (let h = 0; h < 24; h++) {
+  for (let h = startHour; h <= endHour; h++) {
     for (let q = 0; q < 60; q += 15) {
-      const hh = String(h).padStart(2, "0");
-      const mm = String(q).padStart(2, "0");
-      timeMarks.push(`${hh}:${mm}`);
+      const mins = h * 60 + q;
+      const hh = ((Math.floor((mins + 1440) / 60)) % 24).toString().padStart(2, "0");
+      const mm = (mins % 60).toString().padStart(2, "0");
+      const label =
+        h < 0 ? `J-1 ${hh}:${mm}` :
+        h >= 24 ? `J+1 ${hh}:${mm}` :
+        `${hh}:${mm}`;
+      timeMarks.push({ label, mins });
     }
   }
 
-  // z3Events est DÉJÀ TRIÉ par minutes
+  // 🔹 Trie les événements par temps
+  z3Events.sort((a, b) => a.minutes - b.minutes);
   let evIdx = 0;
 
   for (const mark of timeMarks) {
-    const markMin = toMinutes(mark);
-
-    // Ligne de repère
     const markDiv = document.createElement("div");
     markDiv.className = "z3Item hour-mark";
-    markDiv.innerHTML = `<span class="t">${mark}</span><span class="d"></span>`;
+    markDiv.innerHTML = `<span class="t">${mark.label}</span><span class="d"></span>`;
     box.appendChild(markDiv);
 
-    // Ajoute tous les événements qui tombent dans ce quart d'heure
-    while (evIdx < z3Events.length && z3Events[evIdx].minutes < markMin + 15) {
+    while (evIdx < z3Events.length && z3Events[evIdx].minutes < mark.mins + 15) {
       const ev = z3Events[evIdx];
       const div = document.createElement("div");
       div.className = "z3Item";
-      // stocke l’index logique de l’événement (optionnel mais utile)
       div.dataset.evIndex = String(evIdx);
-      div.innerHTML = `<span class="t">${ev.timeText}</span><span class="d">${ev.desc}</span>`;
+
+      const hh = ((Math.floor((ev.minutes + 1440) / 60)) % 24).toString().padStart(2, "0");
+      const mm = (ev.minutes % 60).toString().padStart(2, "0");
+      const label =
+        ev.minutes < 0 ? `J-1 ${hh}:${mm}` :
+        ev.minutes >= 1440 ? `J+1 ${hh}:${mm}` :
+        `${hh}:${mm}`;
+
+      div.innerHTML = `<span class="t">${label}</span><span class="d">${ev.desc}</span>`;
       div.onclick = () => jumpSliderToClosest(ev.minutes);
       box.appendChild(div);
       evIdx++;
     }
 
-    if (evIdx >= z3Events.length) break; // plus d'événements : on peut s’arrêter tôt
+    if (evIdx >= z3Events.length) break;
   }
 }
+
 
 
 
@@ -1744,6 +1761,7 @@ document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
 </script>
 </body>
 </html>
+
 
 
 
