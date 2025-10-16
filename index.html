@@ -419,7 +419,11 @@ async function loadRootFolders(){
   const rootUL = document.getElementById('folderTree');
   rootUL.innerHTML = '';
 
-  files.filter(f => f.mimeType === 'application/vnd.google-apps.folder').forEach(f => {
+  files
+  .filter(f => f.mimeType === 'application/vnd.google-apps.folder')
+  .sort((a,b) => a.name.localeCompare(b.name, 'fr', { sensitivity:'base' }))
+  .forEach(f => {
+
     const li = document.createElement('li'); 
     li.dataset.id = f.id;
 
@@ -478,7 +482,12 @@ async function toggleFolder(li){
   toggle.textContent='…';
   const files=await fetchFolderContents(li.dataset.id);
   const ul=document.createElement('ul');
-  for (const f of files.filter(f => f.mimeType === 'application/vnd.google-apps.folder')) {
+  const folders = files
+  .filter(f => f.mimeType === 'application/vnd.google-apps.folder')
+  .sort((a,b) => a.name.localeCompare(b.name, 'fr', { sensitivity:'base' }));
+
+for (const f of folders) {
+
     const childLi=document.createElement('li'); 
     childLi.dataset.id=f.id;
 
@@ -1172,6 +1181,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
