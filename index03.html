@@ -1236,10 +1236,7 @@ renderZ3List();
 
 
     
-    // --- Rafraîchissement des sondes et événements ---
-    updateGrid(findClosestRowByMinutes(currentMins));
-    updateZ3Intensity(currentMins);
-    highlightZ3Near(currentMins);
+
 
     // --- Chargement des Z3 du jour ajouté ---
     await loadZ3ForNeighborDay(neighbor.name, direction);
@@ -1604,6 +1601,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
