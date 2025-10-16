@@ -1420,26 +1420,6 @@ function findClosestRowByMinutes(targetMinutes) {
 
 
   
-// === 🎚️ GESTION DU SLIDER TEMPOREL INTELLIGENT ===
-// === 🎚️ GESTION DU SLIDER TEMPOREL RESSORT + CHARGEMENT AUTOMATIQUE ===
-let holdTimer = null;
-let isHolding = false;
-let holdDirection = 0;
-
-const slider = document.getElementById("slider");
-const timeDisplay = document.getElementById("currentTimeDisplay");
-
-slider.addEventListener("mousedown", e => {
-  isHolding = true;
-});
-
-slider.addEventListener("mouseup", e => {
-  clearTimeout(holdTimer);
-  holdTimer = null;
-  isHolding = false;
-  holdDirection = 0;
-  slider.style.setProperty("--glow-opacity", "0");
-});
 
 // --- Événement principal de glissement ---
 // === 🎚️ GESTION DU SLIDER TEMPOREL RESSORT + CHARGEMENT AUTOMATIQUE (2s + vibration) ===
@@ -1606,6 +1586,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
