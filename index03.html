@@ -1321,12 +1321,15 @@ const nextDay = base.toISOString().slice(0,10).replace(/-/g,"");
     console.log(`🔍 Recherche Z3 du voisin ${nextDay} →`);
     await mergeZ3ForDay(nextDay);
 
-    // 🔁 === RAJOUT ICI ===
-    console.log("♻️ Rafraîchissement complet de la page après fusion...");
-    updateGrid(lastSliderIndex);
-    renderZ3List();
-    highlightZ3Near(currentRowMinutes(lastSliderIndex));
-    updateTileSize();
+// 🔁 === RECHARGEMENT COMPLET APRÈS FUSION MULTI-JOURS ===
+console.log("♻️ Rafraîchissement complet : reconstruction complète de la page");
+buildGrid();              // Recrée toute la grille (haut + bas)
+addSpecialsAfterCSV();    // Réinjecte les cases spéciales
+updateGrid(lastSliderIndex);  // Affiche la dernière ligne active fusionnée
+renderZ3List();           // Reconstruit le panneau d’événements Z3
+highlightZ3Near(currentRowMinutes(lastSliderIndex)); // Surligne événement le plus proche
+updateTileSize();         // Recalcule la taille responsive
+
 
   } catch(err) {
     console.error("❌ Erreur fusion jour", err);
@@ -1394,6 +1397,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
