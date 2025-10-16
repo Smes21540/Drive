@@ -1116,19 +1116,16 @@ highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
 
 async function loadNeighborDay(direction = 1) {
   const slider = document.getElementById("slider");
-
-  // 🔒 Anti-boucle de chargement
   if (slider.dataset.loadingNeighbor === "1") return;
   slider.dataset.loadingNeighbor = "1";
 
   const neighbor = findNeighborFile(direction);
   if (!neighbor || neighbor.name === fileName) {
-    console.warn("⚠️ Aucun fichier voisin différent trouvé.");
+    console.warn("⚠️ Aucun fichier voisin trouvé.");
     slider.dataset.loadingNeighbor = "0";
     return;
   }
 
-  // 🌈 Halo visuel
   slider.style.setProperty("--glow-opacity", "1");
   slider.style.setProperty("--glow-pos", direction > 0 ? "95%" : "5%");
 
@@ -1142,58 +1139,35 @@ async function loadNeighborDay(direction = 1) {
     const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
     const rows = parsed.data || [];
 
-    // Fusion selon direction
-    if (direction > 0) {
-      csvData = csvData.concat(rows);
-    } else {
-      csvData = rows.concat(csvData);
-    }
+    // --- Fusion CSV ---
+    if (direction > 0) csvData = csvData.concat(rows);
+    else csvData = rows.concat(csvData);
 
-// 🔁 Réglage du slider : recalage temporel après fusion
-const { minTime, maxTime } = getTimeRange();
-slider.min = 0;
-slider.max = (maxTime - minTime); // en minutes
-const currentMins = currentRowMinutes(parseInt(slider.value));
-const newValue = Math.min(Math.max(0, currentMins - minTime), slider.max);
-slider.value = newValue;
+    // --- Recalibrage du slider ---
+    const { minTime, maxTime } = getTimeRange();
+    slider.min = 0;
+    slider.max = (maxTime - minTime);
+    const currentMins = currentRowMinutes(parseInt(slider.value));
+    const newValue = Math.min(Math.max(0, currentMins - minTime), slider.max);
+    slider.value = newValue;
 
+    // --- Rafraîchissement des sondes et événements ---
+    updateGrid(findClosestRowByMinutes(currentMins));
+    updateZ3Intensity(currentMins);
+    highlightZ3Near(currentMins);
 
-// Mets à jour la vue et les événements
-updateGrid(parseInt(slider.value));
-updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
-highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
+    // --- Chargement des Z3 du jour ajouté ---
+    await loadZ3ForSameDay();
 
-
-// 🧭 Mise à jour cohérente après fusion
-updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
-highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
-
-    
     console.log(`✅ Fichier fusionné : ${neighbor.name}`);
-
-    // 🗓️ Bandeau de transition de jour
-    const transition = document.getElementById("dayTransition");
-    if (transition) {
-      const dateStr = neighbor.name.match(/(\d{8})/);
-      if (dateStr) {
-        const y = dateStr[1].slice(0, 4),
-          m = dateStr[1].slice(4, 6),
-          d = dateStr[1].slice(6, 8);
-        transition.textContent = `📅 Passage au ${d}/${m}/${y}`;
-        transition.style.opacity = "1";
-        setTimeout(() => (transition.style.opacity = "0"), 2000);
-      }
-    }
   } catch (err) {
-    console.error("❌ Erreur de chargement du voisin :", err);
+    console.error("❌ Erreur chargement voisin :", err);
   } finally {
-    // 🔓 Libère le verrou et retire le halo
     slider.dataset.loadingNeighbor = "0";
-    setTimeout(() => {
-      slider.style.setProperty("--glow-opacity", "0");
-    }, 800);
+    setTimeout(() => slider.style.setProperty("--glow-opacity", "0"), 800);
   }
 }
+
 
 
 
@@ -1380,19 +1354,40 @@ const timeDisplay = document.getElementById("currentTimeDisplay");
 
   
 // === 🎚️ GESTION DU SLIDER TEMPOREL INTELLIGENT ===
+// === 🎚️ GESTION DU SLIDER TEMPOREL RESSORT + CHARGEMENT AUTOMATIQUE ===
+let holdTimer = null;
+let isHolding = false;
+let holdDirection = 0;
+
+const slider = document.getElementById("slider");
+const timeDisplay = document.getElementById("currentTimeDisplay");
+
+slider.addEventListener("mousedown", e => {
+  isHolding = true;
+});
+
+slider.addEventListener("mouseup", e => {
+  clearTimeout(holdTimer);
+  holdTimer = null;
+  isHolding = false;
+  holdDirection = 0;
+  slider.style.setProperty("--glow-opacity", "0");
+});
+
+// --- Événement principal de glissement ---
 slider.addEventListener("input", async e => {
   if (!csvData.length) return;
 
   const { minTime, maxTime } = getTimeRange();
-const targetMinutes = minTime + parseFloat(e.target.value);
-
+  const ratio = parseFloat(slider.value) / parseFloat(slider.max || 1);
+  const targetMinutes = minTime + parseFloat(e.target.value);
   const idx = findClosestRowByMinutes(targetMinutes);
 
   updateGrid(idx);
   updateZ3Intensity(currentRowMinutes(idx));
   highlightZ3Near(currentRowMinutes(idx));
 
-  // === Affichage de l’heure ===
+  // --- Affichage de l’heure ---
   const mins = currentRowMinutes(idx);
   if (!isNaN(mins)) {
     const hh = String(Math.floor(mins / 60)).padStart(2, "0");
@@ -1400,17 +1395,34 @@ const targetMinutes = minTime + parseFloat(e.target.value);
     timeDisplay.textContent = `${hh}:${mm}`;
   }
 
-  // === Halo dynamique aux bords
-  slider.style.setProperty("--glow-pos", `${ratio * 100}%`);
-  slider.style.setProperty("--glow-opacity", `${Math.max(0, Math.abs(0.5 - ratio) * 1.5)}`);
+  // --- Détection du maintien sur les bords
+  if (isHolding && !holdTimer) {
+    if (ratio < 0.05) holdDirection = -1;
+    else if (ratio > 0.95) holdDirection = 1;
+    else holdDirection = 0;
 
-  // === Chargement automatique des jours voisins
-  if (ratio > 0.97) {
-    console.log("➡️ Fin du jour : chargement du jour suivant...");
-    await loadNeighborDay(+1);
-  } else if (ratio < 0.03) {
-    console.log("⬅️ Début du jour : chargement du jour précédent...");
-    await loadNeighborDay(-1);
+    if (holdDirection !== 0) {
+      slider.style.setProperty("--glow-pos", holdDirection > 0 ? "95%" : "5%");
+      slider.style.setProperty("--glow-opacity", "1");
+
+      // Démarre le chrono 5 secondes
+      holdTimer = setTimeout(async () => {
+        console.log(`🕒 Maintien confirmé → chargement du jour ${holdDirection > 0 ? "suivant" : "précédent"}`);
+        await loadNeighborDay(holdDirection);
+        slider.style.setProperty("--glow-opacity", "0");
+        holdTimer = null;
+        isHolding = false;
+        holdDirection = 0;
+      }, 5000);
+    }
+  }
+
+  // --- Si relâché avant 5s → annule
+  if (!isHolding && holdTimer) {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    holdDirection = 0;
+    slider.style.setProperty("--glow-opacity", "0");
   }
 });
 
@@ -1503,6 +1515,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
