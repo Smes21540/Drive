@@ -1278,8 +1278,7 @@ async function mergeNeighborDay(offset) {
   if (!currentDay || isMerging) return;
   isMerging = true;
 
-  // Calcule jour précédent/suivant
-// 🔹 Prend le dernier jour fusionné comme base, pas seulement le jour initial
+// 🔹 Utilise le dernier jour fusionné comme référence
 let refDay = [...mergedDays].sort().pop() || currentDay;
 const y = parseInt(refDay.slice(0,4));
 const m = parseInt(refDay.slice(4,6))-1;
@@ -1287,6 +1286,7 @@ const d = parseInt(refDay.slice(6,8));
 const base = new Date(y,m,d);
 base.setDate(base.getDate()+offset);
 const nextDay = base.toISOString().slice(0,10).replace(/-/g,"");
+
 
   if (mergedDays.has(nextDay)) {
     console.log("⚠️ Jour déjà fusionné :", nextDay);
@@ -1387,6 +1387,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
