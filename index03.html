@@ -1109,12 +1109,25 @@ text = decodeSmart(buf);
   addSpecialsAfterCSV();
   updateGrid(0);
 
-  // 🔸 Positionne le slider à 1/24e du total au chargement
-  const slider = document.getElementById("slider");
-  if (slider && csvData.length > 0) {
-    slider.value = Math.floor(slider.max / 24);
-    updateGrid(parseInt(slider.value));
+// 🔸 Positionne le slider au milieu par défaut et affiche l’heure correspondante
+const slider = document.getElementById("slider");
+if (slider && csvData.length > 0) {
+  const mid = Math.floor(slider.max / 2);
+  slider.value = mid;
+  updateGrid(mid);
+
+  const mins = currentRowMinutes(mid);
+  if (!isNaN(mins)) {
+    const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+    const mm = String(Math.floor(mins % 60)).padStart(2, "0");
+    document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
+  } else {
+    document.getElementById("currentTimeDisplay").textContent = "--:--";
   }
+} else {
+  document.getElementById("currentTimeDisplay").textContent = "--:--";
+}
+
 
 // 🔁 Synchronise la liste Z3 avec l’heure initiale
 updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
@@ -1210,39 +1223,33 @@ async function loadNeighborDay(direction = 1) {
     if (direction > 0) csvData = csvData.concat(rows);
     else csvData = rows.concat(csvData);
 
-// --- Recalibrage complet du slider sur les deux jours fusionnés ---
-const allTimes = csvData.map(r => minutesFromRowTime(r)).filter(t => !isNaN(t));
-if (allTimes.length > 0) {
-  const newMin = Math.min(...allTimes);
-  const newMax = Math.max(...allTimes);
+    // --- Recalibrage complet du slider ---
+    const totalRows = csvData.length;
+    slider.max = Math.max(0, totalRows - 1);
+    const newValue = Math.floor(slider.max / 2);
+    slider.value = newValue;
 
-  slider.min = 0;
-  slider.max = Math.round(newMax - newMin);
-  
-  // repositionne le slider au centre si on vient d'ajouter un jour
-  const currentMins = currentRowMinutes(parseInt(slider.value));
-  const relativePos = direction > 0 ? (currentMins - newMin) / (newMax - newMin) : (currentMins - newMin) / (newMax - newMin);
-  const newValue = Math.round(relativePos * slider.max);
-  slider.value = newValue;
+    console.log(`📊 Nouveau slider max = ${slider.max} lignes (fusion réussie)`);
 
-  console.log(`📊 Nouveau range slider : ${newMin} → ${newMax} min (${slider.max} pas)`);
-}
+    // --- Rafraîchissement de la grille ---
+    updateGrid(newValue);
 
-// --- Rafraîchissement de l'affichage global ---
-updateGrid(findClosestRowByMinutes(currentRowMinutes(parseInt(slider.value))));
-updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
-highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
-renderZ3List();
-
-
-    
-
-
-    // --- Chargement des Z3 du jour ajouté ---
+    // --- Rechargement Z3 du jour ajouté ---
     await loadZ3ForNeighborDay(neighbor.name, direction);
 
+    // --- Mise à jour visuelle des événements ---
+    const mins = currentRowMinutes(newValue);
+    updateZ3Intensity(mins);
+    highlightZ3Near(mins);
 
-    console.log(`✅ Fichier fusionné : ${neighbor.name}`);
+    // --- Heure affichée ---
+    if (!isNaN(mins)) {
+      const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+      const mm = String(Math.floor(mins % 60)).padStart(2, "0");
+      document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
+    }
+
+    console.log(`✅ Fichier fusionné et rendu mis à jour : ${neighbor.name}`);
   } catch (err) {
     console.error("❌ Erreur chargement voisin :", err);
   } finally {
@@ -1250,6 +1257,7 @@ renderZ3List();
     setTimeout(() => slider.style.setProperty("--glow-opacity", "0"), 800);
   }
 }
+
 
 
 
@@ -1601,6 +1609,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
