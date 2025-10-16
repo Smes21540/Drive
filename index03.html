@@ -187,6 +187,18 @@ body{
 #scaleBox label{ margin-right:6px; }
 #scaleBox input{ width:70px; padding:4px; border:1px solid #ccc; border-radius:6px; }
 
+/* Animation "ressort" quand on force le slider dans les bords */
+@keyframes slider-bounce {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(4px); }
+  50% { transform: translateX(-4px); }
+  75% { transform: translateX(3px); }
+}
+#slider.bouncing {
+  animation: slider-bounce 0.3s ease-in-out infinite;
+}
+
+  
 /* Scrollbars (grille) */
 #gridWrap::-webkit-scrollbar{height:10px;width:10px;}
 #gridWrap::-webkit-scrollbar-thumb{background:var(--accent);border-radius:10px;}
@@ -1113,6 +1125,61 @@ highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
   loadZ3ForSameDay();
 }
 
+// =====================================================
+// 🔁 Charge les événements Z3 du jour voisin et les fusionne
+// =====================================================
+async function loadZ3ForNeighborDay(neighborFileName, direction = 1) {
+  const dayMatch = (neighborFileName || "").match(/(\d{8})/);
+  const day = dayMatch ? dayMatch[1] : null;
+  if (!day) return;
+
+  const z3Files = await ensureZ3FilesLoaded();
+  const sameDay = z3Files.filter(f => f.name.includes(day));
+  console.log(`🔍 Recherche Z3 du voisin ${day} → ${sameDay.length} fichier(s) trouvé(s)`);
+
+  for (const f of sameDay) {
+    let text = f.content;
+    if (!text && f.id) {
+      const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}`;
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const buf = await res.arrayBuffer();
+      text = decodeSmart(buf);
+      f.content = text;
+    }
+    if (!text) continue;
+
+    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+    const H = parsed.meta.fields || [];
+    const rows = parsed.data || [];
+
+    const timeCol = H.find(h => /(trigger.?time|heure|horodatage|time|temps)/i.test(h)) || H[0];
+    const msgCol  = H.find(h => /(message|desc|description|evenement|event)/i.test(h)) || H[1];
+    const addrCol = H.find(h => /(address|adresse|addr|zone|address ?1)/i.test(h)) || null;
+
+    for (const r of rows) {
+      const t = String(r[timeCol] || "").trim();
+      const msg = String(r[msgCol] || "").trim();
+      const addr = String(r[addrCol] || "").trim();
+      const mins = toMinutes(t);
+      if (!isNaN(mins) && msg) {
+        z3Events.push({
+          timeText: t,
+          minutes: mins + (direction < 0 ? -1440 : 1440), // décale le jour ajouté
+          desc: addr ? `${msg} (${addr})` : msg,
+          fileName: f.name
+        });
+      }
+    }
+  }
+
+  // Tri + rendu
+  z3Events.sort((a, b) => a.minutes - b.minutes);
+  renderZ3List();
+  console.log(`✅ Fusion des événements Z3 du jour ${day} terminée (${sameDay.length} fichier(s)).`);
+}
+
+  
 
 async function loadNeighborDay(direction = 1) {
   const slider = document.getElementById("slider");
@@ -1157,7 +1224,8 @@ async function loadNeighborDay(direction = 1) {
     highlightZ3Near(currentMins);
 
     // --- Chargement des Z3 du jour ajouté ---
-    await loadZ3ForSameDay();
+    await loadZ3ForNeighborDay(neighbor.name, direction);
+
 
     console.log(`✅ Fichier fusionné : ${neighbor.name}`);
   } catch (err) {
@@ -1374,6 +1442,27 @@ slider.addEventListener("mouseup", e => {
 });
 
 // --- Événement principal de glissement ---
+// === 🎚️ GESTION DU SLIDER TEMPOREL RESSORT + CHARGEMENT AUTOMATIQUE (2s + vibration) ===
+let holdTimer = null;
+let isHolding = false;
+let holdDirection = 0;
+
+const slider = document.getElementById("slider");
+const timeDisplay = document.getElementById("currentTimeDisplay");
+
+slider.addEventListener("mousedown", () => {
+  isHolding = true;
+});
+
+slider.addEventListener("mouseup", () => {
+  clearTimeout(holdTimer);
+  holdTimer = null;
+  isHolding = false;
+  holdDirection = 0;
+  slider.classList.remove("bouncing");
+  slider.style.setProperty("--glow-opacity", "0");
+});
+
 slider.addEventListener("input", async e => {
   if (!csvData.length) return;
 
@@ -1401,30 +1490,33 @@ slider.addEventListener("input", async e => {
     else holdDirection = 0;
 
     if (holdDirection !== 0) {
+      // Effet visuel
       slider.style.setProperty("--glow-pos", holdDirection > 0 ? "95%" : "5%");
       slider.style.setProperty("--glow-opacity", "1");
+      slider.classList.add("bouncing");
 
-      // Démarre le chrono 5 secondes
+      // Chrono 2 secondes au lieu de 5
       holdTimer = setTimeout(async () => {
         console.log(`🕒 Maintien confirmé → chargement du jour ${holdDirection > 0 ? "suivant" : "précédent"}`);
+        slider.classList.remove("bouncing");
         await loadNeighborDay(holdDirection);
         slider.style.setProperty("--glow-opacity", "0");
         holdTimer = null;
         isHolding = false;
         holdDirection = 0;
-      }, 5000);
+      }, 2000);
     }
   }
 
-  // --- Si relâché avant 5s → annule
+  // --- Si relâché avant 2s → annule
   if (!isHolding && holdTimer) {
     clearTimeout(holdTimer);
     holdTimer = null;
     holdDirection = 0;
+    slider.classList.remove("bouncing");
     slider.style.setProperty("--glow-opacity", "0");
   }
 });
-
 
 // === Échelle couleur ===
 document.getElementById("minInput").addEventListener("change", () => {
@@ -1514,6 +1606,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
