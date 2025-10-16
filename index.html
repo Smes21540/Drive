@@ -408,6 +408,7 @@ async function fetchFolderContents(folderId){
   }
 }
 
+span.onclick = () => loadFolderFilesOnClick(li);
 
 
 async function loadRootFolders(){
@@ -436,7 +437,8 @@ if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
   span.innerHTML = `📊 ${f.name}`;
 }
 
-span.onclick = () => loadFolderFilesOnClick(childLi);
+spanspan.onclick = () => loadFolderFilesOnClick(li);
+.onclick = () => loadFolderFilesOnClick(childLi);
 
 
     li.appendChild(toggle); 
@@ -1121,6 +1123,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
