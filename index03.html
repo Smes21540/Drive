@@ -1279,19 +1279,57 @@ async function mergeNeighborDay(offset) {
   isMerging = true;
 
   // Calcule jour précédent/suivant
-  const y = parseInt(currentDay.slice(0,4));
-  const m = parseInt(currentDay.slice(4,6))-1;
-  const d = parseInt(currentDay.slice(6,8));
-  const base = new Date(y,m,d);
-  base.setDate(base.getDate()+offset);
-  const nextDay = base.toISOString().slice(0,10).replace(/-/g,"");
+// 🔹 Prend le dernier jour fusionné comme base, pas seulement le jour initial
+let refDay = [...mergedDays].sort().pop() || currentDay;
+const y = parseInt(refDay.slice(0,4));
+const m = parseInt(refDay.slice(4,6))-1;
+const d = parseInt(refDay.slice(6,8));
+const base = new Date(y,m,d);
+base.setDate(base.getDate()+offset);
+const nextDay = base.toISOString().slice(0,10).replace(/-/g,"");
+
   if (mergedDays.has(nextDay)) {
     console.log("⚠️ Jour déjà fusionné :", nextDay);
     isMerging = false;
     return;
   }
 
-  async function mergeZ3ForDay(dayStr) {
+  console.log(`⏳ Chargement du fichier voisin SA00001_${nextDay}.csv...`);
+  const list = JSON.parse(localStorage.getItem("csvFilesList")||"[]");
+  const neighbor = list.find(f => f.name.includes(nextDay));
+  if (!neighbor) {
+    console.warn("⚠️ Aucun fichier voisin trouvé pour", nextDay);
+    isMerging = false;
+    return;
+  }
+
+  try {
+    const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${neighbor.id}&name=${encodeURIComponent(neighbor.name)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Erreur proxy Drive");
+    const buf = await res.arrayBuffer();
+    const text = decodeSmart(buf);
+    const parsed = Papa.parse(text,{header:true,skipEmptyLines:true});
+    const data = parsed.data||[];
+
+    csvData = csvData.concat(data);
+    document.getElementById("slider").max = csvData.length-1;
+    mergedDays.add(nextDay);
+
+    console.log(`✅ Fichier fusionné : ${neighbor.name} (${data.length} lignes)`);
+    console.log(`📊 Fusion réussie → ${csvData.length} lignes au total`);
+    console.log(`🔍 Recherche Z3 du voisin ${nextDay} →`);
+    await mergeZ3ForDay(nextDay);
+
+  } catch(err) {
+    console.error("❌ Erreur fusion jour", err);
+  }
+
+  isMerging = false;
+}
+
+// 🟢 Fonction déplacée ici (à l’extérieur)
+async function mergeZ3ForDay(dayStr) {
   const z3Files = await ensureZ3FilesLoaded();
   const sameDay = z3Files.filter(f => f.name.includes(dayStr));
   if (!sameDay.length) {
@@ -1345,43 +1383,10 @@ async function mergeNeighborDay(offset) {
 }
 
 
-  console.log(`⏳ Chargement du fichier voisin SA00001_${nextDay}.csv...`);
-  const list = JSON.parse(localStorage.getItem("csvFilesList")||"[]");
-  const neighbor = list.find(f => f.name.includes(nextDay));
-  if (!neighbor) {
-    console.warn("⚠️ Aucun fichier voisin trouvé pour", nextDay);
-    isMerging = false;
-    return;
-  }
-
-  try {
-    const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${neighbor.id}&name=${encodeURIComponent(neighbor.name)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Erreur proxy Drive");
-    const buf = await res.arrayBuffer();
-    const text = decodeSmart(buf);
-    const parsed = Papa.parse(text,{header:true,skipEmptyLines:true});
-    const data = parsed.data||[];
-
-    csvData = csvData.concat(data);
-    document.getElementById("slider").max = csvData.length-1;
-    mergedDays.add(nextDay);
-
-    console.log(`✅ Fichier fusionné : ${neighbor.name} (${data.length} lignes)`);
-    console.log(`📊 Fusion réussie → ${csvData.length} lignes au total`);
-    // 🔄 Fusion Z3 associée au jour fusionné
-console.log(`🔍 Recherche Z3 du voisin ${nextDay} →`);
-await mergeZ3ForDay(nextDay);
-
-  } catch(err) {
-    console.error("❌ Erreur fusion jour", err);
-  }
-  isMerging = false;
-}
-
 
 </script>
 </body>
 </html>
+
 
 
