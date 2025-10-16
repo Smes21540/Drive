@@ -204,12 +204,22 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 }
 #themeMenu button:hover {background: var(--accent-darker);}
 .flame {
-  display: inline-block;
-  font-size: 22px;           /* 🔥 taille de la flamme */
-  line-height: 1;            /* pour l’alignement vertical */
-  vertical-align: middle;    /* aligne avec la ligne de texte */
-  animation: flicker 0.6s infinite alternate;
-  text-shadow: 0 0 6px rgba(255, 87, 34, 0.8); /* halo lumineux optionnel */
+  display: flex;                /* permet de centrer facilement */
+  justify-content: center;      /* horizontalement */
+  align-items: center;          /* verticalement */
+  font-size: 22px;              /* taille de la flamme */
+  line-height: 1;
+  animation: flicker 0.6s infinite alternate,
+             sway 1.2s infinite ease-in-out; /* mouvement latéral doux */
+  text-shadow:
+    0 0 4px rgba(255, 140, 0, 0.8),
+    0 0 8px rgba(255, 80, 0, 0.7),
+    0 0 12px rgba(255, 30, 0, 0.5);
+}
+
+@keyframes sway {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px) rotate(3deg); }
 }
 
 
@@ -1179,6 +1189,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
