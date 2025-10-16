@@ -1264,6 +1264,34 @@ async function loadNeighborDay(direction = 1) {
     }
 
     console.log(`✅ Fusion CSV + Z3 terminée pour ${neighbor.name}`);
+    // 🔁 Rafraîchissement complet de l'affichage après fusion
+try {
+  console.log("🎨 Recalibrage du slider et des événements après fusion...");
+  const totalRows = csvData.length;
+  const slider = document.getElementById("slider");
+
+  slider.max = Math.max(0, totalRows - 1);
+  const newValue = Math.floor(slider.max / 2);
+  slider.value = newValue;
+
+  updateGrid(newValue);
+  renderZ3List();
+
+  const mins = currentRowMinutes(newValue);
+  updateZ3Intensity(mins);
+  highlightZ3Near(mins);
+
+  if (!isNaN(mins)) {
+    const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+    const mm = String(Math.floor(mins % 60)).padStart(2, "0");
+    document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
+  }
+
+  console.log(`🎯 Rafraîchissement visuel terminé (${csvData.length} lignes, ${z3Events.length} événements).`);
+} catch (e) {
+  console.error("⚠️ Erreur dans le recalibrage post-fusion :", e);
+}
+
   } catch (err) {
     console.error("❌ Erreur lors du chargement du voisin :", err);
   } finally {
@@ -1716,6 +1744,7 @@ document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
 </script>
 </body>
 </html>
+
 
 
 
