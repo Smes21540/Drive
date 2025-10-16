@@ -1669,13 +1669,14 @@ let liveInterval = null;
 
 async function enableLiveMode() {
   const btn = document.getElementById("liveBtn");
+
+  // 🔴 Si déjà actif → on désactive
   if (btn.classList.contains("active")) {
-    // 🔴 Désactivation du mode live
     clearInterval(liveInterval);
     liveInterval = null;
     btn.classList.remove("active");
     btn.textContent = "🕒 En temps réel";
-    console.log("⏸️ Mode temps réel arrêté.");
+    console.log("⏸️ Mode temps réel désactivé.");
     return;
   }
 
@@ -1684,76 +1685,67 @@ async function enableLiveMode() {
   btn.textContent = "🔄 Suivi en direct…";
   console.log("▶️ Mode temps réel activé.");
 
-  // Calcul du fichier du jour
+  // 🔹 Trouve le fichier du jour (format YYYYMMDD)
   const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  const today = `${yyyy}${mm}${dd}`;
+  const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
 
   const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
   const todayFile = list.find(f => f.name.includes(today));
 
   if (!todayFile) {
-    console.warn(`⚠️ Aucun fichier du jour (${today}) trouvé.`);
-    alert("Aucun fichier du jour trouvé dans Drive !");
+    alert(`⚠️ Aucun fichier du jour trouvé (${today})`);
     btn.classList.remove("active");
     btn.textContent = "🕒 En temps réel";
     return;
   }
 
-  // --- Charge le CSV du jour ---
-  await loadCSVFile(todayFile);
+  // 🔁 Fonction interne de rechargement
+  async function refreshLiveData() {
+    try {
+      const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${todayFile.id}&name=${encodeURIComponent(todayFile.name)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Erreur proxy Drive");
+      const buf = await res.arrayBuffer();
+      const text = decodeSmart(buf);
+      const results = Papa.parse(text, { header: true, skipEmptyLines: true });
 
-  // --- Verrouille le slider sur la dernière valeur ---
-  const slider = document.getElementById("slider");
-  slider.value = slider.max;
-  updateGrid(parseInt(slider.value));
-  highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
-  updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
+      headers = results.meta.fields || [];
+      csvData = results.data || [];
 
-  // --- Rafraîchissement toutes les 60 secondes ---
-  liveInterval = setInterval(async () => {
-    console.log("🔁 Rafraîchissement du CSV en temps réel…");
-    await loadCSVFile(todayFile);
-    slider.max = csvData.length - 1;
-    slider.value = slider.max;
-    updateGrid(parseInt(slider.value));
-    highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
-    updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
-  }, 60000);
-}
+      console.log(`📥 Live CSV rechargé (${csvData.length} lignes)`);
 
-// Fonction utilitaire réutilisable
-async function loadCSVFile(file) {
-  try {
-    const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Erreur proxy Drive");
-    const buf = await res.arrayBuffer();
-    const text = decodeSmart(buf);
-    const results = Papa.parse(text, { header: true, skipEmptyLines: true });
-headers = results.meta.fields || [];
-csvData = results.data || [];
-fileName = file.name; // ✅ Mise à jour du fichier courant pour les Z3
-console.log(`📥 Fichier live chargé : ${file.name} (${csvData.length} lignes)`);
+      // 🔹 Slider à fond à droite (dernière ligne)
+      const slider = document.getElementById("slider");
+      slider.max = csvData.length - 1;
+      slider.value = slider.max;
 
-// recharge les événements Z3 du jour
-await loadZ3ForSameDay();
+      // 🔹 Met à jour la grille et l’heure
+      updateGrid(slider.max);
+      const mins = currentRowMinutes(slider.max);
+      if (!isNaN(mins)) {
+        const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+        const mm = String(Math.floor(mins % 60)).padStart(2, "0");
+        document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
+        document.getElementById("datetimeLabel").textContent =
+          `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()} — ${hh}:${mm}`;
+      }
 
-// mise à jour interface après le rechargement
-const slider = document.getElementById("slider");
-slider.max = csvData.length - 1;
-slider.value = slider.max;
-updateGrid(parseInt(slider.value));
-highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
-updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
-
-  } catch (err) {
-    console.error("❌ Erreur lors du chargement live :", err);
+      // 🔹 Surbrillance éventuelle
+      highlightZ3Near(mins);
+      updateZ3Intensity(mins);
+    } catch (err) {
+      console.error("❌ Erreur rechargement live :", err);
+    }
   }
+
+  // ⏩ Charge une première fois immédiatement
+  await refreshLiveData();
+
+  // ⏱️ Puis recharger toutes les 60 secondes
+  liveInterval = setInterval(refreshLiveData, 60000);
 }
 
+// Écouteur bouton
 document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
 
 
@@ -1761,6 +1753,7 @@ document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
 </script>
 </body>
 </html>
+
 
 
 
