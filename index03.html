@@ -1149,22 +1149,14 @@ async function loadNeighborDay(direction = 1) {
       csvData = rows.concat(csvData);
     }
 
-// 🔁 Réglage du slider : recalage après fusion
-const newMax = csvData.length - 1;
-slider.max = newMax;
+// 🔁 Réglage du slider : recalage temporel après fusion
+const { minTime, maxTime } = getTimeRange();
+slider.min = 0;
+slider.max = (maxTime - minTime); // en minutes
+const currentMins = currentRowMinutes(parseInt(slider.value));
+const newValue = Math.min(Math.max(0, currentMins - minTime), slider.max);
+slider.value = newValue;
 
-// Si on ajoute un jour APRÈS → rester à la même minute dans le flux étendu
-if (direction > 0) {
-  const prevRatio = parseInt(slider.value) / (slider.max - rows.length || 1);
-  const newValue = Math.floor(prevRatio * newMax);
-  slider.value = newValue;
-}
-// Si on ajoute un jour AVANT → décaler le curseur vers la fin du bloc ajouté
-else {
-  const offset = rows.length;
-  const newValue = parseInt(slider.value) + offset;
-  slider.value = newValue;
-}
 
 // Mets à jour la vue et les événements
 updateGrid(parseInt(slider.value));
@@ -1392,8 +1384,8 @@ slider.addEventListener("input", async e => {
   if (!csvData.length) return;
 
   const { minTime, maxTime } = getTimeRange();
-  const ratio = parseFloat(e.target.value) / parseFloat(e.target.max || 1);
-  const targetMinutes = minTime + (maxTime - minTime) * ratio;
+const targetMinutes = minTime + parseFloat(e.target.value);
+
   const idx = findClosestRowByMinutes(targetMinutes);
 
   updateGrid(idx);
@@ -1511,6 +1503,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
