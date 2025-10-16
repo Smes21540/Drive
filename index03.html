@@ -840,14 +840,14 @@ function renderZ3List() {
     return;
   }
 
-  // 🔹 Étendue réelle des événements (peut inclure jours précédents/suivants)
+  // Étendue réelle (minutes étendues)
   const minMin = Math.min(...z3Events.map(ev => ev.minutes));
   const maxMin = Math.max(...z3Events.map(ev => ev.minutes));
 
   const startHour = Math.floor(minMin / 60);
   const endHour = Math.ceil(maxMin / 60);
 
-  // 🔹 Crée des repères horaires toutes les 15 minutes
+  // Crée les repères toutes les 15 min
   const timeMarks = [];
   for (let h = startHour; h <= endHour; h++) {
     for (let q = 0; q < 60; q += 15) {
@@ -862,7 +862,7 @@ function renderZ3List() {
     }
   }
 
-  // 🔹 Trie les événements par temps
+  // Trie et insère
   z3Events.sort((a, b) => a.minutes - b.minutes);
   let evIdx = 0;
 
@@ -894,6 +894,7 @@ function renderZ3List() {
     if (evIdx >= z3Events.length) break;
   }
 }
+
 
 
 
@@ -1244,71 +1245,51 @@ async function loadNeighborDay(direction = 1) {
     if (!res.ok) throw new Error("Erreur proxy Drive");
     const buf = await res.arrayBuffer();
     const text = decodeSmart(buf);
+
     const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
     const rows = parsed.data || [];
 
-    // --- Fusion CSV (haut ou bas selon direction) ---
+    // Fusion logique
     if (direction > 0) csvData = csvData.concat(rows);
     else csvData = rows.concat(csvData);
 
-    // --- Recalibrage du slider sur l’ensemble fusionné ---
-    const totalRows = csvData.length;
-    slider.max = Math.max(0, totalRows - 1);
-    const newValue = Math.floor(slider.max / 2);
-    slider.value = newValue;
-
     console.log(`📊 Fusion réussie → ${csvData.length} lignes au total`);
 
-    // --- Mise à jour de la grille et de la vue ---
-    updateGrid(newValue);
+    // Mise à jour visuelle principale
+    updateGrid(Math.floor(csvData.length / 2));
 
-    // --- Chargement et fusion des Z3 du jour ajouté ---
+    // Fusion des événements Z3
     await loadZ3ForNeighborDay(neighbor.name, direction);
 
-    // --- Fusion et rendu final des événements ---
-    z3Events.sort((a, b) => a.minutes - b.minutes);
-    renderZ3List();
+    // 🔄 Recalibrage complet après fusion
+    try {
+      console.log("🎨 Recalibrage complet après fusion...");
+      const totalRows = csvData.length;
+      const slider = document.getElementById("slider");
 
-    // --- Actualisation visuelle (intensité + surlignage + heure) ---
-    const mins = currentRowMinutes(parseInt(slider.value));
-    updateZ3Intensity(mins);
-    highlightZ3Near(mins);
+      slider.max = Math.max(0, totalRows - 1);
+      const newValue = Math.floor(slider.max / 2);
+      slider.value = newValue;
 
-    if (!isNaN(mins)) {
-      const hh = String(Math.floor(mins / 60)).padStart(2, "0");
-      const mm = String(Math.floor(mins % 60)).padStart(2, "0");
-      document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
+      updateGrid(newValue);
+      renderZ3List();
+
+      const mins = currentRowMinutes(newValue);
+      if (!isNaN(mins)) {
+        const hh = String(Math.floor((mins + 1440) / 60) % 24).padStart(2, "0");
+        const mm = String(Math.floor(mins % 60)).padStart(2, "0");
+        document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
+      }
+
+      updateZ3Intensity(mins);
+      highlightZ3Near(mins);
+
+      console.log(`🎯 Affichage recalibré : ${totalRows} lignes fusionnées, ${z3Events.length} événements.`);
+    } catch (e) {
+      console.error("⚠️ Erreur dans le recalibrage post-fusion :", e);
     }
 
     console.log(`✅ Fusion CSV + Z3 terminée pour ${neighbor.name}`);
-    // 🔁 Rafraîchissement complet de l'affichage après fusion
-try {
-  console.log("🎨 Recalibrage du slider et des événements après fusion...");
-  const totalRows = csvData.length;
-  const slider = document.getElementById("slider");
-
-  slider.max = Math.max(0, totalRows - 1);
-  const newValue = Math.floor(slider.max / 2);
-  slider.value = newValue;
-
-  updateGrid(newValue);
-  renderZ3List();
-
-  const mins = currentRowMinutes(newValue);
-  updateZ3Intensity(mins);
-  highlightZ3Near(mins);
-
-  if (!isNaN(mins)) {
-    const hh = String(Math.floor(mins / 60)).padStart(2, "0");
-    const mm = String(Math.floor(mins % 60)).padStart(2, "0");
-    document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
-  }
-
-  console.log(`🎯 Rafraîchissement visuel terminé (${csvData.length} lignes, ${z3Events.length} événements).`);
-} catch (e) {
-  console.error("⚠️ Erreur dans le recalibrage post-fusion :", e);
-}
-
   } catch (err) {
     console.error("❌ Erreur lors du chargement du voisin :", err);
   } finally {
@@ -1316,6 +1297,7 @@ try {
     setTimeout(() => slider.style.setProperty("--glow-opacity", "0"), 800);
   }
 }
+
 
 
 
@@ -1753,6 +1735,7 @@ document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
 </script>
 </body>
 </html>
+
 
 
 
