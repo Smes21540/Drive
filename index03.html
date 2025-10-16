@@ -378,6 +378,9 @@ body{
 let csvData=[], headers=[], planTop=[], planBottom=[];
 let z3Events = [];         // {timeText, minutes, desc, fileId, fileName}
 let lastSliderIndex = 0;
+let currentDay = null;
+let isMerging = false;
+let mergedDays = new Set();
 const Z3_HILITE_TOL_MIN = 5;  // tolérance (minutes) pour surlignage
 const params=new URLSearchParams(window.location.search);
 const fileId=params.get("fileId");
@@ -960,6 +963,10 @@ text = decodeSmart(buf);
 
   headers = results.meta.fields || [];
   csvData = results.data || [];
+// 🗓️ Détecte le jour courant
+const m = (file.name || "").match(/(\d{8})/);
+currentDay = m ? m[1] : null;
+if (currentDay) mergedDays.add(currentDay);
 
   const lc = document.getElementById("lineCount");
   if (lc)
@@ -1137,10 +1144,22 @@ function updateGrid(idx){
 
 /* =================== Listeners =================== */
 window.addEventListener("resize", updateTileSize);
-document.getElementById("slider").addEventListener("input", e => {
+document.getElementById("slider").addEventListener("input", async e => {
   const idx = parseInt(e.target.value)||0;
   updateGrid(idx);
+document.getElementById("slider").max = csvData.length - 1;
+
+  // Détection bord du slider → fusion
+  const slider = e.target;
+  if (idx <= 0 && !isMerging) {
+    console.log("🕒 Maintien confirmé → chargement du jour précédent");
+    await mergeNeighborDay(-1); // jour précédent
+  } else if (idx >= slider.max && !isMerging) {
+    console.log("🕒 Maintien confirmé → chargement du jour suivant");
+    await mergeNeighborDay(1); // jour suivant
+  }
 });
+
 document.getElementById("minInput").addEventListener("change", ()=>{
   const v=parseFloat(document.getElementById("minInput").value);
   localStorage.setItem("scaleMin", isFinite(v)?String(v):"30");
@@ -1255,8 +1274,55 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("load", updateTileSize);
 });
 
+async function mergeNeighborDay(offset) {
+  if (!currentDay || isMerging) return;
+  isMerging = true;
+
+  // Calcule jour précédent/suivant
+  const y = parseInt(currentDay.slice(0,4));
+  const m = parseInt(currentDay.slice(4,6))-1;
+  const d = parseInt(currentDay.slice(6,8));
+  const base = new Date(y,m,d);
+  base.setDate(base.getDate()+offset);
+  const nextDay = base.toISOString().slice(0,10).replace(/-/g,"");
+  if (mergedDays.has(nextDay)) {
+    console.log("⚠️ Jour déjà fusionné :", nextDay);
+    isMerging = false;
+    return;
+  }
+
+  console.log(`⏳ Chargement du fichier voisin SA00001_${nextDay}.csv...`);
+  const list = JSON.parse(localStorage.getItem("csvFilesList")||"[]");
+  const neighbor = list.find(f => f.name.includes(nextDay));
+  if (!neighbor) {
+    console.warn("⚠️ Aucun fichier voisin trouvé pour", nextDay);
+    isMerging = false;
+    return;
+  }
+
+  try {
+    const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${neighbor.id}&name=${encodeURIComponent(neighbor.name)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Erreur proxy Drive");
+    const buf = await res.arrayBuffer();
+    const text = decodeSmart(buf);
+    const parsed = Papa.parse(text,{header:true,skipEmptyLines:true});
+    const data = parsed.data||[];
+
+    csvData = csvData.concat(data);
+    document.getElementById("slider").max = csvData.length-1;
+    mergedDays.add(nextDay);
+
+    console.log(`✅ Fichier fusionné : ${neighbor.name} (${data.length} lignes)`);
+    console.log(`📊 Fusion réussie → ${csvData.length} lignes au total`);
+  } catch(err) {
+    console.error("❌ Erreur fusion jour", err);
+  }
+  isMerging = false;
+}
 
 
 </script>
 </body>
 </html>
+
