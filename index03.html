@@ -460,7 +460,18 @@ body{
         <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
         <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
       </div>
-      <!-- Bouton optionnel plus tard : Fusion jours (désactivé par défaut) -->
+      <button id="liveBtn" style="
+  margin-left: 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+">🕒 En temps réel</button>
+<!-- Bouton optionnel plus tard : Fusion jours (désactivé par défaut) -->
       <!-- <button id="mergeDaysBtn" style="margin-left:12px;">Fusionner jours</button> -->
     </div>
   </div>
@@ -1219,44 +1230,48 @@ async function loadNeighborDay(direction = 1) {
     const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
     const rows = parsed.data || [];
 
-    // --- Fusion CSV ---
+    // --- Fusion CSV (haut ou bas selon direction) ---
     if (direction > 0) csvData = csvData.concat(rows);
     else csvData = rows.concat(csvData);
 
-    // --- Recalibrage complet du slider ---
+    // --- Recalibrage du slider sur l’ensemble fusionné ---
     const totalRows = csvData.length;
     slider.max = Math.max(0, totalRows - 1);
     const newValue = Math.floor(slider.max / 2);
     slider.value = newValue;
 
-    console.log(`📊 Nouveau slider max = ${slider.max} lignes (fusion réussie)`);
+    console.log(`📊 Fusion réussie → ${csvData.length} lignes au total`);
 
-    // --- Rafraîchissement de la grille ---
+    // --- Mise à jour de la grille et de la vue ---
     updateGrid(newValue);
 
-    // --- Rechargement Z3 du jour ajouté ---
+    // --- Chargement et fusion des Z3 du jour ajouté ---
     await loadZ3ForNeighborDay(neighbor.name, direction);
 
-    // --- Mise à jour visuelle des événements ---
-    const mins = currentRowMinutes(newValue);
+    // --- Fusion et rendu final des événements ---
+    z3Events.sort((a, b) => a.minutes - b.minutes);
+    renderZ3List();
+
+    // --- Actualisation visuelle (intensité + surlignage + heure) ---
+    const mins = currentRowMinutes(parseInt(slider.value));
     updateZ3Intensity(mins);
     highlightZ3Near(mins);
 
-    // --- Heure affichée ---
     if (!isNaN(mins)) {
       const hh = String(Math.floor(mins / 60)).padStart(2, "0");
       const mm = String(Math.floor(mins % 60)).padStart(2, "0");
       document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
     }
 
-    console.log(`✅ Fichier fusionné et rendu mis à jour : ${neighbor.name}`);
+    console.log(`✅ Fusion CSV + Z3 terminée pour ${neighbor.name}`);
   } catch (err) {
-    console.error("❌ Erreur chargement voisin :", err);
+    console.error("❌ Erreur lors du chargement du voisin :", err);
   } finally {
     slider.dataset.loadingNeighbor = "0";
     setTimeout(() => slider.style.setProperty("--glow-opacity", "0"), 800);
   }
 }
+
 
 
 
@@ -1605,10 +1620,103 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("load", updateTileSize);
 });
 
+let liveInterval = null;
 
+async function enableLiveMode() {
+  const btn = document.getElementById("liveBtn");
+  if (btn.classList.contains("active")) {
+    // 🔴 Désactivation du mode live
+    clearInterval(liveInterval);
+    liveInterval = null;
+    btn.classList.remove("active");
+    btn.textContent = "🕒 En temps réel";
+    console.log("⏸️ Mode temps réel arrêté.");
+    return;
+  }
+
+  // 🟢 Activation du mode live
+  btn.classList.add("active");
+  btn.textContent = "🔄 Suivi en direct…";
+  console.log("▶️ Mode temps réel activé.");
+
+  // Calcul du fichier du jour
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const today = `${yyyy}${mm}${dd}`;
+
+  const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+  const todayFile = list.find(f => f.name.includes(today));
+
+  if (!todayFile) {
+    console.warn(`⚠️ Aucun fichier du jour (${today}) trouvé.`);
+    alert("Aucun fichier du jour trouvé dans Drive !");
+    btn.classList.remove("active");
+    btn.textContent = "🕒 En temps réel";
+    return;
+  }
+
+  // --- Charge le CSV du jour ---
+  await loadCSVFile(todayFile);
+
+  // --- Verrouille le slider sur la dernière valeur ---
+  const slider = document.getElementById("slider");
+  slider.value = slider.max;
+  updateGrid(parseInt(slider.value));
+  highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
+  updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
+
+  // --- Rafraîchissement toutes les 60 secondes ---
+  liveInterval = setInterval(async () => {
+    console.log("🔁 Rafraîchissement du CSV en temps réel…");
+    await loadCSVFile(todayFile);
+    slider.max = csvData.length - 1;
+    slider.value = slider.max;
+    updateGrid(parseInt(slider.value));
+    highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
+    updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
+  }, 60000);
+}
+
+// Fonction utilitaire réutilisable
+async function loadCSVFile(file) {
+  try {
+    const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Erreur proxy Drive");
+    const buf = await res.arrayBuffer();
+    const text = decodeSmart(buf);
+    const results = Papa.parse(text, { header: true, skipEmptyLines: true });
+headers = results.meta.fields || [];
+csvData = results.data || [];
+fileName = file.name; // ✅ Mise à jour du fichier courant pour les Z3
+console.log(`📥 Fichier live chargé : ${file.name} (${csvData.length} lignes)`);
+
+// recharge les événements Z3 du jour
+await loadZ3ForSameDay();
+
+// mise à jour interface après le rechargement
+const slider = document.getElementById("slider");
+slider.max = csvData.length - 1;
+slider.value = slider.max;
+updateGrid(parseInt(slider.value));
+highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
+updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
+
+  } catch (err) {
+    console.error("❌ Erreur lors du chargement live :", err);
+  }
+}
+
+document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
+
+
+  
 </script>
 </body>
 </html>
+
 
 
 
