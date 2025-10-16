@@ -609,10 +609,12 @@ function minutesFromRowTime(row){
   return toMinutes(t);
 }
 
-function currentRowMinutes(idx){
-  if(!csvData[idx]) return NaN;
+function currentRowMinutes(idx) {
+  if (!csvData[idx]) return NaN;
+  if (!isNaN(csvData[idx]._virtualMinutes)) return csvData[idx]._virtualMinutes;
   return minutesFromRowTime(csvData[idx]);
 }
+
 
 /* =====================================================
    🔁 Synchronisation automatique des fichiers Z3
@@ -1253,6 +1255,15 @@ async function loadNeighborDay(direction = 1) {
     if (direction > 0) csvData = csvData.concat(rows);
     else csvData = rows.concat(csvData);
 
+    // 🔧 Correction : recalcul du temps relatif (minutes continues)
+const baseOffset = direction > 0 ? Math.max(...csvData.map(r => minutesFromRowTime(r) || 0)) + 1
+                                 : Math.min(...csvData.map(r => minutesFromRowTime(r) || 0)) - 1440;
+rows.forEach(r => {
+  const m = minutesFromRowTime(r);
+  if (!isNaN(m)) r._virtualMinutes = m + (direction > 0 ? 1440 : -1440);
+});
+
+
     console.log(`📊 Fusion réussie → ${csvData.length} lignes au total`);
 
     // Mise à jour visuelle principale
@@ -1735,6 +1746,7 @@ document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
 </script>
 </body>
 </html>
+
 
 
 
