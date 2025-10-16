@@ -1347,45 +1347,80 @@ async function enableLiveMode() {
     return;
   }
 
+let liveInterval = null;
+
+async function enableLiveMode() {
+  const btn = document.getElementById("liveBtn");
+  const indicator = document.getElementById("liveIndicator");
+  const slider = document.getElementById("slider");
+
+  // 🔴 Désactivation si déjà actif
+  if (btn.classList.contains("active")) {
+    clearInterval(liveInterval);
+    liveInterval = null;
+    btn.classList.remove("active");
+    btn.textContent = "🕒 En temps réel";
+    indicator.style.display = "none";
+    if (slider) slider.style.display = "block";
+    console.log("⏸️ Mode temps réel désactivé.");
+    return;
+  }
+
+  // 🟢 Activation du mode live
+  btn.classList.add("active");
+  btn.textContent = "🔄 Suivi en direct…";
+  indicator.style.display = "block";
+  if (slider) slider.style.display = "none";
+  console.log("▶️ Mode temps réel activé.");
+
+  const now = new Date();
+  const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+
+  const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+  const todayFile = list.find(f => f.name.includes(today));
+  if (!todayFile) {
+    alert(`⚠️ Aucun fichier du jour trouvé (${today})`);
+    btn.classList.remove("active");
+    indicator.style.display = "none";
+    if (slider) slider.style.display = "block";
+    btn.textContent = "🕒 En temps réel";
+    return;
+  }
+
   async function refreshLiveData() {
     try {
-      console.log("🔄 Rechargement du CSV du jour..console.log(`🔄 Rechargement du CSV du jour (${todayFile.name})...`);
-
-if (!todayFile.id) {
-  console.warn("❌ Pas d'ID Drive pour le fichier du jour :", todayFile);
-  return;
-}
-.");
       const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${todayFile.id}&name=${encodeURIComponent(todayFile.name)}`);
       if (!res.ok) throw new Error("Erreur proxy Drive");
-
       const buf = await res.arrayBuffer();
       const text = decodeSmart(buf);
       const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
       headers = parsed.meta.fields || [];
       csvData = parsed.data || [];
+      console.log(`📈 Données live (${csvData.length} lignes)`);
 
-      console.log(`📈 Données live : ${csvData.length} lignes`);
       if (!csvData.length) return;
-
       const lastIdx = csvData.length - 1;
       updateGrid(lastIdx);
-      highlightZ3Near(currentRowMinutes(lastIdx));
 
-      // mise à jour horloge
       const mins = currentRowMinutes(lastIdx);
       if (!isNaN(mins)) {
         const hh = String(Math.floor(mins / 60)).padStart(2, "0");
         const mm = String(Math.floor(mins % 60)).padStart(2, "0");
-        document.getElementById("datetimeLabel").textContent = `${now.toLocaleDateString("fr-FR")} — ${hh}:${mm}`;
+        document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
+        const d = new Date();
+        document.getElementById("datetimeLabel").textContent =
+          `${d.toLocaleDateString("fr-FR")} — ${hh}:${mm}`;
       }
+
+      highlightZ3Near(mins);
+      updateZ3Intensity(mins);
     } catch (err) {
-      console.error("⚠️ Erreur Live :", err);
+      console.error("⚠️ Erreur mise à jour live :", err);
     }
   }
 
   await refreshLiveData();
-  liveInterval = setInterval(refreshLiveData, 60000);
+  liveInterval = setInterval(refreshLiveData, 60_000);
 }
 
 document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
@@ -1394,4 +1429,5 @@ document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
 </script>
 </body>
 </html>
+
 
