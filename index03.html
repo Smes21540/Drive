@@ -345,7 +345,23 @@ body{
 .realtime-btn.active {
   background: var(--accent-darker);
 }
-  
+
+/* 🔧 Corrige le wrap du volet d'événements quand le bottomBar est large */
+#pageWrap {
+  flex-wrap: nowrap !important;
+  align-items: flex-start;
+}
+#bottomBar {
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+#timeBar, #scaleBox {
+  flex-shrink: 0;
+}
+#liveBtn {
+  white-space: nowrap;
+}
+
   
 </style>
 </head>
@@ -1333,7 +1349,13 @@ async function enableLiveMode() {
 
   async function refreshLiveData() {
     try {
-      console.log("🔄 Rechargement du CSV du jour...");
+      console.log("🔄 Rechargement du CSV du jour..console.log(`🔄 Rechargement du CSV du jour (${todayFile.name})...`);
+
+if (!todayFile.id) {
+  console.warn("❌ Pas d'ID Drive pour le fichier du jour :", todayFile);
+  return;
+}
+.");
       const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${todayFile.id}&name=${encodeURIComponent(todayFile.name)}`);
       if (!res.ok) throw new Error("Erreur proxy Drive");
 
@@ -1372,3 +1394,4 @@ document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
 </script>
 </body>
 </html>
+
