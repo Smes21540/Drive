@@ -1210,14 +1210,32 @@ async function loadNeighborDay(direction = 1) {
     if (direction > 0) csvData = csvData.concat(rows);
     else csvData = rows.concat(csvData);
 
-    // --- Recalibrage du slider ---
-    const { minTime, maxTime } = getTimeRange();
-    slider.min = 0;
-    slider.max = (maxTime - minTime);
-    const currentMins = currentRowMinutes(parseInt(slider.value));
-    const newValue = Math.min(Math.max(0, currentMins - minTime), slider.max);
-    slider.value = newValue;
+// --- Recalibrage complet du slider sur les deux jours fusionnés ---
+const allTimes = csvData.map(r => minutesFromRowTime(r)).filter(t => !isNaN(t));
+if (allTimes.length > 0) {
+  const newMin = Math.min(...allTimes);
+  const newMax = Math.max(...allTimes);
 
+  slider.min = 0;
+  slider.max = Math.round(newMax - newMin);
+  
+  // repositionne le slider au centre si on vient d'ajouter un jour
+  const currentMins = currentRowMinutes(parseInt(slider.value));
+  const relativePos = direction > 0 ? (currentMins - newMin) / (newMax - newMin) : (currentMins - newMin) / (newMax - newMin);
+  const newValue = Math.round(relativePos * slider.max);
+  slider.value = newValue;
+
+  console.log(`📊 Nouveau range slider : ${newMin} → ${newMax} min (${slider.max} pas)`);
+}
+
+// --- Rafraîchissement de l'affichage global ---
+updateGrid(findClosestRowByMinutes(currentRowMinutes(parseInt(slider.value))));
+updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
+highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
+renderZ3List();
+
+
+    
     // --- Rafraîchissement des sondes et événements ---
     updateGrid(findClosestRowByMinutes(currentMins));
     updateZ3Intensity(currentMins);
@@ -1586,6 +1604,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
 
