@@ -1303,7 +1303,7 @@ const nextDay = base.toISOString().slice(0,10).replace(/-/g,"");
     return;
   }
 
-  try {
+    try {
     const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${neighbor.id}&name=${encodeURIComponent(neighbor.name)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("Erreur proxy Drive");
@@ -1321,12 +1321,19 @@ const nextDay = base.toISOString().slice(0,10).replace(/-/g,"");
     console.log(`🔍 Recherche Z3 du voisin ${nextDay} →`);
     await mergeZ3ForDay(nextDay);
 
+    // 🔁 === RAJOUT ICI ===
+    console.log("♻️ Rafraîchissement complet de la page après fusion...");
+    updateGrid(lastSliderIndex);
+    renderZ3List();
+    highlightZ3Near(currentRowMinutes(lastSliderIndex));
+    updateTileSize();
+
   } catch(err) {
     console.error("❌ Erreur fusion jour", err);
   }
 
   isMerging = false;
-}
+
 
 // 🟢 Fonction déplacée ici (à l’extérieur)
 async function mergeZ3ForDay(dayStr) {
@@ -1387,6 +1394,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
