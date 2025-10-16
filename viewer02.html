@@ -486,16 +486,16 @@ document.getElementById("currentFolderName").innerHTML = flameTitle;
   let defX = headers.find(h=>h.toLowerCase().includes("time")||h.toLowerCase()==="heure");
 
 headers.forEach((f,i)=>{
-  // X : on ajoute toutes les colonnes dans le select
+  // X : on ajoute toutes les colonnes
   const ox = document.createElement("option");
   ox.value = f;
   ox.text = f;
   xSel.appendChild(ox);
 
   // Y : on saute la colonne temps
-  if(f === defX || /time|date|jour/.test(f.toLowerCase())) return;
+  if (f === defX || /time|date|jour/.test(f.toLowerCase())) return;
 
-  // 🔹 Cocher automatiquement SONDE AC INF et SONDE AC SUP
+  // 🔹 coche automatiquement SONDE AC INF / SUP
   const checkedByDefault =
     f.toUpperCase().includes("SONDE AC INF") ||
     f.toUpperCase().includes("SONDE AC SUP");
@@ -508,29 +508,22 @@ headers.forEach((f,i)=>{
 // === afficher les sélecteurs ===
 document.getElementById('columnSelectors').style.display = "flex";
 
-if(defX){
+if (defX) {
   xSel.value = defX;
   xSel.style.display = "none";
   timeField = defX;
 }
 
-// === tracer directement les courbes SONDE AC INF / SUP si elles existent ===
-currentX = defX;
-currentY = headers.filter(h =>
-  h.toUpperCase().includes("SONDE AC INF") ||
-  h.toUpperCase().includes("SONDE AC SUP")
-);
+// === après l’enrichissement, tracer automatiquement les bonnes colonnes ===
+setTimeout(() => {
+  currentX = defX;
+  currentY = Array.from(document.querySelectorAll("#yColumnsContainer input:checked")).map(cb => cb.value);
 
-if (currentY.length) {
-  drawChart();
-}
-
-
-  if(defX){
-    xSel.value = defX;
-    xSel.style.display = "none";
-    timeField = defX;
+  if (currentY.length && csvData.length && timeField) {
+    drawChart();
   }
+}, 300);
+
 
   saMeta = parseSAFileName(baseFileName);
   if(saMeta){
@@ -1324,5 +1317,4 @@ async function autoLoadDays(chart){
   </script>
 </body>
 </html>
-
 
