@@ -259,15 +259,16 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   <div id="tableWrapper">
     <div id="tableContainer">
       <table id="csvTable">
-        <thead>
-          <tr>
-            <th onclick="sortTable(0,'date')">Date <span class="sort-arrow"></span></th>
-            <th>Nom du fichier</th>
-            <th>Dossier</th>
-            <th onclick="sortTable(3,'number')">Taille <span class="sort-arrow"></span></th>
-            <th>Télécharger / Ouvrir</th>
-          </tr>
-        </thead>
+       <thead>
+  <tr>
+    <th onclick="sortTable(0,'date')">Date <span class="sort-arrow"></span></th>
+    <th>Télécharger / Ouvrir</th>
+    <th>Nom du fichier</th>
+    <th>Dossier</th>
+    <th onclick="sortTable(4,'number')">Taille <span class="sort-arrow"></span></th>
+  </tr>
+</thead>
+
         <tbody>
           <tr>
             <td colspan="5" style="text-align:left;">
@@ -705,7 +706,12 @@ if(f.name.toLowerCase().endsWith('.csv')){
     }
     tdAction.innerHTML=html;
 
-    tr.appendChild(tdDate); tr.appendChild(tdName); tr.appendChild(tdFolder); tr.appendChild(tdSize); tr.appendChild(tdAction);
+  tr.appendChild(tdDate);
+tr.appendChild(tdAction);
+tr.appendChild(tdName);
+tr.appendChild(tdFolder);
+tr.appendChild(tdSize);
+
     tbody.appendChild(tr);
   }
 }
@@ -1096,3 +1102,4 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
