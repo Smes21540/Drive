@@ -72,13 +72,14 @@ body{
 .folder-name{cursor:pointer;}
 .active-folder {
   background: var(--accent-muted);
-  border-left: 4px solid var(--accent-darker);
-  border-radius: 4px;
-  padding: 3px 6px;
-  font-weight: bold;
+  border-left: 2px solid var(--accent);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-weight: 600;
   color: var(--accent-darker);
-  box-shadow: 0 0 4px var(--accent);
+  box-shadow: none;
 }
+
 
 
 /* Main */
@@ -537,12 +538,21 @@ async function fetchChildren(folderId){
 async function loadFolderFilesOnClick(li){
   await toggleFolder(li);
 
-  // Réinitialiser la sélection visuelle
-  document.querySelectorAll('#folderTree li span.folder-name').forEach(s=>s.classList.remove('active-folder'));
-  const nameSpan = li.querySelector('span.folder-name');
-  if(nameSpan){ 
-    nameSpan.classList.add('active-folder'); 
-  }
+// 🔄 Réinitialiser la sélection visuelle
+document.querySelectorAll('#folderTree li span.folder-name').forEach(s => s.classList.remove('active-folder'));
+
+// ✅ Surligne le dossier cliqué
+const nameSpan = li.querySelector('span.folder-name');
+if (nameSpan) nameSpan.classList.add('active-folder');
+
+// ✅ Surligne aussi tous les parents (chemin hiérarchique)
+let parentLi = li.parentElement.closest('li');
+while (parentLi) {
+  const parentSpan = parentLi.querySelector('span.folder-name');
+  if (parentSpan) parentSpan.classList.add('active-folder');
+  parentLi = parentLi.parentElement.closest('li');
+}
+
   localStorage.setItem('lastFolderId', li.dataset.id);
 
   const folderName = nameSpan ? nameSpan.textContent.toLowerCase() : "";
@@ -1139,6 +1149,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
