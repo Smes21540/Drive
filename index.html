@@ -415,10 +415,20 @@ async function loadRootFolders(){
     toggle.textContent = '+';
     toggle.onclick = () => toggleFolder(li);
 
-    const span = document.createElement('span'); 
-    span.className = 'folder-name'; 
-    span.textContent = f.name;
-    span.onclick = () => loadFolderFilesOnClick(li);
+const span = document.createElement('span');
+span.className = 'folder-name';
+
+const lowerName = f.name.toLowerCase();
+if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
+  // 📈 pour les dossiers Traça_Temp
+  span.innerHTML = `📈 ${f.name}`;
+} else {
+  // 📊 pour les autres dossiers
+  span.innerHTML = `📊 ${f.name}`;
+}
+
+span.onclick = () => loadFolderFilesOnClick(childLi);
+
 
     li.appendChild(toggle); 
     li.appendChild(span); 
@@ -1102,4 +1112,5 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
