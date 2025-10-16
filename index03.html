@@ -12,25 +12,6 @@
 
 
 <style>
-
-/* --- Voyant clignotant en mode live --- */
-#liveIndicator {
-  display: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: limegreen;
-  margin-left: 8px;
-  box-shadow: 0 0 6px limegreen;
-  animation: pulse 1.2s infinite ease-in-out;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.3); }
-}
-
-  
 :root{
   /* Thème (identique viewer02) */
   --bg:#fff5f5; --panel:#ffffff; --accent:#ff7043; --accent-darker:#e64a19;
@@ -148,55 +129,6 @@ body{
   width: calc(var(--timebar-cols) * var(--tile-size) + (var(--timebar-cols) - 1) * var(--cell-gap));
   display:flex; align-items:center; justify-content:center;
 }
-#sliderTimeLabel {
-  font-family: ui-monospace, monospace;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent-darker);
-  text-align: center;
-  margin-bottom: 6px;
-  background: var(--panel);
-  padding: 2px 8px;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-}
-
-/* Slider esthétique */
-#slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 10px;
-  border-radius: 5px;
-  background: linear-gradient(to right, var(--accent) 0%, var(--accent-muted) 100%);
-  outline: none;
-  transition: opacity 0.2s;
-}
-#slider:hover { opacity: 0.9; }
-
-#slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--accent-darker);
-  cursor: pointer;
-  border: 2px solid var(--panel);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-  transition: transform 0.15s;
-}
-#slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
-
-#slider::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--accent-darker);
-  border: 2px solid var(--panel);
-  cursor: pointer;
-}
-
 #slider{ width:100%; height: calc(var(--tile-size) * 0.35); }
 
 #scaleBox{
@@ -206,64 +138,11 @@ body{
 #scaleBox label{ margin-right:6px; }
 #scaleBox input{ width:70px; padding:4px; border:1px solid #ccc; border-radius:6px; }
 
-/* Animation "ressort" quand on force le slider dans les bords */
-@keyframes slider-bounce {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(4px); }
-  50% { transform: translateX(-4px); }
-  75% { transform: translateX(3px); }
-}
-#slider.bouncing {
-  animation: slider-bounce 0.3s ease-in-out infinite;
-}
-
-  
 /* Scrollbars (grille) */
 #gridWrap::-webkit-scrollbar{height:10px;width:10px;}
 #gridWrap::-webkit-scrollbar-thumb{background:var(--accent);border-radius:10px;}
 #gridWrap::-webkit-scrollbar-track{background:#eee;}
 
-#sliderWrap {
-  position: relative;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-#currentTimeDisplay {
-  font-weight: bold;
-  color: var(--danger);
-  margin-bottom: 6px;
-  font-size: 15px;
-  text-shadow: 0 0 3px rgba(0,0,0,0.15);
-}
-
-#slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(to right, var(--accent-muted), var(--accent));
-  outline: none;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-}
-
-/* Halo dynamique quand on approche des bords */
-#slider::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at var(--glow-pos, 50%) 50%, var(--accent-darker) 0%, transparent 70%);
-  opacity: var(--glow-opacity, 0);
-  transition: opacity 0.3s;
-  pointer-events: none;
-}
-
-  
 /* ===== Événements Z3 (volet élargi + scrollbar + nuance centrée) ===== */
 #sideCol {
   flex: 0 1 auto;             /* largeur s’adapte au contenu */
@@ -435,7 +314,8 @@ body{
 .hour-mark[data-intensity="0"] .d {
   color: var(--text-dark) !important;
 }
-/* --- Voyant clignotant en mode live --- */
+
+/* --- Mode temps réel --- */
 #liveIndicator {
   display: none;
   width: 12px;
@@ -452,6 +332,20 @@ body{
   50% { opacity: 0.5; transform: scale(1.3); }
 }
 
+.realtime-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.realtime-btn.active {
+  background: var(--accent-darker);
+}
+  
   
 </style>
 </head>
@@ -482,49 +376,22 @@ body{
     </div>
 
     <!-- ===== Sidebar temporelle + min/max ===== -->
-    <div id="bottomBar">
-<div id="timeBar">
-  <div id="sliderWrap">
-    <div id="currentTimeDisplay">--:--</div>
+<div id="bottomBar">
+  <div id="timeBar">
     <input type="range" id="slider" min="0" max="0" value="0"/>
   </div>
-</div>
 
-
-      <div id="scaleBox" title="Réglage des bornes couleurs">
-        <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
-        <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
-      </div>
-      <button id="liveBtn" style="
-  margin-left: 12px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-">🕒 En temps réel</button>
-
-      <div style="display:flex; align-items:center; gap:6px;">
-  <button id="liveBtn" style="
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  ">🕒 En temps réel</button>
-  <div id="liveIndicator" title="Suivi actif"></div>
-</div>
-
-<!-- Bouton optionnel plus tard : Fusion jours (désactivé par défaut) -->
-      <!-- <button id="mergeDaysBtn" style="margin-left:12px;">Fusionner jours</button> -->
-    </div>
+  <div style="display:flex; align-items:center; gap:8px;">
+    <button id="liveBtn" class="realtime-btn">🕒 En temps réel</button>
+    <div id="liveIndicator" title="Suivi actif"></div>
   </div>
+
+  <div id="scaleBox" title="Réglage des bornes couleurs">
+    <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
+    <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
+  </div>
+</div>
+
 
   <!-- ===== SIDE (Z3 EVENTS) ===== -->
 <aside id="sideCol">
@@ -659,12 +526,10 @@ function minutesFromRowTime(row){
   return toMinutes(t);
 }
 
-function currentRowMinutes(idx) {
-  if (!csvData[idx]) return NaN;
-  if (!isNaN(csvData[idx]._virtualMinutes)) return csvData[idx]._virtualMinutes;
+function currentRowMinutes(idx){
+  if(!csvData[idx]) return NaN;
   return minutesFromRowTime(csvData[idx]);
 }
-
 
 /* =====================================================
    🔁 Synchronisation automatique des fichiers Z3
@@ -892,62 +757,44 @@ function renderZ3List() {
     return;
   }
 
-  // Étendue réelle (minutes étendues)
-  const minMin = Math.min(...z3Events.map(ev => ev.minutes));
-  const maxMin = Math.max(...z3Events.map(ev => ev.minutes));
-
-  const startHour = Math.floor(minMin / 60);
-  const endHour = Math.ceil(maxMin / 60);
-
-  // Crée les repères toutes les 15 min
+  // Repères horaires 00:00 → 23:45 (toutes les 15 min)
   const timeMarks = [];
-  for (let h = startHour; h <= endHour; h++) {
+  for (let h = 0; h < 24; h++) {
     for (let q = 0; q < 60; q += 15) {
-      const mins = h * 60 + q;
-      const hh = ((Math.floor((mins + 1440) / 60)) % 24).toString().padStart(2, "0");
-      const mm = (mins % 60).toString().padStart(2, "0");
-      const label =
-        h < 0 ? `J-1 ${hh}:${mm}` :
-        h >= 24 ? `J+1 ${hh}:${mm}` :
-        `${hh}:${mm}`;
-      timeMarks.push({ label, mins });
+      const hh = String(h).padStart(2, "0");
+      const mm = String(q).padStart(2, "0");
+      timeMarks.push(`${hh}:${mm}`);
     }
   }
 
-  // Trie et insère
-  z3Events.sort((a, b) => a.minutes - b.minutes);
+  // z3Events est DÉJÀ TRIÉ par minutes
   let evIdx = 0;
 
   for (const mark of timeMarks) {
+    const markMin = toMinutes(mark);
+
+    // Ligne de repère
     const markDiv = document.createElement("div");
     markDiv.className = "z3Item hour-mark";
-    markDiv.innerHTML = `<span class="t">${mark.label}</span><span class="d"></span>`;
+    markDiv.innerHTML = `<span class="t">${mark}</span><span class="d"></span>`;
     box.appendChild(markDiv);
 
-    while (evIdx < z3Events.length && z3Events[evIdx].minutes < mark.mins + 15) {
+    // Ajoute tous les événements qui tombent dans ce quart d'heure
+    while (evIdx < z3Events.length && z3Events[evIdx].minutes < markMin + 15) {
       const ev = z3Events[evIdx];
       const div = document.createElement("div");
       div.className = "z3Item";
+      // stocke l’index logique de l’événement (optionnel mais utile)
       div.dataset.evIndex = String(evIdx);
-
-      const hh = ((Math.floor((ev.minutes + 1440) / 60)) % 24).toString().padStart(2, "0");
-      const mm = (ev.minutes % 60).toString().padStart(2, "0");
-      const label =
-        ev.minutes < 0 ? `J-1 ${hh}:${mm}` :
-        ev.minutes >= 1440 ? `J+1 ${hh}:${mm}` :
-        `${hh}:${mm}`;
-
-      div.innerHTML = `<span class="t">${label}</span><span class="d">${ev.desc}</span>`;
+      div.innerHTML = `<span class="t">${ev.timeText}</span><span class="d">${ev.desc}</span>`;
       div.onclick = () => jumpSliderToClosest(ev.minutes);
       box.appendChild(div);
       evIdx++;
     }
 
-    if (evIdx >= z3Events.length) break;
+    if (evIdx >= z3Events.length) break; // plus d'événements : on peut s’arrêter tôt
   }
 }
-
-
 
 
 
@@ -1087,28 +934,6 @@ function decodeSmart(arrayBuffer) {
   return txt;
 }
 
-function findNeighborFile(direction = 1) {
-  if (!fileName) return null;
-  const match = fileName.match(/(\d{8})/);
-  if (!match) return null;
-
-  // Calcul manuel du jour suivant / précédent
-  const y = parseInt(match[1].slice(0, 4), 10);
-  const m = parseInt(match[1].slice(4, 6), 10);
-  const d = parseInt(match[1].slice(6, 8), 10);
-  const dateObj = new Date(y, m - 1, d);
-  dateObj.setDate(dateObj.getDate() + direction);
-
-  // Extraction sans fuseau horaire
-  const nextYear = dateObj.getFullYear();
-  const nextMonth = String(dateObj.getMonth() + 1).padStart(2, "0");
-  const nextDay = String(dateObj.getDate()).padStart(2, "0");
-  const nextDate = `${nextYear}${nextMonth}${nextDay}`;
-
-  const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
-  return list.find(f => f.name.includes(nextDate)) || null;
-}
-
 
   
   async function loadCSV(){
@@ -1187,181 +1012,13 @@ text = decodeSmart(buf);
   document.getElementById("minInput").value = isNaN(minInit) ? 30 : minInit;
   document.getElementById("maxInput").value = isNaN(maxInit) ? 60 : maxInit;
 
+  // 4️⃣ Ajout des cases spéciales et affichage initial
   addSpecialsAfterCSV();
   updateGrid(0);
 
-// 🔸 Positionne le slider au milieu par défaut et affiche l’heure correspondante
-const slider = document.getElementById("slider");
-if (slider && csvData.length > 0) {
-  const mid = Math.floor(slider.max / 2);
-  slider.value = mid;
-  updateGrid(mid);
-
-  const mins = currentRowMinutes(mid);
-  if (!isNaN(mins)) {
-    const hh = String(Math.floor(mins / 60)).padStart(2, "0");
-    const mm = String(Math.floor(mins % 60)).padStart(2, "0");
-    document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
-  } else {
-    document.getElementById("currentTimeDisplay").textContent = "--:--";
-  }
-} else {
-  document.getElementById("currentTimeDisplay").textContent = "--:--";
-}
-
-
-// 🔁 Synchronise la liste Z3 avec l’heure initiale
-updateZ3Intensity(currentRowMinutes(parseInt(slider.value)));
-highlightZ3Near(currentRowMinutes(parseInt(slider.value)));
-
-    
   // 5️⃣ Les fichiers Z3 → uniquement depuis localStorage
   loadZ3ForSameDay();
 }
-
-// =====================================================
-// 🔁 Charge les événements Z3 du jour voisin et les fusionne
-// =====================================================
-async function loadZ3ForNeighborDay(neighborFileName, direction = 1) {
-  const dayMatch = (neighborFileName || "").match(/(\d{8})/);
-  const day = dayMatch ? dayMatch[1] : null;
-  if (!day) return;
-
-  const z3Files = await ensureZ3FilesLoaded();
-  const sameDay = z3Files.filter(f => f.name.includes(day));
-  console.log(`🔍 Recherche Z3 du voisin ${day} → ${sameDay.length} fichier(s) trouvé(s)`);
-
-  for (const f of sameDay) {
-    let text = f.content;
-    if (!text && f.id) {
-      const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}`;
-      const res = await fetch(url);
-      if (!res.ok) continue;
-      const buf = await res.arrayBuffer();
-      text = decodeSmart(buf);
-      f.content = text;
-    }
-    if (!text) continue;
-
-    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
-    const H = parsed.meta.fields || [];
-    const rows = parsed.data || [];
-
-    const timeCol = H.find(h => /(trigger.?time|heure|horodatage|time|temps)/i.test(h)) || H[0];
-    const msgCol  = H.find(h => /(message|desc|description|evenement|event)/i.test(h)) || H[1];
-    const addrCol = H.find(h => /(address|adresse|addr|zone|address ?1)/i.test(h)) || null;
-
-    for (const r of rows) {
-      const t = String(r[timeCol] || "").trim();
-      const msg = String(r[msgCol] || "").trim();
-      const addr = String(r[addrCol] || "").trim();
-      const mins = toMinutes(t);
-      if (!isNaN(mins) && msg) {
-        z3Events.push({
-          timeText: t,
-          minutes: mins + (direction < 0 ? -1440 : 1440), // décale le jour ajouté
-          desc: addr ? `${msg} (${addr})` : msg,
-          fileName: f.name
-        });
-      }
-    }
-  }
-
-  // Tri + rendu
-  z3Events.sort((a, b) => a.minutes - b.minutes);
-  renderZ3List();
-  console.log(`✅ Fusion des événements Z3 du jour ${day} terminée (${sameDay.length} fichier(s)).`);
-}
-
-  
-
-async function loadNeighborDay(direction = 1) {
-  const slider = document.getElementById("slider");
-  if (slider.dataset.loadingNeighbor === "1") return;
-  slider.dataset.loadingNeighbor = "1";
-
-  const neighbor = findNeighborFile(direction);
-  if (!neighbor || neighbor.name === fileName) {
-    console.warn("⚠️ Aucun fichier voisin trouvé.");
-    slider.dataset.loadingNeighbor = "0";
-    return;
-  }
-
-  slider.style.setProperty("--glow-opacity", "1");
-  slider.style.setProperty("--glow-pos", direction > 0 ? "95%" : "5%");
-
-  try {
-    console.log(`⏳ Chargement du fichier voisin ${neighbor.name}...`);
-    const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${neighbor.id}&name=${encodeURIComponent(neighbor.name)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Erreur proxy Drive");
-    const buf = await res.arrayBuffer();
-    const text = decodeSmart(buf);
-
-    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
-    const rows = parsed.data || [];
-
-    // Fusion logique
-    if (direction > 0) csvData = csvData.concat(rows);
-    else csvData = rows.concat(csvData);
-
-    // 🔧 Correction : recalcul du temps relatif (minutes continues)
-const baseOffset = direction > 0 ? Math.max(...csvData.map(r => minutesFromRowTime(r) || 0)) + 1
-                                 : Math.min(...csvData.map(r => minutesFromRowTime(r) || 0)) - 1440;
-rows.forEach(r => {
-  const m = minutesFromRowTime(r);
-  if (!isNaN(m)) r._virtualMinutes = m + (direction > 0 ? 1440 : -1440);
-});
-
-
-    console.log(`📊 Fusion réussie → ${csvData.length} lignes au total`);
-
-    // Mise à jour visuelle principale
-    updateGrid(Math.floor(csvData.length / 2));
-
-    // Fusion des événements Z3
-    await loadZ3ForNeighborDay(neighbor.name, direction);
-
-    // 🔄 Recalibrage complet après fusion
-    try {
-      console.log("🎨 Recalibrage complet après fusion...");
-      const totalRows = csvData.length;
-      const slider = document.getElementById("slider");
-
-      slider.max = Math.max(0, totalRows - 1);
-      const newValue = Math.floor(slider.max / 2);
-      slider.value = newValue;
-
-      updateGrid(newValue);
-      renderZ3List();
-
-      const mins = currentRowMinutes(newValue);
-      if (!isNaN(mins)) {
-        const hh = String(Math.floor((mins + 1440) / 60) % 24).padStart(2, "0");
-        const mm = String(Math.floor(mins % 60)).padStart(2, "0");
-        document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
-      }
-
-      updateZ3Intensity(mins);
-      highlightZ3Near(mins);
-
-      console.log(`🎯 Affichage recalibré : ${totalRows} lignes fusionnées, ${z3Events.length} événements.`);
-    } catch (e) {
-      console.error("⚠️ Erreur dans le recalibrage post-fusion :", e);
-    }
-
-    console.log(`✅ Fusion CSV + Z3 terminée pour ${neighbor.name}`);
-  } catch (err) {
-    console.error("❌ Erreur lors du chargement du voisin :", err);
-  } finally {
-    slider.dataset.loadingNeighbor = "0";
-    setTimeout(() => slider.style.setProperty("--glow-opacity", "0"), 800);
-  }
-}
-
-
-
-
 
 
 
@@ -1515,191 +1172,116 @@ function updateGrid(idx){
 
 /* =================== Listeners =================== */
 window.addEventListener("resize", updateTileSize);
+document.getElementById("slider").addEventListener("input", e => {
+  const idx = parseInt(e.target.value)||0;
+  updateGrid(idx);
+});
+document.getElementById("minInput").addEventListener("change", ()=>{
+  const v=parseFloat(document.getElementById("minInput").value);
+  localStorage.setItem("scaleMin", isFinite(v)?String(v):"30");
+  if(csvData.length) updateGrid(parseInt(document.getElementById("slider").value)||0);
+});
+document.getElementById("maxInput").addEventListener("change", ()=>{
+  const v=parseFloat(document.getElementById("maxInput").value);
+  localStorage.setItem("scaleMax", isFinite(v)?String(v):"60");
+  if(csvData.length) updateGrid(parseInt(document.getElementById("slider").value)||0);
+});
 
-// ===================================================
-// 🕒 Slider temporel : calcule l’échelle en minutes réelles
-// ===================================================
 
-// Donne le min et max du temps réel (en minutes)
-function getTimeRange() {
-  if (!csvData.length) return { minTime: 0, maxTime: 0 };
-  const times = csvData.map(row => minutesFromRowTime(row)).filter(t => !isNaN(t));
-  const minTime = Math.min(...times);
-  const maxTime = Math.max(...times);
-  return { minTime, maxTime };
-}
 
-// Trouve l’index de ligne la plus proche d’un temps donné (en minutes)
-function findClosestRowByMinutes(targetMinutes) {
-  let bestIdx = 0, bestDiff = Infinity;
-  for (let i = 0; i < csvData.length; i++) {
-    const m = minutesFromRowTime(csvData[i]);
-    if (isNaN(m)) continue;
-    const diff = Math.abs(m - targetMinutes);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      bestIdx = i;
-    }
+/* =================== INIT =================== */
+
+  /* ----------- Thèmes + persistance ----------- */
+function setTheme(theme){
+  const r=document.documentElement;
+  localStorage.setItem("selectedTheme",theme);
+
+  if(theme==="orange"){
+    r.style.setProperty("--accent","#ff7043");
+    r.style.setProperty("--accent-darker","#e64a19");
+    r.style.setProperty("--accent-muted","#ffccbc");
+    r.style.setProperty("--bg","#fff5f5");
+    r.style.setProperty("--panel","#ffffff");
+    r.style.setProperty("--sidebar-bg","#ffe5d9");
+    r.style.setProperty("--danger","#d84315");
+    r.style.setProperty("--text","#333");
+    r.style.setProperty("--row-even","#ffe5d9");
+    r.style.setProperty("--row-odd","#fff5f5");
+    r.style.setProperty("--text-light", "#fff");
+r.style.setProperty("--text-dark", "#222");
+
   }
-  return bestIdx;
+  if(theme==="blue"){
+    r.style.setProperty("--accent","#2196f3");
+    r.style.setProperty("--accent-darker","#1976d2");
+    r.style.setProperty("--accent-muted","#bbdefb");
+    r.style.setProperty("--bg","#e3f2fd");
+    r.style.setProperty("--panel","#ffffff");
+    r.style.setProperty("--sidebar-bg","#bbdefb");
+    r.style.setProperty("--danger","#0d47a1");
+    r.style.setProperty("--text","#0d47a1");
+    r.style.setProperty("--row-even","#bbdefb");
+    r.style.setProperty("--row-odd","#e3f2fd");
+    r.style.setProperty("--text-light", "#fff");
+r.style.setProperty("--text-dark", "#222");
+
+  }
+  if(theme==="green"){
+    r.style.setProperty("--accent","#4caf50");
+    r.style.setProperty("--accent-darker","#2e7d32");
+    r.style.setProperty("--accent-muted","#c8e6c9");
+    r.style.setProperty("--bg","#f1f8e9");
+    r.style.setProperty("--panel","#ffffff");
+    r.style.setProperty("--sidebar-bg","#c8e6c9");
+    r.style.setProperty("--danger","#1b5e20");
+    r.style.setProperty("--text","#1b5e20");
+    r.style.setProperty("--row-even","#c8e6c9");
+    r.style.setProperty("--row-odd","#f1f8e9");
+    r.style.setProperty("--text-light", "#fff");
+r.style.setProperty("--text-dark", "#222");
+
+  }
+  if(theme==="purple"){
+    r.style.setProperty("--accent","#9c27b0");
+    r.style.setProperty("--accent-darker","#6a1b9a");
+    r.style.setProperty("--accent-muted","#e1bee7");
+    r.style.setProperty("--bg","#f3e5f5");
+    r.style.setProperty("--panel","#ffffff");
+    r.style.setProperty("--sidebar-bg","#e1bee7");
+    r.style.setProperty("--danger","#4a148c");
+    r.style.setProperty("--text","#4a148c");
+    r.style.setProperty("--row-even","#e1bee7");
+    r.style.setProperty("--row-odd","#f3e5f5");
+    r.style.setProperty("--text-light", "#fff");
+r.style.setProperty("--text-dark", "#222");
+
+  }
+  if(theme==="bordeaux"){
+    r.style.setProperty("--accent","#800020");
+    r.style.setProperty("--accent-darker","#4b0014");
+    r.style.setProperty("--accent-muted","#d7a1a9");
+    r.style.setProperty("--bg","#fff0f2");
+    r.style.setProperty("--panel","#ffffff");
+    r.style.setProperty("--sidebar-bg","#f3cdd3");
+    r.style.setProperty("--danger","#600018");
+    r.style.setProperty("--text","#4b0014");
+    r.style.setProperty("--row-even","#f3cdd3");
+    r.style.setProperty("--row-odd","#fff0f2");
+    r.style.setProperty("--text-light", "#fff");
+r.style.setProperty("--text-dark", "#222");
+
+  }
+
+  r.style.setProperty("--text-light", "#fff");
+  r.style.setProperty("--text-dark", "#222");
+
 }
+
+  const savedTheme = localStorage.getItem("selectedTheme") || "orange";
+setTheme(savedTheme);
 
 
   
-
-// --- Événement principal de glissement ---
-// === 🎚️ GESTION DU SLIDER TEMPOREL RESSORT + CHARGEMENT AUTOMATIQUE (2s + vibration) ===
-let holdTimer = null;
-let isHolding = false;
-let holdDirection = 0;
-
-const slider = document.getElementById("slider");
-const timeDisplay = document.getElementById("currentTimeDisplay");
-
-slider.addEventListener("mousedown", () => {
-  isHolding = true;
-});
-
-slider.addEventListener("mouseup", () => {
-  clearTimeout(holdTimer);
-  holdTimer = null;
-  isHolding = false;
-  holdDirection = 0;
-  slider.classList.remove("bouncing");
-  slider.style.setProperty("--glow-opacity", "0");
-});
-
-slider.addEventListener("input", async e => {
-  if (!csvData.length) return;
-
-  const { minTime, maxTime } = getTimeRange();
-  const ratio = parseFloat(slider.value) / parseFloat(slider.max || 1);
-  const targetMinutes = minTime + parseFloat(e.target.value);
-  const idx = findClosestRowByMinutes(targetMinutes);
-
-  updateGrid(idx);
-  updateZ3Intensity(currentRowMinutes(idx));
-  highlightZ3Near(currentRowMinutes(idx));
-
-  // --- Affichage de l’heure ---
-  const mins = currentRowMinutes(idx);
-  if (!isNaN(mins)) {
-    const hh = String(Math.floor(mins / 60)).padStart(2, "0");
-    const mm = String(Math.floor(mins % 60)).padStart(2, "0");
-    timeDisplay.textContent = `${hh}:${mm}`;
-  }
-
-  // --- Détection du maintien sur les bords
-  if (isHolding && !holdTimer) {
-    if (ratio < 0.05) holdDirection = -1;
-    else if (ratio > 0.95) holdDirection = 1;
-    else holdDirection = 0;
-
-    if (holdDirection !== 0) {
-      // Effet visuel
-      slider.style.setProperty("--glow-pos", holdDirection > 0 ? "95%" : "5%");
-      slider.style.setProperty("--glow-opacity", "1");
-      slider.classList.add("bouncing");
-
-      // Chrono 2 secondes au lieu de 5
-      holdTimer = setTimeout(async () => {
-        console.log(`🕒 Maintien confirmé → chargement du jour ${holdDirection > 0 ? "suivant" : "précédent"}`);
-        slider.classList.remove("bouncing");
-        await loadNeighborDay(holdDirection);
-        slider.style.setProperty("--glow-opacity", "0");
-        holdTimer = null;
-        isHolding = false;
-        holdDirection = 0;
-      }, 2000);
-    }
-  }
-
-  // --- Si relâché avant 2s → annule
-  if (!isHolding && holdTimer) {
-    clearTimeout(holdTimer);
-    holdTimer = null;
-    holdDirection = 0;
-    slider.classList.remove("bouncing");
-    slider.style.setProperty("--glow-opacity", "0");
-  }
-});
-
-// === Échelle couleur ===
-document.getElementById("minInput").addEventListener("change", () => {
-  const v = parseFloat(document.getElementById("minInput").value);
-  localStorage.setItem("scaleMin", isFinite(v) ? String(v) : "30");
-  if (csvData.length) updateGrid(parseInt(slider.value) || 0);
-});
-document.getElementById("maxInput").addEventListener("change", () => {
-  const v = parseFloat(document.getElementById("maxInput").value);
-  localStorage.setItem("scaleMax", isFinite(v) ? String(v) : "60");
-  if (csvData.length) updateGrid(parseInt(slider.value) || 0);
-});
-
-/* =================== INIT =================== */
-function setTheme(theme) {
-  const r = document.documentElement;
-  localStorage.setItem("selectedTheme", theme);
-
-  if (theme === "orange") {
-    r.style.setProperty("--accent", "#ff7043");
-    r.style.setProperty("--accent-darker", "#e64a19");
-    r.style.setProperty("--accent-muted", "#ffccbc");
-    r.style.setProperty("--bg", "#fff5f5");
-    r.style.setProperty("--panel", "#ffffff");
-    r.style.setProperty("--sidebar-bg", "#ffe5d9");
-    r.style.setProperty("--danger", "#d84315");
-    r.style.setProperty("--text", "#333");
-  }
-  if (theme === "blue") {
-    r.style.setProperty("--accent", "#2196f3");
-    r.style.setProperty("--accent-darker", "#1976d2");
-    r.style.setProperty("--accent-muted", "#bbdefb");
-    r.style.setProperty("--bg", "#e3f2fd");
-    r.style.setProperty("--panel", "#ffffff");
-    r.style.setProperty("--sidebar-bg", "#bbdefb");
-    r.style.setProperty("--danger", "#0d47a1");
-    r.style.setProperty("--text", "#0d47a1");
-  }
-  if (theme === "green") {
-    r.style.setProperty("--accent", "#4caf50");
-    r.style.setProperty("--accent-darker", "#2e7d32");
-    r.style.setProperty("--accent-muted", "#c8e6c9");
-    r.style.setProperty("--bg", "#f1f8e9");
-    r.style.setProperty("--panel", "#ffffff");
-    r.style.setProperty("--sidebar-bg", "#c8e6c9");
-    r.style.setProperty("--danger", "#1b5e20");
-    r.style.setProperty("--text", "#1b5e20");
-  }
-  if (theme === "purple") {
-    r.style.setProperty("--accent", "#9c27b0");
-    r.style.setProperty("--accent-darker", "#6a1b9a");
-    r.style.setProperty("--accent-muted", "#e1bee7");
-    r.style.setProperty("--bg", "#f3e5f5");
-    r.style.setProperty("--panel", "#ffffff");
-    r.style.setProperty("--sidebar-bg", "#e1bee7");
-    r.style.setProperty("--danger", "#4a148c");
-    r.style.setProperty("--text", "#4a148c");
-  }
-  if (theme === "bordeaux") {
-    r.style.setProperty("--accent", "#800020");
-    r.style.setProperty("--accent-darker", "#4b0014");
-    r.style.setProperty("--accent-muted", "#d7a1a9");
-    r.style.setProperty("--bg", "#fff0f2");
-    r.style.setProperty("--panel", "#ffffff");
-    r.style.setProperty("--sidebar-bg", "#f3cdd3");
-    r.style.setProperty("--danger", "#600018");
-    r.style.setProperty("--text", "#4b0014");
-  }
-
-  // Valeurs neutres
-  r.style.setProperty("--text-light", "#fff");
-  r.style.setProperty("--text-dark", "#222");
-}
-
-const savedTheme = localStorage.getItem("selectedTheme") || "orange";
-setTheme(savedTheme);
-
 document.addEventListener("DOMContentLoaded", async () => {
   await ensureZ3FilesLoaded();
   loadPlan();
@@ -1708,6 +1290,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("load", updateTileSize);
 });
 
+/* =================== MODE EN TEMPS RÉEL =================== */
 let liveInterval = null;
 
 async function enableLiveMode() {
@@ -1715,7 +1298,7 @@ async function enableLiveMode() {
   const indicator = document.getElementById("liveIndicator");
   const slider = document.getElementById("slider");
 
-  // 🔴 Désactivation si déjà actif
+  // Si déjà actif → on arrête
   if (btn.classList.contains("active")) {
     clearInterval(liveInterval);
     liveInterval = null;
@@ -1727,16 +1310,16 @@ async function enableLiveMode() {
     return;
   }
 
-  // 🟢 Activation du mode live
+  // Activation
   btn.classList.add("active");
   btn.textContent = "🔄 Suivi en direct…";
   indicator.style.display = "block";
   if (slider) slider.style.display = "none";
   console.log("▶️ Mode temps réel activé.");
 
+  // Détection du CSV du jour
   const now = new Date();
   const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-
   const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
   const todayFile = list.find(f => f.name.includes(today));
   if (!todayFile) {
@@ -1750,74 +1333,42 @@ async function enableLiveMode() {
 
   async function refreshLiveData() {
     try {
+      console.log("🔄 Rechargement du CSV du jour...");
       const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${todayFile.id}&name=${encodeURIComponent(todayFile.name)}`);
       if (!res.ok) throw new Error("Erreur proxy Drive");
+
       const buf = await res.arrayBuffer();
       const text = decodeSmart(buf);
       const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
       headers = parsed.meta.fields || [];
       csvData = parsed.data || [];
-      console.log(`📈 Données live (${csvData.length} lignes)`);
 
+      console.log(`📈 Données live : ${csvData.length} lignes`);
       if (!csvData.length) return;
+
       const lastIdx = csvData.length - 1;
       updateGrid(lastIdx);
+      highlightZ3Near(currentRowMinutes(lastIdx));
 
+      // mise à jour horloge
       const mins = currentRowMinutes(lastIdx);
       if (!isNaN(mins)) {
         const hh = String(Math.floor(mins / 60)).padStart(2, "0");
         const mm = String(Math.floor(mins % 60)).padStart(2, "0");
-        document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
-        const d = new Date();
-        document.getElementById("datetimeLabel").textContent =
-          `${d.toLocaleDateString("fr-FR")} — ${hh}:${mm}`;
+        document.getElementById("datetimeLabel").textContent = `${now.toLocaleDateString("fr-FR")} — ${hh}:${mm}`;
       }
-
-      highlightZ3Near(mins);
-      updateZ3Intensity(mins);
     } catch (err) {
-      console.error("⚠️ Erreur mise à jour live :", err);
+      console.error("⚠️ Erreur Live :", err);
     }
   }
 
   await refreshLiveData();
-  liveInterval = setInterval(refreshLiveData, 60_000);
+  liveInterval = setInterval(refreshLiveData, 60000);
 }
 
 document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
 
 
-// Écouteur bouton
-document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
-
-
-  
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
