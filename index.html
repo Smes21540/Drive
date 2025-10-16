@@ -430,12 +430,15 @@ span.className = 'folder-name';
 
 const lowerName = f.name.toLowerCase();
 if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
-  // 📈 pour les dossiers Traça_Temp
   span.innerHTML = `📈 ${f.name}`;
-} else {
-  // 📊 pour les autres dossiers
+} else if (lowerName.includes("echantillonnage")) {
   span.innerHTML = `📊 ${f.name}`;
+} else if (lowerName.includes("historique")) {
+  span.innerHTML = `🗂️ ${f.name}`;
+} else {
+  span.textContent = f.name; // pas d’icône
 }
+
 
 span.onclick = () => loadFolderFilesOnClick(li);
 
@@ -481,10 +484,22 @@ async function toggleFolder(li){
     childToggle.textContent='+';
     childToggle.onclick=()=>toggleFolder(childLi);
 
-    const span=document.createElement('span'); 
-    span.className='folder-name'; 
-    span.textContent=f.name;
-    span.onclick=()=>loadFolderFilesOnClick(childLi);
+const span = document.createElement('span');
+span.className = 'folder-name';
+
+const lowerName = f.name.toLowerCase();
+if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
+  span.innerHTML = `📈 ${f.name}`;
+} else if (lowerName.includes("echantillonnage")) {
+  span.innerHTML = `📊 ${f.name}`;
+} else if (lowerName.includes("historique")) {
+  span.innerHTML = `🗂️ ${f.name}`;
+} else {
+  span.textContent = f.name;
+}
+
+span.onclick = () => loadFolderFilesOnClick(childLi);
+
 
     childLi.appendChild(childToggle); 
     childLi.appendChild(span); 
@@ -1124,6 +1139,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
