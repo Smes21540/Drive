@@ -12,6 +12,25 @@
 
 
 <style>
+
+/* --- Voyant clignotant en mode live --- */
+#liveIndicator {
+  display: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: limegreen;
+  margin-left: 8px;
+  box-shadow: 0 0 6px limegreen;
+  animation: pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+  
 :root{
   /* Thème (identique viewer02) */
   --bg:#fff5f5; --panel:#ffffff; --accent:#ff7043; --accent-darker:#e64a19;
@@ -416,6 +435,22 @@ body{
 .hour-mark[data-intensity="0"] .d {
   color: var(--text-dark) !important;
 }
+/* --- Voyant clignotant en mode live --- */
+#liveIndicator {
+  display: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: limegreen;
+  margin-left: 8px;
+  box-shadow: 0 0 6px limegreen;
+  animation: pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
 
   
 </style>
@@ -471,6 +506,21 @@ body{
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 ">🕒 En temps réel</button>
+
+      <div style="display:flex; align-items:center; gap:6px;">
+  <button id="liveBtn" style="
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  ">🕒 En temps réel</button>
+  <div id="liveIndicator" title="Suivi actif"></div>
+</div>
+
 <!-- Bouton optionnel plus tard : Fusion jours (désactivé par défaut) -->
       <!-- <button id="mergeDaysBtn" style="margin-left:12px;">Fusionner jours</button> -->
     </div>
@@ -1662,13 +1712,17 @@ let liveInterval = null;
 
 async function enableLiveMode() {
   const btn = document.getElementById("liveBtn");
+  const indicator = document.getElementById("liveIndicator");
+  const slider = document.getElementById("slider");
 
-  // 🔴 Si déjà actif → on désactive
+  // 🔴 Désactivation si déjà actif
   if (btn.classList.contains("active")) {
     clearInterval(liveInterval);
     liveInterval = null;
     btn.classList.remove("active");
     btn.textContent = "🕒 En temps réel";
+    indicator.style.display = "none";
+    if (slider) slider.style.display = "block";
     console.log("⏸️ Mode temps réel désactivé.");
     return;
   }
@@ -1676,67 +1730,62 @@ async function enableLiveMode() {
   // 🟢 Activation du mode live
   btn.classList.add("active");
   btn.textContent = "🔄 Suivi en direct…";
+  indicator.style.display = "block";
+  if (slider) slider.style.display = "none";
   console.log("▶️ Mode temps réel activé.");
 
-  // 🔹 Trouve le fichier du jour (format YYYYMMDD)
   const now = new Date();
   const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
 
   const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
   const todayFile = list.find(f => f.name.includes(today));
-
   if (!todayFile) {
     alert(`⚠️ Aucun fichier du jour trouvé (${today})`);
     btn.classList.remove("active");
+    indicator.style.display = "none";
+    if (slider) slider.style.display = "block";
     btn.textContent = "🕒 En temps réel";
     return;
   }
 
-  // 🔁 Fonction interne de rechargement
   async function refreshLiveData() {
     try {
-      const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${todayFile.id}&name=${encodeURIComponent(todayFile.name)}`;
-      const res = await fetch(url);
+      const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${todayFile.id}&name=${encodeURIComponent(todayFile.name)}`);
       if (!res.ok) throw new Error("Erreur proxy Drive");
       const buf = await res.arrayBuffer();
       const text = decodeSmart(buf);
-      const results = Papa.parse(text, { header: true, skipEmptyLines: true });
+      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+      headers = parsed.meta.fields || [];
+      csvData = parsed.data || [];
+      console.log(`📈 Données live (${csvData.length} lignes)`);
 
-      headers = results.meta.fields || [];
-      csvData = results.data || [];
+      if (!csvData.length) return;
+      const lastIdx = csvData.length - 1;
+      updateGrid(lastIdx);
 
-      console.log(`📥 Live CSV rechargé (${csvData.length} lignes)`);
-
-      // 🔹 Slider à fond à droite (dernière ligne)
-      const slider = document.getElementById("slider");
-      slider.max = csvData.length - 1;
-      slider.value = slider.max;
-
-      // 🔹 Met à jour la grille et l’heure
-      updateGrid(slider.max);
-      const mins = currentRowMinutes(slider.max);
+      const mins = currentRowMinutes(lastIdx);
       if (!isNaN(mins)) {
         const hh = String(Math.floor(mins / 60)).padStart(2, "0");
         const mm = String(Math.floor(mins % 60)).padStart(2, "0");
         document.getElementById("currentTimeDisplay").textContent = `${hh}:${mm}`;
+        const d = new Date();
         document.getElementById("datetimeLabel").textContent =
-          `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()} — ${hh}:${mm}`;
+          `${d.toLocaleDateString("fr-FR")} — ${hh}:${mm}`;
       }
 
-      // 🔹 Surbrillance éventuelle
       highlightZ3Near(mins);
       updateZ3Intensity(mins);
     } catch (err) {
-      console.error("❌ Erreur rechargement live :", err);
+      console.error("⚠️ Erreur mise à jour live :", err);
     }
   }
 
-  // ⏩ Charge une première fois immédiatement
   await refreshLiveData();
-
-  // ⏱️ Puis recharger toutes les 60 secondes
-  liveInterval = setInterval(refreshLiveData, 60000);
+  liveInterval = setInterval(refreshLiveData, 60_000);
 }
+
+document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
+
 
 // Écouteur bouton
 document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
@@ -1746,6 +1795,7 @@ document.getElementById("liveBtn").addEventListener("click", enableLiveMode);
 </script>
 </body>
 </html>
+
 
 
 
