@@ -217,6 +217,20 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
     0 0 12px rgba(255, 30, 0, 0.5);
 }
 
+/* Petite flamme pour les dossiers dans l’arborescence */
+.flame-folder {
+  display: inline;               
+  font-size: 14px;               
+  margin-right: 4px;             
+  line-height: 1;                
+  vertical-align: middle;
+  text-shadow: 
+    0 0 3px rgba(255, 140, 0, 0.8),
+    0 0 6px rgba(255, 80, 0, 0.7);
+  animation: flicker 1s infinite alternate;
+}
+  
+
 @keyframes sway {
   0%, 100% { transform: translateX(0); }
   50% { transform: translateX(3px) rotate(3deg); }
@@ -1161,7 +1175,8 @@ function markFolderWithFlame(li) {
   const span = li.querySelector(".folder-name");
   if (span && !span.classList.contains("has-flame")) {
     span.classList.add("has-flame");
-    span.innerHTML = `<span class="flame" title="Brûleur(s) actuellement en fonctionnement">🔥</span> ` + span.innerHTML;
+    span.innerHTML = `<span class="flame-folder" title="Brûleur(s) actuellement en fonctionnement">🔥</span> ` + span.innerHTML;
+
   }
   if (li.parentElement && li.parentElement.closest("li")) {
     markFolderWithFlame(li.parentElement.closest("li"));
@@ -1190,6 +1205,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
