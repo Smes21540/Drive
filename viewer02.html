@@ -430,40 +430,31 @@ async function loadCSVFromDrive(){
 
 // 💡 afficher dossier courant + parent racine (si dispo) sans appel API
 try {
-  const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
-  const f = list.find(x => x.id === baseFileId);
+const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+const f = list.find(x => x.id === baseFileId);
 
-  if (f) {
-    let title = "";
+if (f) {
+  let title = "";
 
-    // nom du dossier parent direct (si présent dans la liste)
-    if (f.parents && f.parents.length) {
-      const parent = list.find(x => x.id === f.parents[0]);
-      if (parent && parent.name) {
-        title = parent.name;
+  // Cherche le dossier parent valide (différent du fichier lui-même)
+  let parent = list.find(x => f.parents && f.parents.includes(x.id) && x.name && x.name !== f.name);
+  if (parent) {
+    title = parent.name;
 
-        // chercher le parent du parent
-        if (parent.parents && parent.parents.length) {
-          const root = list.find(x => x.id === parent.parents[0]);
-          if (root && root.name) {
-            title = root.name + " / " + parent.name;
-          }
-        }
-      }
-    }
-
-// fallback : si aucun dossier trouvé, afficher au moins le nom du fichier
-if (!title) title = baseFileName;
-
-// 🔥 transformer les flammes en span animé avec tooltip
-const flameTitle = title.replace(
-  /🔥/g,
-  '<span class="flame" title="Brûleur(s) actuellement en fonctionnement">🔥</span>'
-);
-document.getElementById("currentFolderName").innerHTML = flameTitle;
-
-
+    // Cherche le parent du parent (le site)
+    let root = list.find(x => parent.parents && parent.parents.includes(x.id) && x.name && x.name !== parent.name);
+    if (root) title = root.name + " / " + title;
   }
+
+  if (!title) title = baseFileName;
+
+  const flameTitle = title.replace(
+    /🔥/g,
+    '<span class="flame" title="Brûleur(s) actuellement en fonctionnement">🔥</span>'
+  );
+  document.getElementById("currentFolderName").innerHTML = flameTitle;
+}
+
 } catch(e) {
   console.warn("Impossible de récupérer le titre dossier", e);
 }
@@ -1317,4 +1308,3 @@ async function autoLoadDays(chart){
   </script>
 </body>
 </html>
-
