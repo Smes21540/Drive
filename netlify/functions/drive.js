@@ -23,7 +23,6 @@ async function getAccessTokenFromServiceAccount() {
 
 export async function handler(event, context) {
   const method = event.httpMethod;
-
   const key = process.env.API_KEY;
   const origin = event.headers.origin || "";
 
@@ -32,7 +31,6 @@ export async function handler(event, context) {
     "https://smes21540.github.io",
     "https://smes21540.netlify.app"
   ];
-
   const allowOrigin = baseAllowed.includes(origin)
     ? origin
     : "https://smes21540.github.io";
@@ -50,29 +48,26 @@ export async function handler(event, context) {
     };
   }
 
-  // ✏️ --- Bloc d'upload de notes (POST) ---
+  // ✏️ --- Bloc d'upload de notes (POST via service account) ---
   if (method === "POST") {
     try {
       const body = JSON.parse(event.body || "{}");
-
       if (!body.upload || !body.parentId || !body.name || !body.content) {
         return { statusCode: 400, body: "Paramètres manquants pour upload" };
       }
 
-      // 🔐 Token Drive via compte de service
+      // Génération du token Drive
       const token = await getAccessTokenFromServiceAccount();
       if (!token) {
         return { statusCode: 500, body: "Impossible de générer un token Drive" };
       }
 
-      // Métadonnées Drive
       const metadata = {
         name: body.name,
         parents: [body.parentId],
         mimeType: body.mimeType || "text/plain"
       };
 
-      // Construction multipart (uploadType=multipart)
       const boundary = "-------smesuploadboundary" + Date.now();
       const multipartBody =
         `--${boundary}\r\n` +
@@ -135,25 +130,19 @@ export async function handler(event, context) {
   }
 
   // ==========================
-  // 🧾  Partie existante (GET)
+  // 🧾  Partie lecture (GET) — version stable
   // ==========================
-
   const id = event.queryStringParameters.id;
   const name = event.queryStringParameters.name || "";
   const list = event.queryStringParameters.list === "true";
 
   if (!id) {
-    return {
-      statusCode: 400,
-      body: "Missing id parameter"
-    };
+    return { statusCode: 400, body: "Missing id parameter" };
   }
 
   // 🕓 Contrôle spécifique pour Invivo_St_Usage
   if (origin.includes("Invivo_St_Usage")) {
     const now = Date.now();
-
-    // Si déjà bloqué
     if (invivoBlockedUntil && now < invivoBlockedUntil) {
       return {
         statusCode: 403,
@@ -165,13 +154,9 @@ export async function handler(event, context) {
         body: "Accès suspendu : merci de régulariser votre abonnement."
       };
     }
-
-    // Première utilisation → démarrage du chrono
     if (!invivoSessionStart) invivoSessionStart = now;
-
-    // Si plus de 5 min écoulées → blocage pour 1h
     if (now - invivoSessionStart > 5 * 60 * 1000) {
-      invivoBlockedUntil = now + 60 * 60 * 1000; // 1h
+      invivoBlockedUntil = now + 60 * 60 * 1000;
       invivoSessionStart = null;
       return {
         statusCode: 403,
@@ -185,11 +170,10 @@ export async function handler(event, context) {
     }
   }
 
-  // === Si autorisé, traitement normal ===
   try {
-    // 🗂️ Liste de fichiers Drive
+    // 🗂️ Liste de fichiers Drive (API publique)
     if (list) {
-      const url = `https://www.googleapis.com/drive/v3/files?q='${id}'+in+parents+and+trashed=false&key=${key}&fields=files(id,name,mimeType,size,createdTime,modifiedTime,parents)`;
+      const url = `https://www.googleapis.com/drive/v3/files?q='${id}'+in+parents+and+trashed=false&key=${key}&fields=files(id,name,mimeType,size,createdTime,modifiedTime)`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -206,7 +190,7 @@ export async function handler(event, context) {
       };
     }
 
-    // 🧾 Téléchargement du fichier
+    // 🧾 Téléchargement du fichier (API publique)
     const url = `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${key}`;
     const response = await fetch(url);
     if (!response.ok) {
@@ -214,7 +198,6 @@ export async function handler(event, context) {
     }
 
     const data = await response.arrayBuffer();
-
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     const isTodayFile = name.includes(today);
     const cacheSeconds = isTodayFile ? 60 : 3600;
