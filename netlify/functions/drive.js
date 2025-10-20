@@ -1,20 +1,9 @@
 // === Variables globales (stockées en mémoire tant que la fonction reste chaude) ===
-// test
-
 let invivoSessionStart = null;
 let invivoBlockedUntil = null;
 
 export async function handler(event, context) {
-  const id = event.queryStringParameters.id;
-  const name = event.queryStringParameters.name || "";
-  const list = event.queryStringParameters.list === "true";
-
-  if (!id) {
-    return {
-      statusCode: 400,
-      body: "Missing id parameter"
-    };
-  }
+  const method = event.httpMethod; // ✅ ajout
 
   const key = process.env.API_KEY;
   const origin = event.headers.origin || "";
@@ -26,6 +15,102 @@ export async function handler(event, context) {
   const allowOrigin =
     allowedOrigins.find(o => origin.startsWith(o)) ||
     "https://smes21540.github.io";
+
+  // ✅ Réponse préflight (CORS)
+  if (method === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": allowOrigin,
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      },
+      body: ""
+    };
+  }
+
+  // ✏️ --- Bloc d'upload de notes (POST) ---
+  if (method === "POST") {
+    try {
+      const body = JSON.parse(event.body || "{}");
+
+      if (!body.upload || !body.parentId || !body.name || !body.content) {
+        return { statusCode: 400, body: "Paramètres manquants pour upload" };
+      }
+
+      // 🔐 Token Drive obligatoire (à mettre dans les variables Netlify)
+      const token = process.env.DRIVE_ACCESS_TOKEN;
+      if (!token) {
+        return { statusCode: 500, body: "Token manquant côté serveur" };
+      }
+
+      // Métadonnées Drive
+      const metadata = {
+        name: body.name,
+        parents: [body.parentId],
+        mimeType: body.mimeType || "text/plain"
+      };
+
+      // Construction multipart (uploadType=multipart)
+      const boundary = "-------smesuploadboundary" + Date.now();
+      const multipartBody =
+        `--${boundary}\r\n` +
+        "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
+        JSON.stringify(metadata) + "\r\n" +
+        `--${boundary}\r\n` +
+        `Content-Type: ${metadata.mimeType}\r\n\r\n` +
+        body.content + "\r\n" +
+        `--${boundary}--`;
+
+      const uploadUrl =
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+
+      const res = await fetch(uploadUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": `multipart/related; boundary=${boundary}`
+        },
+        body: multipartBody
+      });
+
+      if (!res.ok) {
+        const errTxt = await res.text();
+        console.error("Erreur upload:", errTxt);
+        return { statusCode: res.status, body: "Erreur upload Drive" };
+      }
+
+      const result = await res.json();
+      return {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": allowOrigin,
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ success: true, id: result.id })
+      };
+    } catch (err) {
+      console.error("Erreur upload proxy:", err);
+      return { statusCode: 500, body: "Erreur interne upload" };
+    }
+  }
+
+  // ==========================
+  // 🧾  Partie existante (GET)
+  // ==========================
+
+  const id = event.queryStringParameters.id;
+  const name = event.queryStringParameters.name || "";
+  const list = event.queryStringParameters.list === "true";
+
+  if (!id) {
+    return {
+      statusCode: 400,
+      body: "Missing id parameter"
+    };
+  }
 
   // 🕓 Contrôle spécifique pour Invivo_St_Usage
   if (origin.includes("Invivo_St_Usage")) {
