@@ -26,16 +26,16 @@ export async function handler(event, context) {
 
   const key = process.env.API_KEY;
   const origin = event.headers.origin || "";
+
   // 🔓 Autoriser GitHub Pages et ton domaine Netlify
-const baseAllowed = [
-  "https://smes21540.github.io",
-  "https://smes21540.netlify.app"
-];
+  const baseAllowed = [
+    "https://smes21540.github.io",
+    "https://smes21540.netlify.app"
+  ];
 
-const allowOrigin = baseAllowed.includes(origin)
-  ? origin
-  : "https://smes21540.github.io";
-
+  const allowOrigin = baseAllowed.includes(origin)
+    ? origin
+    : "https://smes21540.github.io";
 
   // ✅ Réponse préflight (CORS)
   if (method === "OPTIONS") {
@@ -98,7 +98,15 @@ const allowOrigin = baseAllowed.includes(origin)
       if (!res.ok) {
         const errTxt = await res.text();
         console.error("Erreur upload:", errTxt);
-        return { statusCode: res.status, body: "Erreur upload Drive" };
+        return {
+          statusCode: res.status,
+          headers: {
+            "Access-Control-Allow-Origin": allowOrigin,
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+          },
+          body: "Erreur upload Drive"
+        };
       }
 
       const result = await res.json();
@@ -114,7 +122,15 @@ const allowOrigin = baseAllowed.includes(origin)
       };
     } catch (err) {
       console.error("Erreur upload proxy:", err);
-      return { statusCode: 500, body: "Erreur interne upload" };
+      return {
+        statusCode: 500,
+        headers: {
+          "Access-Control-Allow-Origin": allowOrigin,
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type"
+        },
+        body: "Erreur interne upload"
+      };
     }
   }
 
@@ -173,7 +189,7 @@ const allowOrigin = baseAllowed.includes(origin)
   try {
     // 🗂️ Liste de fichiers Drive
     if (list) {
-      const url = `https://www.googleapis.com/drive/v3/files?q='${id}'+in+parents+and+trashed=false&key=${key}&fields=files(id,name,mimeType,size,createdTime,modifiedTime)`;
+      const url = `https://www.googleapis.com/drive/v3/files?q='${id}'+in+parents+and+trashed=false&key=${key}&fields=files(id,name,mimeType,size,createdTime,modifiedTime,parents)`;
       const response = await fetch(url);
       const data = await response.json();
 
@@ -218,6 +234,14 @@ const allowOrigin = baseAllowed.includes(origin)
     };
   } catch (err) {
     console.error("Erreur proxy Drive:", err);
-    return { statusCode: 500, body: "Erreur interne proxy Drive" };
+    return {
+      statusCode: 500,
+      headers: {
+        "Access-Control-Allow-Origin": allowOrigin,
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      },
+      body: "Erreur interne proxy Drive"
+    };
   }
 }
