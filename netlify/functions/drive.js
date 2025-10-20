@@ -26,14 +26,16 @@ export async function handler(event, context) {
 
   const key = process.env.API_KEY;
   const origin = event.headers.origin || "";
-  const allowedOrigins = [
-    "https://smes21540.github.io/Drive",
-    "https://smes21540.github.io/Oxyane",
-    "https://smes21540.github.io/Invivo_St_Usage"
-  ];
-  const allowOrigin =
-    allowedOrigins.find(o => origin.startsWith(o)) ||
-    "https://smes21540.github.io";
+  // 🔓 Autoriser GitHub Pages et ton domaine Netlify
+const baseAllowed = [
+  "https://smes21540.github.io",
+  "https://smes21540.netlify.app"
+];
+
+const allowOrigin = baseAllowed.includes(origin)
+  ? origin
+  : "https://smes21540.github.io";
+
 
   // ✅ Réponse préflight (CORS)
   if (method === "OPTIONS") {
