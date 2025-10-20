@@ -1,7 +1,10 @@
 {
+  "name": "smes-drive-proxy",
+  "version": "1.0.0",
+  "description": "Proxy Netlify pour accès et upload sur Google Drive via compte de service",
+  "main": "netlify/functions/drive.js",
   "type": "module",
   "dependencies": {
-    "googleapis": "^131.0.0"
+    "googleapis": "^139.0.0"
   }
 }
-
