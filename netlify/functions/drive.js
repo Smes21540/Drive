@@ -1,9 +1,28 @@
 // === Variables globales (stockées en mémoire tant que la fonction reste chaude) ===
+import { google } from "googleapis";
+
 let invivoSessionStart = null;
 let invivoBlockedUntil = null;
 
+/* === Fonction : génération automatique du token Drive via compte de service === */
+async function getAccessTokenFromServiceAccount() {
+  try {
+    const serviceJson = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth = new google.auth.GoogleAuth({
+      credentials: serviceJson,
+      scopes: ["https://www.googleapis.com/auth/drive.file"]
+    });
+    const client = await auth.getClient();
+    const token = await client.getAccessToken();
+    return token.token;
+  } catch (err) {
+    console.error("Erreur génération token service account:", err);
+    return null;
+  }
+}
+
 export async function handler(event, context) {
-  const method = event.httpMethod; // ✅ ajout
+  const method = event.httpMethod;
 
   const key = process.env.API_KEY;
   const origin = event.headers.origin || "";
@@ -38,10 +57,10 @@ export async function handler(event, context) {
         return { statusCode: 400, body: "Paramètres manquants pour upload" };
       }
 
-      // 🔐 Token Drive obligatoire (à mettre dans les variables Netlify)
-      const token = process.env.DRIVE_ACCESS_TOKEN;
+      // 🔐 Token Drive via compte de service
+      const token = await getAccessTokenFromServiceAccount();
       if (!token) {
-        return { statusCode: 500, body: "Token manquant côté serveur" };
+        return { statusCode: 500, body: "Impossible de générer un token Drive" };
       }
 
       // Métadonnées Drive
