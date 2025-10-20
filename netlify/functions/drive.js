@@ -79,8 +79,9 @@ export async function handler(event, context) {
         body.content + "\r\n" +
         `--${boundary}--`;
 
-      const uploadUrl =
-        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+const uploadUrl =
+  "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true";
+
 
       const res = await fetch(uploadUrl, {
         method: "POST",
