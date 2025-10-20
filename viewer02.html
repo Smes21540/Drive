@@ -1395,70 +1395,7 @@ async function autoLoadDays(chart){
     }
   })();
 
-// === Notes contextuelles Drive ===
-const noteBtn = document.getElementById("noteButton");
-const notePopup = document.getElementById("notePopup");
-const noteText = document.getElementById("noteText");
-const saveNoteBtn = document.getElementById("saveNoteBtn");
-const cancelNoteBtn = document.getElementById("cancelNoteBtn");
-const noteStatus = document.getElementById("noteStatus");
 
-noteBtn.addEventListener("click", () => {
-  noteText.value = "";
-  noteStatus.textContent = "";
-  notePopup.classList.add("active");
-  noteText.focus();
-});
-
-cancelNoteBtn.addEventListener("click", () => {
-  notePopup.classList.remove("active");
-});
-
-saveNoteBtn.addEventListener("click", async () => {
-  const content = noteText.value.trim();
-  if (!content) {
-    noteStatus.textContent = "⚠️ Note vide, rien à enregistrer.";
-    return;
-  }
-
-  noteStatus.textContent = "💾 Enregistrement en cours...";
-
-  try {
-    const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
-    const f = list.find(x => x.id === baseFileId);
-    if (!f || !f.parents?.length) throw new Error("Dossier parent introuvable");
-    const parentId = f.parents[0];
-
-    // Nom : N + baseFileName (sans .csv) + _yyyymmdd.txt
-    const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
-    const baseName = baseFileName.replace(/\.csv$/i, "");
-    const noteFileName = `N${baseName}_${dateStr}.txt`;
-
-    const body = JSON.stringify({
-      upload: true,
-      name: noteFileName,
-      mimeType: "text/plain",
-      parentId,
-      content,
-      site: "Smes_Acces"
-    });
-
-    const res = await fetch(`/.netlify/functions/drive`, {
-
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body
-    });
-
-    if (!res.ok) throw new Error("Upload échoué");
-
-    noteStatus.textContent = "✅ Note enregistrée sur Drive";
-    setTimeout(() => { notePopup.classList.remove("active"); }, 800);
-  } catch (e) {
-    console.error("Erreur note Drive:", e);
-    noteStatus.textContent = "⚠️ Erreur d'enregistrement";
-  }
-});
 
     
   </script>
@@ -1479,8 +1416,77 @@ saveNoteBtn.addEventListener("click", async () => {
   </div>
 </div>
 
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const noteBtn = document.getElementById("noteButton");
+  const notePopup = document.getElementById("notePopup");
+  const noteText = document.getElementById("noteText");
+  const saveNoteBtn = document.getElementById("saveNoteBtn");
+  const cancelNoteBtn = document.getElementById("cancelNoteBtn");
+  const noteStatus = document.getElementById("noteStatus");
+
+  if (!noteBtn) return; // sécurité
+
+  noteBtn.addEventListener("click", () => {
+    noteText.value = "";
+    noteStatus.textContent = "";
+    notePopup.classList.add("active");
+    noteText.focus();
+  });
+
+  cancelNoteBtn.addEventListener("click", () => {
+    notePopup.classList.remove("active");
+  });
+
+  saveNoteBtn.addEventListener("click", async () => {
+    const content = noteText.value.trim();
+    if (!content) {
+      noteStatus.textContent = "⚠️ Note vide, rien à enregistrer.";
+      return;
+    }
+
+    noteStatus.textContent = "💾 Enregistrement en cours...";
+
+    try {
+      const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+      const f = list.find(x => x.id === baseFileId);
+      if (!f || !f.parents?.length) throw new Error("Dossier parent introuvable");
+      const parentId = f.parents[0];
+
+      const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
+      const baseName = baseFileName.replace(/\.csv$/i, "");
+      const noteFileName = `N${baseName}_${dateStr}.txt`;
+
+      const body = JSON.stringify({
+        upload: true,
+        name: noteFileName,
+        mimeType: "text/plain",
+        parentId,
+        content,
+        site: "Smes_Acces"
+      });
+
+      const res = await fetch(`/.netlify/functions/drive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body
+      });
+
+      if (!res.ok) throw new Error("Upload échoué");
+
+      noteStatus.textContent = "✅ Note enregistrée sur Drive";
+      setTimeout(() => { notePopup.classList.remove("active"); }, 800);
+    } catch (e) {
+      console.error("Erreur note Drive:", e);
+      noteStatus.textContent = "⚠️ Erreur d'enregistrement";
+    }
+  });
+});
+</script>
+
   
 </body>
 </html>
+
 
 
