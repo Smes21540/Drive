@@ -8,10 +8,11 @@ let invivoBlockedUntil = null;
 async function getAccessTokenFromServiceAccount() {
   try {
     const serviceJson = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    const auth = new google.auth.GoogleAuth({
-      credentials: serviceJson,
-      scopes: ["https://www.googleapis.com/auth/drive.file"]
-    });
+const auth = new google.auth.GoogleAuth({
+  credentials: serviceJson,
+  scopes: ["https://www.googleapis.com/auth/drive"]
+});
+
     const client = await auth.getClient();
     const token = await client.getAccessToken();
     return token.token;
