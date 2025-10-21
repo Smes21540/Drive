@@ -46,8 +46,33 @@ export default async function handler(event) {
       body: bodyContent,
     });
 
-    const gData = await gRes.text();
-    return new Response(gData, { status: gRes.status, headers: corsHeaders });
+const gData = await gRes.text();
+
+if (gRes.ok) {
+  return new Response(
+    JSON.stringify({
+      status: "ok",
+      message: "Note sauvegardée sur Drive",
+      details: gData,
+    }),
+    {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
+  );
+}
+
+return new Response(
+  JSON.stringify({
+    error: "Erreur Google Drive",
+    details: gData,
+  }),
+  {
+    status: gRes.status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  }
+);
+
 
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
