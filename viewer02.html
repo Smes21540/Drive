@@ -1464,11 +1464,19 @@ const parentId = "18QkQPyCZxTCAaoz_qd1wAelmQbSE4ex8";
         site: "Smes_Acces"
       });
 
-const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive`, {
+const res = await fetch("https://script.google.com/macros/s/AKfycbxtJvuT2gKRAwEMf6ZQJAffu0vR031u5aEdmEZIJTyf-0098kUSy5VphP6a4zQ1thEu4w/exec", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body
+  body: JSON.stringify({
+    type: "add_note",
+    csvName: baseFileName,
+    note: {
+      comment: content,
+      timestamp: new Date().toISOString()
+    }
+  })
 });
+
 
 
       if (!res.ok) throw new Error("Upload échoué");
@@ -1486,6 +1494,7 @@ const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive`
   
 </body>
 </html>
+
 
 
 
