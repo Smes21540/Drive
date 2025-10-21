@@ -1,34 +1,45 @@
 export default async function handler(req, res) {
-  // Autorise toutes les origines et méthodes
+  // Toujours envoyer les en-têtes CORS dès le départ
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // Si c'est une pré-requête CORS, on répond tout de suite
+  // 1️⃣ Cas préflight OPTIONS — Netlify doit répondre immédiatement
   if (req.method === "OPTIONS") {
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
 
-  // URL de ton script Google Apps Script
-  const googleScriptUrl =
-    "https://script.google.com/macros/s/AKfycbxtJvuT2gKRAwEMf6ZQJAffu0vR031u5aEdmEZIJTyf-0098kUSy5VphP6a4zQ1thEu4w/exec";
+  // 2️⃣ URL de ton script Google
+  const googleScriptUrl = "https://script.google.com/macros/s/AKfycbxtJvuT2gKRAwEMf6ZQJAffu0vR031u5aEdmEZIJTyf-0098kUSy5VphP6a4zQ1thEu4w/exec";
 
   try {
-    // Relais de la requête vers ton script Google
-    const gResponse = await fetch(googleScriptUrl, {
+    // 3️⃣ Récupère le corps JSON envoyé depuis viewer02
+    let body = "";
+    try {
+      body = req.body ? JSON.stringify(req.body) : "{}";
+    } catch {
+      body = "{}";
+    }
+
+    // 4️⃣ Transmet la requête à ton Apps Script
+    const response = await fetch(googleScriptUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(req.body || {}),
+      body,
     });
 
-    const text = await gResponse.text();
+    const text = await response.text();
 
-    // Re-envoi de la réponse au navigateur avec CORS ouvert
+    // 5️⃣ Renvoie la réponse à ton viewer avec CORS ouvert
+    res.status(response.status);
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.status(gResponse.status).send(text);
+    res.send(text);
   } catch (err) {
-    console.error("Erreur proxy:", err);
+    console.error("Erreur proxy vers Google Apps Script :", err);
+    res.status(500);
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.status(500).json({ error: err.message });
+    res.json({ error: err.message });
   }
 }
+
