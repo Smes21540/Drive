@@ -1438,62 +1438,47 @@ document.addEventListener("DOMContentLoaded", () => {
     notePopup.classList.remove("active");
   });
 
-  saveNoteBtn.addEventListener("click", async () => {
-    const content = noteText.value.trim();
-    if (!content) {
-      noteStatus.textContent = "⚠️ Note vide, rien à enregistrer.";
-      return;
-    }
+saveNoteBtn.addEventListener("click", async () => {
+  const content = noteText.value.trim();
+  if (!content) {
+    noteStatus.textContent = "⚠️ Note vide, rien à enregistrer.";
+    return;
+  }
 
-    noteStatus.textContent = "💾 Enregistrement en cours...";
+  noteStatus.textContent = "💾 Enregistrement en cours...";
 
-    try {
-const parentId = "18QkQPyCZxTCAaoz_qd1wAelmQbSE4ex8";
+  try {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbxtJvuT2gKRAwEMf6ZQJAffu0vR031u5aEdmEZIJTyf-0098kUSy5VphP6a4zQ1thEu4w/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        csvName: baseFileName,
+        note: {
+          comment: content,
+          timestamp: new Date().toISOString()
+        }
+      })
+    });
 
+    if (!res.ok) throw new Error("Upload échoué");
+    const json = await res.json();
+    if (json.status !== "ok") throw new Error(json.message || "Erreur côté script");
 
-      const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
-      const baseName = baseFileName.replace(/\.csv$/i, "");
-      const noteFileName = `N${baseName}_${dateStr}.txt`;
-
-      const body = JSON.stringify({
-        upload: true,
-        name: noteFileName,
-        mimeType: "text/plain",
-        parentId,
-        content,
-        site: "Smes_Acces"
-      });
-
-const res = await fetch("https://script.google.com/macros/s/AKfycbxtJvuT2gKRAwEMf6ZQJAffu0vR031u5aEdmEZIJTyf-0098kUSy5VphP6a4zQ1thEu4w/exec", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    type: "add_note",
-    csvName: baseFileName,
-    note: {
-      comment: content,
-      timestamp: new Date().toISOString()
-    }
-  })
+    noteStatus.textContent = "✅ Note enregistrée sur Drive";
+    setTimeout(() => { notePopup.classList.remove("active"); }, 1000);
+  } catch (e) {
+    console.error("Erreur note Drive:", e);
+    noteStatus.textContent = "⚠️ Erreur d'enregistrement";
+  }
 });
 
-
-
-      if (!res.ok) throw new Error("Upload échoué");
-
-      noteStatus.textContent = "✅ Note enregistrée sur Drive";
-      setTimeout(() => { notePopup.classList.remove("active"); }, 800);
-    } catch (e) {
-      console.error("Erreur note Drive:", e);
-      noteStatus.textContent = "⚠️ Erreur d'enregistrement";
-    }
-  });
 });
 </script>
 
   
 </body>
 </html>
+
 
 
 
