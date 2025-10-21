@@ -3,43 +3,56 @@ export default async function handler(event) {
 
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
 
-  console.log("📨 Requête entrante :", request.method, request.url);
-
   if (request.method === "OPTIONS") {
-    console.log("⚙️ Pré-requête OPTIONS traitée");
     return new Response("", { status: 200, headers: corsHeaders });
   }
 
-  const googleScriptUrl =
-    "https://script.google.com/macros/s/AKfycbxtJvuT2gKRAwEMf6ZQJAffu0vR031u5aEdmEZIJTyf-0098kUSy5VphP6a4zQ1thEu4w/exec";
-
   try {
-    const body = await request.text();
-    console.log("🧾 Corps reçu :", body);
+    const body = await request.json();
+    const csvName = body.csvName || "SA_inconnu.json";
+    const note = body.note || {};
 
-    const gRes = await fetch(googleScriptUrl, {
+    const token = JSON.parse(process.env.GDRIVE_TOKEN);
+    const ACCESS_TOKEN = token.access_token;
+
+    const uploadUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+
+    const boundary = "foo_bar_baz";
+    const metadata = {
+      name: csvName.replace(/\.csv$/i, ".json"),
+      mimeType: "application/json",
+      parents: ["1k_rLI_bt5YibXv7n2Q2xLZ3sOAnRk0Am"], // dossier cible
+    };
+
+    const bodyContent =
+      `--${boundary}\r\n` +
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+      JSON.stringify(metadata) + "\r\n" +
+      `--${boundary}\r\n` +
+      "Content-Type: application/json\r\n\r\n" +
+      JSON.stringify(note, null, 2) + "\r\n" +
+      `--${boundary}--`;
+
+    const gRes = await fetch(uploadUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
+      headers: {
+        Authorization: `Bearer ${ACCESS_TOKEN}`,
+        "Content-Type": `multipart/related; boundary=${boundary}`,
+      },
+      body: bodyContent,
     });
 
-    const text = await gRes.text();
-    console.log("📤 Réponse Google :", gRes.status, text.slice(0, 120));
+    const gData = await gRes.text();
+    return new Response(gData, { status: gRes.status, headers: corsHeaders });
 
-    return new Response(text, {
-      status: gRes.status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (err) {
-    console.error("💥 Erreur proxy :", err);
-    const error = JSON.stringify({ error: err.message });
-    return new Response(error, {
+    return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: corsHeaders,
     });
   }
 }
