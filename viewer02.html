@@ -1448,40 +1448,33 @@ saveNoteBtn.addEventListener("click", async () => {
   noteStatus.textContent = "💾 Enregistrement en cours...";
 
   try {
-    const res = await fetch("https://smes21540.netlify.app/.netlify/functions/notes", {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzgb4xlCMFokRwY4PZrEovYouAkQLDbFY6MmWRIVGDhbLtG54uXv5iohkH2KauF4hVH/exec", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        csvName: baseFileName,
-        note: {
-          comment: content,
-          timestamp: new Date().toISOString(),
-        },
-      }),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        csvName: baseFileName || "inconnu",
+        note: JSON.stringify({
+          message: content,
+          time: new Date().toISOString(),
+          viewer: window.location.href
+        })
+      })
     });
 
-    // 🔎 On vérifie et lit proprement la réponse
     const text = await res.text();
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      throw new Error("Réponse non valide : " + text);
-    }
+    noteStatus.textContent = "✅ Note envoyée avec succès";
+    console.log("Réponse du serveur:", text);
 
-    if (!res.ok || json.error) {
-      throw new Error(json.error || json.message || "Erreur inconnue");
-    }
-
-    noteStatus.textContent = "✅ Note enregistrée sur Drive";
     setTimeout(() => {
       notePopup.classList.remove("active");
     }, 1000);
+
   } catch (e) {
-    console.error("Erreur note Drive:", e);
-    noteStatus.textContent = "⚠️ Erreur d'enregistrement : " + e.message;
+    console.error("Erreur envoi note:", e);
+    noteStatus.textContent = "⚠️ Échec de l’envoi : " + e.message;
   }
 });
+
 
 
 });
@@ -1490,6 +1483,7 @@ saveNoteBtn.addEventListener("click", async () => {
   
 </body>
 </html>
+
 
 
 
