@@ -1448,7 +1448,7 @@ saveNoteBtn.addEventListener("click", async () => {
   noteStatus.textContent = "💾 Enregistrement en cours...";
 
   try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbxtJvuT2gKRAwEMf6ZQJAffu0vR031u5aEdmEZIJTyf-0098kUSy5VphP6a4zQ1thEu4w/exec", {
+    const res = await fetch("https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLhxRoIXci7bYNhKMuLb6md2-aFvTjIwYl2B3Ec3PVM5SEoz9oLYb4cR7p_MjNUJx8GvOnDc0P4xSLMhtqbfMGrhO2mE8MrVT2SPeziU7AAPevoDRl64EQoFPdzesx8jO0g6Lvj_mUmWkwpcfOF_-Ds0s4_qjACcWvaJfX46cuV-ggF55F9Atr4Tr6ZpKcsGV_zXdE-LXwkEy4lSvDzkYvPsoK2h-aBHNT_Cv3NecQ_miPez8ek6PTevaAPy4S0jfSk5vc0UxgJnpVJDNx5WHfipnK4NTbI1ipzUMx9m&lib=M7PE6NslU2ga45-g595Y6cyfZLrbal3o4", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1478,6 +1478,7 @@ saveNoteBtn.addEventListener("click", async () => {
   
 </body>
 </html>
+
 
 
 
