@@ -1448,7 +1448,8 @@ saveNoteBtn.addEventListener("click", async () => {
   noteStatus.textContent = "💾 Enregistrement en cours...";
 
   try {
-const res = await fetch("https://script.google.com/macros/s/AKfycbwj71D8SQlH8aZD9S5hGoC-PUwHpVPcESdvK5kBcinYJR_gLGfX0gucNvc9t4NkIy0y/exec", {
+const res = await fetch("https://smes21540.netlify.app/.netlify/functions/notes", {
+
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -1479,6 +1480,7 @@ const res = await fetch("https://script.google.com/macros/s/AKfycbwj71D8SQlH8aZD
   
 </body>
 </html>
+
 
 
 
