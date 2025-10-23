@@ -1572,16 +1572,17 @@ document.getElementById("saveNoteBtn").addEventListener("click", async () => {
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          csvName: baseFileName || "inconnu.csv",
-          fileId: baseFileId,
-          folderId: currentFolderId,
-          author: authorInput.value || "Anonyme",
-          note: content,
-          x: clickedPoint ? clickedPoint.x : "",
-          y: clickedPoint ? clickedPoint.y : "",
-          createdAt: createdAt
-        })
+body: new URLSearchParams({
+  csvName: baseFileName || "inconnu.csv",
+  fileId: baseFileId,
+  folderId: localStorage.getItem("lastFolderId"),  // ✅ bon dossier !
+  author: authorInput.value || "Anonyme",
+  note: content,
+  x: clickedPoint ? clickedPoint.x : "",
+  y: clickedPoint ? clickedPoint.y : "",
+  createdAt: createdAt
+})
+
       }
     );
 
@@ -1673,6 +1674,7 @@ function showNotePopup(note) {
   
 </body>
 </html>
+
 
 
 
