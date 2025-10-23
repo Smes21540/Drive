@@ -877,16 +877,7 @@ const allCsv = [...saFiles, ...z3Files, ...jsonFiles];
     }
   });
 
-// 🗒️ Inclure aussi les fichiers .json pour les notes
-const jsonFiles = files.filter(f => f.name.toLowerCase().endsWith(".json"));
-if (jsonFiles.length > 0) {
-  console.log(`[Notes] ${jsonFiles.length} fichiers .json ajoutés au cache`);
-  jsonFiles.forEach(jf => {
-    if (!jf.parents) jf.parents = [folderId];
-    if (!jf.mimeType) jf.mimeType = "application/json";
-  });
-  allCsv.push(...jsonFiles);
-}
+
 
   
   localStorage.setItem("csvFilesList", JSON.stringify(allCsv));
@@ -1237,6 +1228,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
