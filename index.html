@@ -857,6 +857,18 @@ async function openViewer(viewer, id, name){
     }
   });
 
+// 🗒️ Inclure aussi les fichiers .json pour les notes
+const jsonFiles = files.filter(f => f.name.toLowerCase().endsWith(".json"));
+if (jsonFiles.length > 0) {
+  console.log(`[Notes] ${jsonFiles.length} fichiers .json ajoutés au cache`);
+  jsonFiles.forEach(jf => {
+    if (!jf.parents) jf.parents = [folderId];
+    if (!jf.mimeType) jf.mimeType = "application/json";
+  });
+  allCsv.push(...jsonFiles);
+}
+
+  
   localStorage.setItem("csvFilesList", JSON.stringify(allCsv));
   const index = allCsv.findIndex(f => f.id === id);
   localStorage.setItem("csvFileIndex", index);
@@ -1205,6 +1217,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
