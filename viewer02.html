@@ -1448,7 +1448,7 @@ try {
 
       // 🔧 Conversion et nettoyage des données avant affichage
 notesData = notes.map(n => ({
-  id: n.id || null, // 🆔 récupération de l'identifiant (si dispo)
+  id: n.id || crypto.randomUUID(),               // 🆔 on garde l'identifiant
   x: typeof n.x === "string" ? Number(n.x) || new Date(n.x).getTime() : n.x,
   y: typeof n.y === "string" ? parseFloat(n.y) : n.y,
   text: n.note,
@@ -1621,31 +1621,24 @@ document.getElementById("saveNoteBtn").addEventListener("click", async () => {
   status.textContent = "💾 Envoi en cours...";
 
   try {
-    // 🆔 Génération d’un identifiant unique pour la note
-const noteId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-
     const createdAt = new Date().toISOString();
 const response = await fetch(
-  "https://script.google.com/macros/s/AKfycbxTFPdqXjWtAC-SXyVXnK-Rwv2k_BrqLqOawM9LH819ToNdIZ_qWmkDDNYiqMhCbpmF/exec",
+  "https://script.google.com/macros/s/AKfycbxiSr6IPoOoPrl61xOA4KUBN9y-P8OoKMIIPRKBUnqnV---FBS8iH3jVfWqPtHFXnw/exec",
 
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
 body: new URLSearchParams({
-  id: noteId,  // 🆔 identifiant unique
+  id: crypto.randomUUID(),                        // 🆔 identifiant unique
   csvName: baseFileName || "inconnu.csv",
   fileId: baseFileId,
-  folderId: localStorage.getItem("lastFolderId"), // ✅ dossier Drive exact, version fiable
-
-
-
-status: "active", // ajoute ce champ ici, indispensable pour le script
-
+  folderId: localStorage.getItem("lastFolderId"),  // ✅ bon dossier conservé
   author: authorInput.value || "Anonyme",
   note: content,
   x: clickedPoint ? clickedPoint.x : "",
   y: clickedPoint ? clickedPoint.y : "",
-  createdAt: createdAt
+  createdAt: createdAt,
+  status: "active"                                // ✅ statut explicite
 })
 
 
@@ -1657,7 +1650,7 @@ status: "active", // ajoute ce champ ici, indispensable pour le script
     status.textContent = "✅ Note enregistrée !";
 
 notesData.push({
-  id: noteId, // 🆔 identifiant ajouté localement
+  id: crypto.randomUUID(),                       // 🆔 identifiant local
   x: clickedPoint.x,
   y: clickedPoint.y,
   text: content,
@@ -1717,25 +1710,19 @@ showConfirm("Confirmer la suppression de cette note ?", async () => {
     showPointEffect(note.x, note.y, "rgba(220,0,0,0.6)");
 
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbxTFPdqXjWtAC-SXyVXnK-Rwv2k_BrqLqOawM9LH819ToNdIZ_qWmkDDNYiqMhCbpmF/exec",
+      "https://script.google.com/macros/s/AKfycbxiSr6IPoOoPrl61xOA4KUBN9y-P8OoKMIIPRKBUnqnV---FBS8iH3jVfWqPtHFXnw/exec",
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
 body: new URLSearchParams({
-  folderId: localStorage.getItem("lastFolderId"), // ✅ dossier Drive exact, version fiable
-
-
-
+  id: note.id || "",                             // 🆔 identifiant pour mise à jour
+  folderId: localStorage.getItem("lastFolderId"), // ✅ on revient au bon dossier !
   csvName: baseFileName,
-  id: note.id,          // 🆔 identifiant unique de la note
-  status: "inactive",
-  x: note.x,            // 💾 ajout pour que le script puisse comparer coordonnées si besoin
+  note: note.text || note.note,
+  x: note.x,
   y: note.y,
-  author: note.author || "Anonyme",
-  note: note.text || note.note || "",
-  createdAt: note.createdAt || new Date().toISOString()
+  status: "inactive"
 })
-
 
 
 
@@ -1877,16 +1864,6 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
 
 
 
