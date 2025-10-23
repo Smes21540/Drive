@@ -1516,46 +1516,45 @@ if (chart) chart.update("none");
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  const noteBtn = document.getElementById("noteButton");
-  const popup = document.getElementById("notePopup");
-  const txt = document.getElementById("noteText");
-  const status = document.getElementById("noteStatus");
-  const coordsDisplay = document.getElementById("noteCoords");
-  const authorInput = document.getElementById("noteAuthor");
+const noteBtn = document.getElementById("noteButton");
+const popup = document.getElementById("notePopup");
+const txt = document.getElementById("noteText");
+const status = document.getElementById("noteStatus");
+const coordsDisplay = document.getElementById("noteCoords");
+const authorInput = document.getElementById("noteAuthor");
 
-  let clickedPoint = null;
+let clickedPoint = null;
 
-  // 🟢 Étape 1 : clic sur le bouton "🗒️" → activer mode sélection
-  noteBtn.addEventListener("click", () => {
-    if (!chart) return alert("Aucune courbe chargée !");
-    alert("Clique sur le point de la courbe où tu veux ajouter une note.");
-    chart.$noteMode = true;
-  });
+// 🟢 Étape 1 : clic sur le bouton "🗒️" → activer mode sélection
+noteBtn.addEventListener("click", () => {
+  if (!chart) return alert("Aucune courbe chargée !");
+  alert("Clique sur le point de la courbe où tu veux ajouter une note.");
+  chart.$noteMode = true;
+});
 
-  // 🟢 Étape 2 : clic sur la courbe pour capturer le point
-  document.getElementById("myChart").addEventListener("click", (ev) => {
-    if (!chart || !chart.$noteMode) return;
-    const pts = chart.getElementsAtEventForMode(ev, "nearest", { intersect: false }, true);
-    if (!pts.length) return alert("Aucun point sélectionné !");
-    const el = pts[0];
-    const dataset = chart.data.datasets[el.datasetIndex];
-    const point = dataset.data[el.index];
+// 🟢 Étape 2 : clic sur la courbe pour capturer le point
+document.getElementById("myChart").addEventListener("click", (ev) => {
+  if (!chart || !chart.$noteMode) return;
+  const pts = chart.getElementsAtEventForMode(ev, "nearest", { intersect: false }, true);
+  if (!pts.length) return alert("Aucun point sélectionné !");
+  const el = pts[0];
+  const dataset = chart.data.datasets[el.datasetIndex];
+  const point = dataset.data[el.index];
 
-    clickedPoint = { x: point.x, y: point.y };
-    chart.$noteMode = false;
+  clickedPoint = { x: point.x, y: point.y };
+  chart.$noteMode = false;
 
-    coordsDisplay.textContent = `🕐 X: ${new Date(point.x).toLocaleString()} | Y: ${point.y}`;
-    popup.classList.add("active");
-    txt.value = "";
-    status.textContent = "";
-    txt.focus();
-  });
+  coordsDisplay.textContent = `🕐 X: ${new Date(point.x).toLocaleString()} | Y: ${point.y}`;
+  popup.classList.add("active");
+  txt.value = "";
+  status.textContent = "";
+  txt.focus();
+});
 
-  // 🟢 Étape 3 : annuler la saisie
-  document.getElementById("cancelNoteBtn").addEventListener("click", () => {
-    popup.classList.remove("active");
-  });
+// 🟢 Étape 3 : annuler la saisie
+document.getElementById("cancelNoteBtn").addEventListener("click", () => {
+  popup.classList.remove("active");
+});
 
 // 🟢 Étape 4 : envoyer la note au script Google
 document.getElementById("saveNoteBtn").addEventListener("click", async () => {
@@ -1568,30 +1567,28 @@ document.getElementById("saveNoteBtn").addEventListener("click", async () => {
 
   try {
     const createdAt = new Date().toISOString();
-const response = await fetch(
-  "https://script.google.com/macros/s/AKfycbwUGpaOeVnG0zKkm0hb_wkz1ZZcIyBisUcIS_xN0eVwWaT2pdXpPw3OExGdQ0I3NwCC/exec",
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      csvName: baseFileName || "inconnu.csv",
-      fileId: baseFileId,
-      folderId: localStorage.getItem("lastFolderId"),
-      author: authorInput.value || "Anonyme",
-      note: content,
-      x: clickedPoint ? clickedPoint.x : "",
-      y: clickedPoint ? clickedPoint.y : "",
-      createdAt: createdAt
-    })
-  }
-);
-
+    const response = await fetch(
+      "https://script.google.com/macros/s/AKfycbwUGpaOeVnG0zKkm0hb_wkz1ZZcIyBisUcIS_xN0eVwWaT2pdXpPw3OExGdQ0I3NwCC/exec",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          csvName: baseFileName || "inconnu.csv",
+          fileId: baseFileId,
+          folderId: currentFolderId,
+          author: authorInput.value || "Anonyme",
+          note: content,
+          x: clickedPoint ? clickedPoint.x : "",
+          y: clickedPoint ? clickedPoint.y : "",
+          createdAt: createdAt
+        })
+      }
+    );
 
     const textRes = await response.text();
     console.log("Réponse serveur:", textRes);
     status.textContent = "✅ Note enregistrée !";
 
-    // Ajout immédiat dans notesData
     notesData.push({
       x: clickedPoint.x,
       y: clickedPoint.y,
@@ -1607,8 +1604,8 @@ const response = await fetch(
     status.textContent = "⚠️ Erreur : " + err.message;
   }
 });
-
 </script>
+
 
 <script>
 // === 🧾 Popup d'affichage / suppression d'une note ===
@@ -1676,6 +1673,7 @@ function showNotePopup(note) {
   
 </body>
 </html>
+
 
 
 
