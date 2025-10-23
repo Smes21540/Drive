@@ -1702,12 +1702,14 @@ showConfirm("Confirmer la suppression de cette note ?", async () => {
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          csvName: baseFileName,
-          x: note.x,
-          y: note.y,
-          status: "inactive"
-        })
+body: new URLSearchParams({
+  folderId: currentFolderId,   // ✅ indispensable
+  csvName: baseFileName,
+  x: note.x,
+  y: note.y,
+  status: "inactive"
+})
+
       }
     );
 
@@ -1846,6 +1848,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
