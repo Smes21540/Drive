@@ -827,13 +827,33 @@ async function openViewer(viewer, id, name){
 
   const folderId = localStorage.getItem('lastFolderId');
 
-  // SA du dossier courant
-  const files = await fetchFolderContents(folderId);
-  const saFiles = files.filter(f => f.name.toUpperCase().startsWith("SA") && f.name.toLowerCase().endsWith('.csv'));
+// 📂 Charger tous les fichiers du dossier courant
+const files = await fetchFolderContents(folderId);
 
-  // 🔗 Récupérer les Z3 préchargés
-  const z3Files = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
-  const allCsv = [...saFiles, ...z3Files];
+// 🧩 Séparer les fichiers CSV et JSON
+const saFiles = files.filter(f =>
+  f.name.toUpperCase().startsWith("SA") &&
+  f.name.toLowerCase().endsWith(".csv")
+);
+const jsonFiles = files.filter(f =>
+  f.name.toLowerCase().endsWith(".json")
+);
+
+// 🔗 Récupérer les Z3 préchargés
+const z3Files = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
+
+// 🗒️ Ajouter les fichiers .json dans le cache
+if (jsonFiles.length > 0) {
+  console.log(`[Notes] ${jsonFiles.length} fichiers .json ajoutés au cache`);
+  jsonFiles.forEach(jf => {
+    if (!jf.parents) jf.parents = [folderId];
+    if (!jf.mimeType) jf.mimeType = "application/json";
+  });
+}
+
+// 🧠 Fusionner le tout
+const allCsv = [...saFiles, ...z3Files, ...jsonFiles];
+
 
   function addFolderHierarchy(li, acc){
     if (!li) return;
@@ -1217,6 +1237,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
