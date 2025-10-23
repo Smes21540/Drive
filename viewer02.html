@@ -1400,14 +1400,17 @@ async function autoLoadDays(chart){
     
   </script>
 
-<!-- 📝 Bouton flottant pour ajouter une note -->
+
+
+<!-- === BLOC AJOUT/ENVOI DE NOTES === -->
 <div id="noteButton" title="Ajouter une note sur cette courbe">🗒️</div>
 
-<!-- Popup de saisie -->
 <div id="notePopup">
   <div class="note-content">
     <h3>Nouvelle note</h3>
-    <textarea id="noteText" placeholder="Écrire une remarque..."></textarea>
+    <p id="noteCoords" style="font-size:12px;color:gray;"></p>
+    <input id="noteAuthor" type="text" placeholder="Votre nom (facultatif)" style="width:100%;padding:6px;margin-bottom:6px;">
+    <textarea id="noteText" placeholder="Écrire une remarque..." style="width:100%;height:120px;"></textarea>
     <div class="note-actions">
       <button id="saveNoteBtn">Enregistrer</button>
       <button id="cancelNoteBtn">Annuler</button>
@@ -1419,70 +1422,80 @@ async function autoLoadDays(chart){
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const noteBtn = document.getElementById("noteButton");
-  const notePopup = document.getElementById("notePopup");
-  const noteText = document.getElementById("noteText");
-  const saveNoteBtn = document.getElementById("saveNoteBtn");
-  const cancelNoteBtn = document.getElementById("cancelNoteBtn");
-  const noteStatus = document.getElementById("noteStatus");
+  const popup = document.getElementById("notePopup");
+  const txt = document.getElementById("noteText");
+  const status = document.getElementById("noteStatus");
+  const coordsDisplay = document.getElementById("noteCoords");
+  const authorInput = document.getElementById("noteAuthor");
 
-  if (!noteBtn) return; // sécurité
+  let clickedPoint = null;
 
+  // 🟢 Étape 1 : clic sur le bouton "🗒️" → activer mode sélection
   noteBtn.addEventListener("click", () => {
-    noteText.value = "";
-    noteStatus.textContent = "";
-    notePopup.classList.add("active");
-    noteText.focus();
+    if (!chart) return alert("Aucune courbe chargée !");
+    alert("Clique sur le point de la courbe où tu veux ajouter une note.");
+    chart.$noteMode = true;
   });
 
-  cancelNoteBtn.addEventListener("click", () => {
-    notePopup.classList.remove("active");
+  // 🟢 Étape 2 : clic sur la courbe pour capturer le point
+  document.getElementById("myChart").addEventListener("click", (ev) => {
+    if (!chart || !chart.$noteMode) return;
+    const pts = chart.getElementsAtEventForMode(ev, "nearest", { intersect: false }, true);
+    if (!pts.length) return alert("Aucun point sélectionné !");
+    const el = pts[0];
+    const dataset = chart.data.datasets[el.datasetIndex];
+    const point = dataset.data[el.index];
+
+    clickedPoint = { x: point.x, y: point.y };
+    chart.$noteMode = false;
+
+    coordsDisplay.textContent = `🕐 X: ${new Date(point.x).toLocaleString()} | Y: ${point.y}`;
+    popup.classList.add("active");
+    txt.value = "";
+    status.textContent = "";
+    txt.focus();
   });
 
-saveNoteBtn.addEventListener("click", async () => {
-  const content = noteText.value.trim();
-  if (!content) {
-    noteStatus.textContent = "⚠️ Note vide, rien à enregistrer.";
-    return;
-  }
+  // 🟢 Étape 3 : annuler la saisie
+  document.getElementById("cancelNoteBtn").addEventListener("click", () => {
+    popup.classList.remove("active");
+  });
 
-  noteStatus.textContent = "💾 Enregistrement en cours...";
-
-  try {
-    const res = await fetch("https://script.google.com/macros/s/AKfycbzgb4xlCMFokRwY4PZrEovYouAkQLDbFY6MmWRIVGDhbLtG54uXv5iohkH2KauF4hVH/exec", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        csvName: baseFileName || "inconnu",
-        note: JSON.stringify({
-          message: content,
-          time: new Date().toISOString(),
-          viewer: window.location.href
+  // 🟢 Étape 4 : envoyer la note au script Google
+  document.getElementById("saveNoteBtn").addEventListener("click", async () => {
+    const content = txt.value.trim();
+    if (!content) {
+      status.textContent = "⚠️ Note vide.";
+      return;
+    }
+    status.textContent = "💾 Envoi en cours...";
+    try {
+      const response = await fetch("https://script.google.com/macros/s/AKfycbzgb4xlCMFokRwY4PZrEovYouAkQLDbFY6MmWRIVGDhbLtG54uXv5iohkH2KauF4hVH/exec", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          csvName: baseFileName || "inconnu.csv",
+          author: authorInput.value || "Anonyme",
+          note: content,
+          x: clickedPoint ? clickedPoint.x : "",
+          y: clickedPoint ? clickedPoint.y : ""
         })
-      })
-    });
-
-    const text = await res.text();
-    noteStatus.textContent = "✅ Note envoyée avec succès";
-    console.log("Réponse du serveur:", text);
-
-    setTimeout(() => {
-      notePopup.classList.remove("active");
-    }, 1000);
-
-  } catch (e) {
-    console.error("Erreur envoi note:", e);
-    noteStatus.textContent = "⚠️ Échec de l’envoi : " + e.message;
-  }
-});
-
-
-
+      });
+      const text = await response.text();
+      console.log("Réponse serveur:", text);
+      status.textContent = "✅ Note enregistrée !";
+      setTimeout(() => popup.classList.remove("active"), 1000);
+    } catch (err) {
+      status.textContent = "⚠️ Erreur : " + err.message;
+    }
+  });
 });
 </script>
 
   
 </body>
 </html>
+
 
 
 
