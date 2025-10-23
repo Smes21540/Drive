@@ -1460,10 +1460,15 @@ try {
       notesData = notesData.filter(n => Number.isFinite(n.x) && Number.isFinite(n.y));
 
       console.log("📊 Notes prêtes à afficher :", notesData);
-      if (chart) {
-        chart.update("none");
-        setTimeout(() => chart.update(), 500); // petit délai pour s’assurer que le graphe est prêt
-      }
+// 🧩 Forcer l’affichage différé des notes, une fois le graphe créé
+const waitForChart = setInterval(() => {
+  if (chart) {
+    console.log("🎨 Graphe prêt → affichage des notes");
+    chart.update("none");
+    clearInterval(waitForChart);
+  }
+}, 500);
+
     } else {
       console.log("🗒️ Aucun fichier de notes trouvé pour", baseFileName);
     }
@@ -1850,6 +1855,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
