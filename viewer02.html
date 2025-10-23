@@ -519,47 +519,27 @@ async function loadCSVFromDrive(){
   document.getElementById('exportPDF').style.display = "inline-block";
   document.getElementById('resetZoom').style.display = "inline-block";
 
-// 💡 afficher dossier courant + parent racine (si dispo) sans appel API
+// 💾 Détermination du dossier courant uniquement
 try {
-const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
-const f = list.find(x => x.id === baseFileId);
-  // 🧩 Récupération de l’ID du dossier parent
-// ✅ Dossier courant = dossier qui contient le CSV affiché
-if (f && Array.isArray(f.parents) && f.parents.length > 0) {
-  currentFolderId = f.parents[0]; // c’est le dossier exact du fichier
-  console.log("📁 Dossier courant (même dossier que le CSV):", currentFolderId);
-} else {
-  console.warn("⚠️ Aucun dossier parent trouvé pour ce fichier, currentFolderId reste nul.");
-  currentFolderId = null;
-}
+  const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+  const f = list.find(x => x.id === baseFileId);
 
-
-
-if (f) {
-  let title = "";
-
-  // Cherche le dossier parent valide (différent du fichier lui-même)
-  let parent = list.find(x => f.parents && f.parents.includes(x.id) && x.name && x.name !== f.name);
-  if (parent) {
-    title = parent.name;
-
-    // Cherche le parent du parent (le site)
-    let root = list.find(x => parent.parents && parent.parents.includes(x.id) && x.name && x.name !== parent.name);
-    if (root) title = root.name + " / " + title;
+  if (f && Array.isArray(f.parents) && f.parents.length > 0) {
+    currentFolderId = f.parents[0]; // dossier exact du CSV
+    console.log("📁 Dossier courant (exact):", currentFolderId);
+  } else {
+    console.warn("⚠️ Aucun dossier trouvé pour ce fichier, currentFolderId = null");
+    currentFolderId = null;
   }
 
-  if (!title) title = baseFileName;
-
-  const flameTitle = title.replace(
-    /🔥/g,
-    '<span class="flame" title="Brûleur(s) actuellement en fonctionnement">🔥</span>'
-  );
-  document.getElementById("currentFolderName").innerHTML = flameTitle;
+  // affiche juste le nom du dossier courant (facultatif)
+  const folder = list.find(x => x.id === currentFolderId);
+  document.getElementById("currentFolderName").textContent =
+    folder ? folder.name : "(Dossier inconnu)";
+} catch (e) {
+  console.warn("⚠️ Erreur récupération dossier courant", e);
 }
 
-} catch(e) {
-  console.warn("Impossible de récupérer le titre dossier", e);
-}
 
 
 
@@ -1514,6 +1494,7 @@ body: new URLSearchParams({
   
 </body>
 </html>
+
 
 
 
