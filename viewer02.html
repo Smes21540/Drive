@@ -1703,12 +1703,14 @@ showConfirm("Confirmer la suppression de cette note ?", async () => {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
 body: new URLSearchParams({
-  folderId: currentFolderId,   // ✅ indispensable
+  folderId: currentFolderId,   // dossier Drive exact
   csvName: baseFileName,
+  note: note.text || note.note, // ✅ ajoute le texte de la note !
   x: note.x,
   y: note.y,
   status: "inactive"
 })
+
 
       }
     );
@@ -1848,6 +1850,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
