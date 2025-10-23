@@ -1423,45 +1423,55 @@ async function autoLoadDays(chart){
 
     await loadCSVFromDrive();
 
-  // === 🗒️ CHARGEMENT AUTOMATIQUE DES NOTES ASSOCIÉES ===
-  try {
-    if (!currentFolderId || !baseFileName) {
-      console.warn("⚠️ Impossible de charger les notes (folderId ou baseFileName manquant)");
-    } else {
-      const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
-      const expectedJson = baseFileName.replace(/\.csv$/i, ".json").toLowerCase();
-      const noteFile = list.find(
-        x =>
-          String(x.name || "").toLowerCase() === expectedJson &&
-          Array.isArray(x.parents) &&
-          x.parents.includes(currentFolderId)
-      );
+// === 🗒️ CHARGEMENT AUTOMATIQUE DES NOTES ASSOCIÉES ===
+try {
+  if (!currentFolderId || !baseFileName) {
+    console.warn("⚠️ Impossible de charger les notes (folderId ou baseFileName manquant)");
+  } else {
+    const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+    const expectedJson = baseFileName.replace(/\.csv$/i, ".json").toLowerCase();
+    const noteFile = list.find(
+      x =>
+        String(x.name || "").toLowerCase() === expectedJson &&
+        Array.isArray(x.parents) &&
+        x.parents.includes(currentFolderId)
+    );
 
-      if (noteFile) {
-        console.log("📥 Fichier de notes détecté :", noteFile.name, noteFile.id);
-        const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${noteFile.id}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
-        const jsonText = await res.text();
-        const notes = JSON.parse(jsonText);
-        console.log("✅ Notes chargées :", notes);
+    if (noteFile) {
+      console.log("📥 Fichier de notes détecté :", noteFile.name, noteFile.id);
+      const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${noteFile.id}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+      const jsonText = await res.text();
+      const notes = JSON.parse(jsonText);
+      console.log("✅ Notes chargées :", notes);
 
-notesData = notes.map(n => ({
-  x: n.x,
-  y: n.y,
-  text: n.note,
-  author: n.author
-}));
-if (chart) chart.update("none");
+      // 🔧 Conversion et nettoyage des données avant affichage
+      notesData = notes.map(n => ({
+        x: typeof n.x === "string" ? Number(n.x) || new Date(n.x).getTime() : n.x,
+        y: typeof n.y === "string" ? parseFloat(n.y) : n.y,
+        text: n.note,
+        author: n.author,
+        createdAt: n.createdAt,
+        status: n.status || "active"
+      }));
 
-        
-      } else {
-        console.log("🗒️ Aucun fichier de notes trouvé pour", baseFileName);
+      // 🧹 On garde uniquement les notes valides
+      notesData = notesData.filter(n => Number.isFinite(n.x) && Number.isFinite(n.y));
+
+      console.log("📊 Notes prêtes à afficher :", notesData);
+      if (chart) {
+        chart.update("none");
+        setTimeout(() => chart.update(), 500); // petit délai pour s’assurer que le graphe est prêt
       }
+    } else {
+      console.log("🗒️ Aucun fichier de notes trouvé pour", baseFileName);
     }
-  } catch (err) {
-    console.error("⚠️ Erreur lors du chargement des notes :", err);
   }
+} catch (err) {
+  console.error("⚠️ Erreur lors du chargement des notes :", err);
+}
+
 
 
     
@@ -1835,6 +1845,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
