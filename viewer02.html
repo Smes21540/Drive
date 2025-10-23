@@ -1470,7 +1470,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     status.textContent = "💾 Envoi en cours...";
     try {
-      const response = await fetch("https://script.google.com/macros/s/AKfycbzgb4xlCMFokRwY4PZrEovYouAkQLDbFY6MmWRIVGDhbLtG54uXv5iohkH2KauF4hVH/exec", {
+const response = await fetch("https://script.google.com/macros/s/AKfycbwXrPYAkHLrJvCIadzRN5PjugKdFRQD3dbmuZ-EW5gLM04Q7340Adbz_dHjyrWUeH5C/exec", {
+
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -1495,6 +1496,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
 </body>
 </html>
+
 
 
 
