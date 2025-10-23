@@ -524,10 +524,15 @@ try {
 const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
 const f = list.find(x => x.id === baseFileId);
   // 🧩 Récupération de l’ID du dossier parent
-if (f && f.parents && f.parents.length > 0) {
-  currentFolderId = f.parents[0];
-  console.log("📁 Dossier courant:", currentFolderId);
+// ✅ Dossier courant = dossier qui contient le CSV affiché
+if (f && Array.isArray(f.parents) && f.parents.length > 0) {
+  currentFolderId = f.parents[0]; // c’est le dossier exact du fichier
+  console.log("📁 Dossier courant (même dossier que le CSV):", currentFolderId);
+} else {
+  console.warn("⚠️ Aucun dossier parent trouvé pour ce fichier, currentFolderId reste nul.");
+  currentFolderId = null;
 }
+
 
 
 if (f) {
@@ -1509,6 +1514,7 @@ body: new URLSearchParams({
   
 </body>
 </html>
+
 
 
 
