@@ -1569,7 +1569,7 @@ document.getElementById("saveNoteBtn").addEventListener("click", async () => {
   try {
     const createdAt = new Date().toISOString();
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbwUGpaOeVnG0zKkm0hb_wkz1ZZcIyBisUcIS_xN0eVwWaT2pdXpPw3OExGdQ0I3NwCC/exec",
+      "https://script.google.com/macros/s/AKfycbwcV6c50Fgn3BYt2lhjMGli0c8CKYTNTZxza2VcAaSAFCHmtvJfbPmglwGPTKjbFuyp/exec",
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -1648,7 +1648,8 @@ function showNotePopup(note) {
 
     try {
       const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbwUGpaOeVnG0zKkm0hb_wkz1ZZcIyBisUcIS_xN0eVwWaT2pdXpPw3OExGdQ0I3NwCC/exec",
+        "https://script.google.com/macros/s/AKfycbwcV6c50Fgn3BYt2lhjMGli0c8CKYTNTZxza2VcAaSAFCHmtvJfbPmglwGPTKjbFuyp/exec"
+,
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -1681,6 +1682,7 @@ function showNotePopup(note) {
   
 </body>
 </html>
+
 
 
 
