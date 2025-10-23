@@ -1635,7 +1635,8 @@ body: new URLSearchParams({
   id: noteId,  // 🆔 identifiant unique
   csvName: baseFileName || "inconnu.csv",
   fileId: baseFileId,
-  folderId: currentFolderId || localStorage.getItem("lastFolderId"),
+  folderId: currentFolderId, // 🧩 dossier exact du CSV
+
 
 status: "active", // ajoute ce champ ici, indispensable pour le script
 
@@ -1720,7 +1721,8 @@ showConfirm("Confirmer la suppression de cette note ?", async () => {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
 body: new URLSearchParams({
-  folderId: currentFolderId || localStorage.getItem("lastFolderId"),
+  folderId: currentFolderId, // 🧩 dossier exact du CSV
+
 
   csvName: baseFileName,
   id: note.id,          // 🆔 identifiant unique de la note
@@ -1873,6 +1875,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
