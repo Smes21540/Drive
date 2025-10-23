@@ -806,6 +806,32 @@ const z3LinesPlugin = {
   }
 };
 
+// === 🗒️ Plugin pour afficher les icônes de notes ===
+let notesData = []; // structure: [{x,y,text,author}]
+
+const notesPlugin = {
+  id: "notesPlugin",
+  afterDatasetsDraw(chart) {
+    if (!notesData.length) return;
+    const ctx = chart.ctx;
+    const xScale = chart.scales.x;
+    const yScale = chart.scales.y;
+    ctx.save();
+    ctx.font = "16px Segoe UI";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = getCSSVar("--danger") || "red";
+
+    notesData.forEach(n => {
+      const x = xScale.getPixelForValue(n.x);
+      const y = yScale.getPixelForValue(n.y);
+      if (x < xScale.left || x > xScale.right) return;
+      if (y < yScale.top || y > yScale.bottom) return;
+      ctx.fillText("🗒️", x, y);
+    });
+    ctx.restore();
+  },
+};
 
 
   async function loadZ3IfAvailable(){
@@ -977,7 +1003,8 @@ if (!isNaN(dt.getTime())) {
         y:{title:{display:true,text:'Valeurs'}}
       }
     },
-    plugins:[ChartDataLabels,dayBackgroundPlugin,z3LinesPlugin]
+    plugins:[ChartDataLabels,dayBackgroundPlugin,z3LinesPlugin,notesPlugin]
+
   });
 
   // === Tous les listeners regroupés ===
@@ -1008,6 +1035,35 @@ if (!isNaN(dt.getTime())) {
     chart.update('none');
   });
 
+// === Gestion clic sur une note existante ===
+const canvas = chart.canvas;
+canvas.addEventListener("click", (ev) => {
+  if (!notesData.length) return;
+  const rect = canvas.getBoundingClientRect();
+  const xClick = ev.clientX - rect.left;
+  const yClick = ev.clientY - rect.top;
+  const xScale = chart.scales.x;
+  const yScale = chart.scales.y;
+
+  let nearest = null;
+  let minDist = 18;
+
+  notesData.forEach(n => {
+    const x = xScale.getPixelForValue(n.x);
+    const y = yScale.getPixelForValue(n.y);
+    const d = Math.hypot(x - xClick, y - yClick);
+    if (d < minDist) {
+      nearest = n;
+      minDist = d;
+    }
+  });
+
+  if (nearest) {
+    showNotePopup(nearest);
+  }
+});
+
+   
   chart.update();
   applyAdaptiveTicks();
 }
@@ -1383,6 +1439,16 @@ async function autoLoadDays(chart){
         const jsonText = await res.text();
         const notes = JSON.parse(jsonText);
         console.log("✅ Notes chargées :", notes);
+
+notesData = notes.map(n => ({
+  x: n.x,
+  y: n.y,
+  text: n.note,
+  author: n.author
+}));
+if (chart) chart.update("none");
+
+        
       } else {
         console.log("🗒️ Aucun fichier de notes trouvé pour", baseFileName);
       }
@@ -1523,9 +1589,69 @@ body: new URLSearchParams({
 });
 </script>
 
+<script>
+// === 🧾 Popup d'affichage / suppression d'une note ===
+function showNotePopup(note) {
+  const popup = document.createElement("div");
+  popup.style.position = "fixed";
+  popup.style.top = "0";
+  popup.style.left = "0";
+  popup.style.width = "100%";
+  popup.style.height = "100%";
+  popup.style.background = "rgba(0,0,0,0.5)";
+  popup.style.display = "flex";
+  popup.style.alignItems = "center";
+  popup.style.justifyContent = "center";
+  popup.style.zIndex = "4000";
+
+  popup.innerHTML = `
+    <div style="background:#fff;padding:20px;border-radius:10px;max-width:400px;">
+      <h3>🗒️ Note</h3>
+      <p><strong>Auteur :</strong> ${note.author || "Anonyme"}</p>
+      <p><strong>Date :</strong> ${new Date(note.x).toLocaleString()}</p>
+      <p><strong>Valeur Y :</strong> ${note.y}</p>
+      <p style="margin-top:10px;white-space:pre-wrap;">${note.text}</p>
+      <div style="text-align:right;margin-top:10px;">
+        <button id="delNote" style="background:#d84315;color:white;border:none;border-radius:6px;padding:6px 12px;">Supprimer</button>
+        <button id="closeNote" style="margin-left:6px;">Fermer</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+
+  popup.querySelector("#closeNote").onclick = () => popup.remove();
+  popup.querySelector("#delNote").onclick = async () => {
+    if (!confirm("Supprimer cette note ?")) return;
+    try {
+      const response = await fetch(
+        "https://script.google.com/macros/s/AKfycbzOte-E__27PoMVtDQhJmb-i1vh9Num1kEHsppCLoO-Rm1PhgG66TK1JNP64XOWsSsW/exec",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            deleteNote: "1",
+            csvName: baseFileName,
+            x: note.x,
+            y: note.y,
+          }),
+        }
+      );
+      console.log("Suppression note:", await response.text());
+      popup.remove();
+      notesData = notesData.filter(n => !(n.x === note.x && n.y === note.y));
+      if (chart) chart.update("none");
+    } catch (err) {
+      alert("Erreur suppression : " + err.message);
+    }
+  };
+}
+</script>
+
   
 </body>
 </html>
+
 
 
 
