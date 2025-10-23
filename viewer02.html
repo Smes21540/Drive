@@ -1526,12 +1526,17 @@ const authorInput = document.getElementById("noteAuthor");
 
 let clickedPoint = null;
 
-// 🟢 Étape 1 : clic sur le bouton "🗒️" → activer mode sélection
+// 🟢 Étape 1 : clic sur le bouton "🗒️" → activer mode sélection avec bulle
 noteBtn.addEventListener("click", () => {
-  if (!chart) return alert("Aucune courbe chargée !");
-  alert("Clique sur le point de la courbe où tu veux ajouter une note.");
+  if (!chart) {
+    showToast("⚠️ Aucune courbe chargée !");
+    return;
+  }
+
   chart.$noteMode = true;
+  showToast("🖱️ Clique sur un point de la courbe pour ajouter ta note", 5000);
 });
+
 
 // 🟢 Étape 2 : clic sur la courbe pour capturer le point
 document.getElementById("myChart").addEventListener("click", (ev) => {
@@ -1677,11 +1682,52 @@ function showNotePopup(note) {
     }
   };
 }
+
+// === 📢 Petit système de notification flottante (remplace alert) ===
+function showToast(message, duration = 4000) {
+  const old = document.querySelector(".toast-message");
+  if (old) old.remove();
+
+  const toast = document.createElement("div");
+  toast.className = "toast-message";
+  toast.textContent = message;
+
+  Object.assign(toast.style, {
+    position: "fixed",
+    bottom: "80px",
+    right: "20px",
+    background: "var(--accent)",
+    color: "#fff",
+    padding: "12px 16px",
+    borderRadius: "8px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+    zIndex: "3000",
+    fontWeight: "bold",
+    opacity: "0",
+    transition: "opacity 0.3s, transform 0.3s",
+    transform: "translateY(20px)"
+  });
+
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+  });
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(20px)";
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+  
 </script>
 
   
 </body>
 </html>
+
 
 
 
