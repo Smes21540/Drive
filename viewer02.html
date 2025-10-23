@@ -1681,37 +1681,37 @@ function showNotePopup(note) {
 
   // 🔹 Supprimer (status → inactive)
   popup.querySelector("#deleteNoteBtn").onclick = async () => {
-    if (!confirm("Marquer cette note comme inactive ?")) return;
+showConfirm("Confirmer la suppression de cette note ?", async () => {
+  try {
+    // 💥 effet rouge visuel
+    showPointEffect(note.x, note.y, "rgba(220,0,0,0.6)");
 
-    try {
-      const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbwcV6c50Fgn3BYt2lhjMGli0c8CKYTNTZxza2VcAaSAFCHmtvJfbPmglwGPTKjbFuyp/exec"
-,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            csvName: baseFileName,
-            x: note.x,
-            y: note.y,
-            status: "inactive" // ✅ on passe en "inactive" (plus propre)
-          })
-        }
-      );
+    const response = await fetch(
+      "https://script.google.com/macros/s/AKfycbwcV6c50Fgn3BYt2lhjMGli0c8CKYTNTZxza2VcAaSAFCHmtvJfbPmglwGPTKjbFuyp/exec",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          csvName: baseFileName,
+          x: note.x,
+          y: note.y,
+          status: "inactive"
+        })
+      }
+    );
 
-      console.log("Réponse suppression :", await response.text());
+    console.log("Réponse suppression :", await response.text());
 
-      // Mise à jour locale
-      note.status = "inactive";
-      popup.remove();
+    note.status = "inactive";
+    popup.remove();
 
-      // Filtrer les notes actives seulement
-      notesData = notesData.filter(n => n.status === "active");
-      if (chart) chart.update("none");
+    notesData = notesData.filter(n => n.status === "active");
+    if (chart) chart.update("none");
+  } catch (err) {
+    showToast("Erreur suppression : " + err.message);
+  }
+});
 
-    } catch (err) {
-      alert("Erreur suppression : " + err.message);
-    }
   };
 }
 
@@ -1753,12 +1753,89 @@ function showToast(message, duration = 4000) {
   }, duration);
 }
 
+  // === 💫 Petit effet visuel (création / suppression) ===
+function showPointEffect(xValue, yValue, color = "rgba(255,112,67,0.6)", duration = 900) {
+  const xScale = chart.scales.x;
+  const yScale = chart.scales.y;
+  const xPix = xScale.getPixelForValue(xValue);
+  const yPix = yScale.getPixelForValue(yValue);
+  const rect = chart.canvas.getBoundingClientRect();
+
+  const effect = document.createElement("div");
+  Object.assign(effect.style, {
+    position: "absolute",
+    left: rect.left + xPix - 10 + "px",
+    top: rect.top + yPix - 10 + "px",
+    width: "20px",
+    height: "20px",
+    borderRadius: "50%",
+    background: color,
+    transform: "scale(0.5)",
+    opacity: "1",
+    pointerEvents: "none",
+    zIndex: "2000",
+    transition: "transform 0.6s ease-out, opacity 0.8s ease-out"
+  });
+
+  document.body.appendChild(effect);
+  requestAnimationFrame(() => {
+    effect.style.transform = "scale(2)";
+    effect.style.opacity = "0";
+  });
+  setTimeout(() => effect.remove(), duration);
+}
+
+
+// === 🪶 Popup de confirmation stylée ===
+function showConfirm(message, onConfirm) {
+  const overlay = document.createElement("div");
+  overlay.style = `
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 5000;
+  `;
+
+  const box = document.createElement("div");
+  box.style = `
+    background: white;
+    border-radius: 10px;
+    padding: 20px 24px;
+    max-width: 350px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    text-align: center;
+    font-family: sans-serif;
+    animation: popIn 0.25s ease-out;
+  `;
+  box.innerHTML = `
+    <p style="margin-bottom:20px;font-weight:bold;">${message}</p>
+    <div style="display:flex;justify-content:center;gap:10px;">
+      <button id="cancelBtn" style="
+        padding:8px 14px;border:none;border-radius:6px;
+        background:#ccc;cursor:pointer;">Annuler</button>
+      <button id="okBtn" style="
+        padding:8px 14px;border:none;border-radius:6px;
+        background:#d84315;color:white;cursor:pointer;">Confirmer</button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  box.querySelector("#cancelBtn").onclick = () => overlay.remove();
+  box.querySelector("#okBtn").onclick = () => {
+    overlay.remove();
+    if (onConfirm) onConfirm();
+  };
+}
+
   
 </script>
 
   
 </body>
 </html>
+
 
 
 
