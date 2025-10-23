@@ -1538,24 +1538,56 @@ noteBtn.addEventListener("click", () => {
 });
 
 
-// 🟢 Étape 2 : clic sur la courbe pour capturer le point
+// 🟢 Étape 2 : clic libre sur le graphe pour définir le point de note + effet visuel
 document.getElementById("myChart").addEventListener("click", (ev) => {
   if (!chart || !chart.$noteMode) return;
-  const pts = chart.getElementsAtEventForMode(ev, "nearest", { intersect: false }, true);
-  if (!pts.length) return alert("Aucun point sélectionné !");
-  const el = pts[0];
-  const dataset = chart.data.datasets[el.datasetIndex];
-  const point = dataset.data[el.index];
 
-  clickedPoint = { x: point.x, y: point.y };
+  const rect = chart.canvas.getBoundingClientRect();
+  const xPix = ev.clientX - rect.left;
+  const yPix = ev.clientY - rect.top;
+
+  const xScale = chart.scales.x;
+  const yScale = chart.scales.y;
+
+  // Conversion pixels → valeurs logiques du graphe
+  const xValue = xScale.getValueForPixel(xPix);
+  const yValue = yScale.getValueForPixel(yPix);
+  clickedPoint = { x: xValue, y: yValue };
   chart.$noteMode = false;
 
-  coordsDisplay.textContent = `🕐 X: ${new Date(point.x).toLocaleString()} | Y: ${point.y}`;
+  // 💫 Crée un petit effet de "ping" visuel sur le canvas
+  const ping = document.createElement("div");
+  Object.assign(ping.style, {
+    position: "absolute",
+    left: rect.left + xPix - 10 + "px",
+    top: rect.top + yPix - 10 + "px",
+    width: "20px",
+    height: "20px",
+    borderRadius: "50%",
+    background: "rgba(255,112,67,0.6)", // orange léger
+    transform: "scale(0.5)",
+    opacity: "1",
+    pointerEvents: "none",
+    zIndex: "2000",
+    transition: "transform 0.6s ease-out, opacity 0.8s ease-out"
+  });
+  document.body.appendChild(ping);
+
+  requestAnimationFrame(() => {
+    ping.style.transform = "scale(2)";
+    ping.style.opacity = "0";
+  });
+
+  setTimeout(() => ping.remove(), 900);
+
+  // 🗒️ Ouvre la popup de saisie
+  coordsDisplay.textContent = `📍 X: ${new Date(xValue).toLocaleString()} | Y: ${yValue.toFixed(2)}`;
   popup.classList.add("active");
   txt.value = "";
   status.textContent = "";
   txt.focus();
 });
+
 
 // 🟢 Étape 3 : annuler la saisie
 document.getElementById("cancelNoteBtn").addEventListener("click", () => {
@@ -1727,6 +1759,7 @@ function showToast(message, duration = 4000) {
   
 </body>
 </html>
+
 
 
 
