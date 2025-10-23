@@ -1626,7 +1626,7 @@ const noteId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
     const createdAt = new Date().toISOString();
 const response = await fetch(
-  "https://script.google.com/macros/s/AKfycbx6H3qVfKlHUR6_cpjfBJfrYhAseXd6TCpeixaZ-lZfA8_7HXKBnjK7BC0P09JUGSB5/exec",
+  "https://script.google.com/macros/s/AKfycbxhwxL3GWf6vPr5Dg08pUNldlD_FsL3InIL4AOkb00t5GIuKTjF8yNuXZUovDyiQ-4r/exec",
 
       {
         method: "POST",
@@ -1714,7 +1714,7 @@ showConfirm("Confirmer la suppression de cette note ?", async () => {
     showPointEffect(note.x, note.y, "rgba(220,0,0,0.6)");
 
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbx6H3qVfKlHUR6_cpjfBJfrYhAseXd6TCpeixaZ-lZfA8_7HXKBnjK7BC0P09JUGSB5/exec",
+      "https://script.google.com/macros/s/AKfycbxhwxL3GWf6vPr5Dg08pUNldlD_FsL3InIL4AOkb00t5GIuKTjF8yNuXZUovDyiQ-4r/exec",
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -1871,6 +1871,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
