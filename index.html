@@ -650,6 +650,23 @@ while (parentLi) {
 // Charger tous les fichiers du dossier (inclut les .json pour les 📝)
 const files = await fetchFolderContents(li.dataset.id);
 
+// 🧩 Ajout manuel des fichiers .json manquants dans le dossier Traça_Temp
+if (nameSpan && nameSpan.textContent.toLowerCase().includes("traça_temp")) {
+  try {
+    const extraFiles = await fetchFolderContents(li.dataset.id + "&includeJson=true");
+    const jsonFiles = extraFiles.filter(f => f.name.toLowerCase().endsWith(".json"));
+    if (jsonFiles.length > 0) {
+      console.log(`📝 ${jsonFiles.length} fichiers JSON ajoutés manuellement au dossier`, li.dataset.id);
+      files.push(...jsonFiles);
+    } else {
+      console.log("📝 Aucun JSON détecté même en scan manuel.");
+    }
+  } catch (err) {
+    console.warn("⚠️ Erreur lors de la récupération manuelle des JSON :", err);
+  }
+}
+
+  
 // On garde uniquement ceux à afficher (CSV + JPG)
 const displayable = files.filter(f => 
   f.name.toLowerCase().endsWith('.csv') || 
@@ -1470,6 +1487,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
