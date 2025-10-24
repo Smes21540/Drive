@@ -691,6 +691,19 @@ imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name));
 displayFiles(filtered, nameSpan ? nameSpan.textContent : '');
 
 
+// 🪄 Applique immédiatement les flammes du cache si déjà chargé pour ce site
+if (Object.keys(hotDaysMap).length > 0) {
+  document.querySelectorAll('#csvTable tbody tr').forEach(tr => {
+    const nameCell = tr.cells[3]; // colonne Nom du fichier
+    const flameCell = tr.cells[1]; // colonne flamme
+    if (!nameCell || !flameCell) return;
+
+    const m = nameCell.textContent.match(/(\d{8})\.csv$/i);
+    if (m && hotDaysMap[m[1]]) {
+      flameCell.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+    }
+  });
+}
 
 
 
@@ -1298,17 +1311,19 @@ async function scanSiteHotDays(siteId) {
 
 
 function loadSiteHotDays(siteId) {
-  const data = localStorage.getItem(`siteHotDays_${siteId}`);
+  const data = localStorage.getItem(`hotDays_${siteId}`);
   return data ? JSON.parse(data) : {};
 }
 
+
 function clearSiteHotDays() {
   if (currentSiteId) {
-    localStorage.removeItem(`siteHotDays_${currentSiteId}`);
+    localStorage.removeItem(`hotDays_${currentSiteId}`);
   }
   hotDaysMap = {};
   currentSiteId = null;
 }
+
 
 
   
@@ -1414,6 +1429,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
