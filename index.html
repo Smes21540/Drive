@@ -252,6 +252,21 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   box-shadow:0 2px 8px rgba(0,0,0,0.2);
 }
 
+.note {
+  font-size: 16px;
+  margin-left: 4px;
+  cursor: pointer;
+  animation: fadein 0.4s ease;
+}
+.note:hover {
+  transform: scale(1.2);
+  text-shadow: 0 0 4px rgba(255, 140, 0, 0.6);
+}
+@keyframes fadein {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 
 </style>
 </head>
@@ -708,9 +723,19 @@ if (Object.keys(hotDaysMap).length > 0) {
 
 
 function displayFiles(files, folderName){
-  const tbody=document.querySelector('#csvTable tbody');
-  const downloadBtn=document.getElementById('downloadFolderBtn');
-  tbody.innerHTML='';
+  const tbody = document.querySelector('#csvTable tbody');
+  const downloadBtn = document.getElementById('downloadFolderBtn');
+  tbody.innerHTML = '';
+
+  // 📓 Liste des dates JSON disponibles
+  const jsonDates = new Set();
+  for (const f of files) {
+    if (f.name.toLowerCase().endsWith('.json')) {
+      const m = f.name.match(/(\d{8})/);
+      if (m) jsonDates.add(m[1]);
+    }
+  }
+
 
   if(files.length===0){
     tbody.innerHTML='<tr><td colspan="5" style="text-align:center;">Aucun fichier</td></tr>';
@@ -747,16 +772,25 @@ if (match) {
   const dateKey = match[1];
 
   // 🔥 flamme si déjà détectée dans le cache
-  if (hotDaysMap[dateKey]) {
-    tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
-  } else {
-    // 🕓 attente de la fin du scan → on vérifie à nouveau après 1 seconde
-    setTimeout(() => {
-      if (hotDaysMap[dateKey]) {
-        tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
-      }
-    }, 1000);
+ if (hotDaysMap[dateKey]) {
+  let icons = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+  if (jsonDates.has(dateKey)) {
+    icons += ` <span class="note" title="Note disponible pour ce jour">📝</span>`;
   }
+  tdFlame.innerHTML = icons;
+} else {
+  // 🕓 attente de la fin du scan → on vérifie à nouveau après 1 seconde
+  setTimeout(() => {
+    if (hotDaysMap[dateKey]) {
+      let icons = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+      if (jsonDates.has(dateKey)) {
+        icons += ` <span class="note" title="Note disponible pour ce jour">📝</span>`;
+      }
+      tdFlame.innerHTML = icons;
+    }
+  }, 1000);
+}
+
 }
 
 
@@ -1429,6 +1463,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
