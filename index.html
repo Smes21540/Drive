@@ -668,12 +668,25 @@ if (!files.some(f => f.name.toLowerCase().endsWith(".json"))) {
 
 
   
+// 📝 Extraire les dates des fichiers JSON (sans les afficher)
+const jsonDates = new Set();
+for (const f of files) {
+  if (f.name.toLowerCase().endsWith('.json')) {
+    const m = f.name.match(/(\d{8})/);
+    if (m) jsonDates.add(m[1]);
+  }
+}
+
 // On garde uniquement ceux à afficher (CSV + JPG)
-const displayable = files.filter(f => 
-  f.name.toLowerCase().endsWith('.csv') || 
-  f.name.toLowerCase().endsWith('.jpg') || 
+const displayable = files.filter(f =>
+  f.name.toLowerCase().endsWith('.csv') ||
+  f.name.toLowerCase().endsWith('.jpg') ||
   f.name.toLowerCase().endsWith('.jpeg')
 );
+
+// 👉 On transmet aussi jsonDates à displayFiles()
+displayFiles(displayable, nameSpan ? nameSpan.textContent : '', jsonDates);
+
 
 
 
@@ -1488,6 +1501,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
