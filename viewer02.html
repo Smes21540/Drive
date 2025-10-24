@@ -826,7 +826,6 @@ const notesPlugin = {
 
     notesData.forEach(n => {
       if (n.status !== "active") return;
- // 🔥 Masquer notes supprimées
       const x = xScale.getPixelForValue(n.x);
       const y = yScale.getPixelForValue(n.y);
       if (x < xScale.left || x > xScale.right) return;
@@ -835,8 +834,33 @@ const notesPlugin = {
     });
 
     ctx.restore();
+
+    // 🔥 Détection du survol pour changer le curseur
+    const canvas = chart.canvas;
+    canvas.style.cursor = "default";
+
+    if (!chart.$mousemoveHandlerAttached) {
+      chart.$mousemoveHandlerAttached = true;
+      canvas.addEventListener("mousemove", (ev) => {
+        const rect = canvas.getBoundingClientRect();
+        const xClick = ev.clientX - rect.left;
+        const yClick = ev.clientY - rect.top;
+
+        let hover = false;
+        notesData.forEach(n => {
+          if (n.status !== "active") return;
+          const x = xScale.getPixelForValue(n.x);
+          const y = yScale.getPixelForValue(n.y);
+          const d = Math.hypot(x - xClick, y - yClick);
+          if (d < 15) hover = true;
+        });
+
+        canvas.style.cursor = hover ? "pointer" : "default";
+      });
+    }
   },
 };
+
 
 
 
@@ -1864,6 +1888,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
