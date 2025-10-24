@@ -643,6 +643,15 @@ while (parentLi) {
     f.name.toLowerCase().endsWith('.jpeg')
   );
   imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); // pour la modale
+
+// 🔥 Scan du dossier Traça_Temp du site, même si on n’est pas dedans
+if (siteLi && siteLi.dataset.id) {
+  computeHotDaysFor(siteLi).then(set => {
+    console.log(`🔥 ${set.size} jours chauds détectés pour le site ${siteLi.querySelector('.folder-name')?.textContent}`);
+  });
+}
+
+
   displayFiles(filtered, nameSpan ? nameSpan.textContent : '');
 }
 
@@ -1316,5 +1325,6 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
