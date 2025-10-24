@@ -676,17 +676,30 @@ async function displayFiles(files, folderName){
 
   // 🔥 Si on n'est pas dans Traça_Temp, chercher les jours chauds du site
 let hotDays = new Set();
-if (!folderName.toLowerCase().includes("traça_temp") && !folderName.toLowerCase().includes("traca_temp")) {
-  const siteLi = document.querySelector("#folderTree .active-folder")?.closest("li")?.parentElement?.closest("li");
-  if (siteLi) {
-    const cached = localStorage.getItem(`${siteLi.dataset.id}_hotDays`);
-    if (cached) {
-      hotDays = new Set(JSON.parse(cached));
-    } else {
-      hotDays = await computeHotDaysFor(siteLi);
-    }
+
+// 🔥 Toujours essayer de remonter au site racine, peu importe le dossier
+let siteLi = null;
+let currentLi = document.querySelector("#folderTree .active-folder")?.closest("li");
+while (currentLi) {
+  const maybeSite = currentLi.parentElement.closest("li");
+  if (!maybeSite) {
+    siteLi = currentLi; // on est arrivé au dossier racine du site
+    break;
+  }
+  currentLi = maybeSite;
+}
+
+// ✅ Charger les jours chauds du cache ou les calculer si absents
+if (siteLi && siteLi.dataset.id) {
+  const cached = localStorage.getItem(`${siteLi.dataset.id}_hotDays`);
+  if (cached) {
+    hotDays = new Set(JSON.parse(cached));
+    console.log(`[FLAMME] ${siteLi.querySelector('.folder-name')?.textContent} → ${hotDays.size} jours chauds rechargés`);
+  } else {
+    hotDays = await computeHotDaysFor(siteLi);
   }
 }
+
 
 
   if(files.length===0){
@@ -1368,6 +1381,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
