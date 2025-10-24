@@ -630,12 +630,29 @@ async function loadFolderFilesOnClick(li) {
     console.log("[Z3] Cache vidé (hors Traça_Temp / Historique)");
   }
 
-  // 🔥 Scan automatique du dossier Traça_Temp du site
-  if (siteLi && siteLi.dataset.id) {
+// 🔥 Scan automatique du dossier Traça_Temp du site (une seule fois par site)
+if (siteLi && siteLi.dataset.id) {
+  const siteId = siteLi.dataset.id;
+
+  // ⚡ Si on change de site, on efface l'ancien cache pour éviter la confusion
+  if (currentSiteId && currentSiteId !== siteId) {
+    console.log(`[SCAN] Nouveau site détecté → réinitialisation du cache précédent`);
+    localStorage.removeItem(`${currentSiteId}_hotDays`);
+    currentHotDays.clear();
+  }
+
+  // ⚙️ On ne scanne que si aucune donnée n'existe déjà pour ce site
+  const cached = localStorage.getItem(`${siteId}_hotDays`);
+  if (!cached) {
+    console.log(`[SCAN] Aucun cache trouvé pour ${siteLi.querySelector('.folder-name')?.textContent}, lancement du scan Traça_Temp...`);
     computeHotDaysFor(siteLi).then(set => {
       console.log(`🔥 ${set.size} jours chauds détectés pour le site ${siteLi.querySelector('.folder-name')?.textContent}`);
     });
+  } else {
+    console.log(`[CACHE] ${siteLi.querySelector('.folder-name')?.textContent} déjà scanné (cache trouvé).`);
   }
+}
+
 
   // 📂 Affichage final des fichiers
   const files = await fetchFolderContents(li.dataset.id);
@@ -1319,6 +1336,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
