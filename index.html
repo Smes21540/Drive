@@ -1310,10 +1310,31 @@ async function computeHotDaysFor(siteLi) {
   }
 
   // Optionnel : cache local
+  // 💾 Cache local
   localStorage.setItem(`${siteLi.dataset.id}_hotDays`, JSON.stringify([...currentHotDays]));
+
+  // 🔥 Marquer les dossiers de ce site avec une flamme si jours chauds trouvés
+  if (currentHotDays.size > 0) {
+    const allFolders = siteLi.querySelectorAll("span.folder-name");
+    allFolders.forEach(span => {
+      const name = span.textContent.toLowerCase();
+      if (
+        name.includes("traça_temp") ||
+        name.includes("traca_temp") ||
+        name.includes("historique") ||
+        name.includes("echantillonnage")
+      ) {
+        if (!span.classList.contains("has-flame")) {
+          span.classList.add("has-flame");
+          span.innerHTML = `<span class="flame-folder" title="Jours chauds détectés dans ce site">🔥</span> ` + span.innerHTML;
+        }
+      }
+    });
+  }
 
   return currentHotDays;
 }
+
 
 
 
@@ -1336,6 +1357,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
