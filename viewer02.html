@@ -841,22 +841,30 @@ const notesPlugin = {
 
     if (!chart.$mousemoveHandlerAttached) {
       chart.$mousemoveHandlerAttached = true;
-      canvas.addEventListener("mousemove", (ev) => {
-        const rect = canvas.getBoundingClientRect();
-        const xClick = ev.clientX - rect.left;
-        const yClick = ev.clientY - rect.top;
+canvas.addEventListener("mousemove", (ev) => {
+  const rect = canvas.getBoundingClientRect();
+  const xClick = ev.clientX - rect.left;
+  const yClick = ev.clientY - rect.top;
 
-        let hover = false;
-        notesData.forEach(n => {
-          if (n.status !== "active") return;
-          const x = xScale.getPixelForValue(n.x);
-          const y = yScale.getPixelForValue(n.y);
-          const d = Math.hypot(x - xClick, y - yClick);
-          if (d < 15) hover = true;
-        });
+  let hover = false;
+  for (const n of notesData) {
+    if (n.status !== "active") continue;
+    const x = xScale.getPixelForValue(n.x);
+    const y = yScale.getPixelForValue(n.y);
+    const d = Math.hypot(x - xClick, y - yClick);
+    if (d < 25) {            // ← zone un peu plus large
+      hover = true;
+      break;
+    }
+  }
 
-        canvas.style.cursor = hover ? "pointer" : "default";
-      });
+  // évite les changements trop rapides
+  if (canvas.$lastHover !== hover) {
+    canvas.style.cursor = hover ? "pointer" : "default";
+    canvas.$lastHover = hover;
+  }
+});
+
     }
   },
 };
@@ -1888,6 +1896,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
