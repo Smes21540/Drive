@@ -252,21 +252,6 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   box-shadow:0 2px 8px rgba(0,0,0,0.2);
 }
 
-.note {
-  font-size: 16px;
-  margin-left: 4px;
-  cursor: pointer;
-  animation: fadein 0.4s ease;
-}
-.note:hover {
-  transform: scale(1.2);
-  text-shadow: 0 0 4px rgba(255, 140, 0, 0.6);
-}
-@keyframes fadein {
-  from { opacity: 0; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1); }
-}
-
 
 </style>
 </head>
@@ -647,47 +632,13 @@ while (parentLi) {
     console.log("[Z3] Cache vidé (hors Traça_Temp / Historique)");
   }
 
-// Charger tous les fichiers du dossier (inclut les .json pour les 📝)
-let files = await fetchFolderContents(li.dataset.id);
-
-// Si aucun .json détecté, tentative secondaire sans casser le cache
-if (!files.some(f => f.name.toLowerCase().endsWith(".json"))) {
-  try {
-    const more = await fetchFolderContents(li.dataset.id + "&includeJson=true");
-    const jsonFiles = more.filter(f => f.name.toLowerCase().endsWith(".json"));
-    if (jsonFiles.length > 0) {
-      console.log(`📝 ${jsonFiles.length} fichiers JSON ajoutés manuellement pour ${li.dataset.id}`);
-      files = [...files, ...jsonFiles];
-    }
-  } catch (e) {
-    console.warn("⚠️ Erreur en tentant de charger les JSON :", e);
-  }
-}
-
-
-
-
-  
-// 📝 Extraire les dates des fichiers JSON (sans les afficher)
-const jsonDates = new Set();
-for (const f of files) {
-  if (f.name.toLowerCase().endsWith('.json')) {
-    const m = f.name.match(/(\d{8})/);
-    if (m) jsonDates.add(m[1]);
-  }
-}
-
-// On garde uniquement ceux à afficher (CSV + JPG)
-const displayable = files.filter(f =>
-  f.name.toLowerCase().endsWith('.csv') ||
-  f.name.toLowerCase().endsWith('.jpg') ||
-  f.name.toLowerCase().endsWith('.jpeg')
-);
-
-// 👉 On transmet aussi jsonDates à displayFiles()
-displayFiles(displayable, nameSpan ? nameSpan.textContent : '', jsonDates);
-
-
+  // Charger fichiers CSV/JPG classiques du dossier
+  const files = await fetchFolderContents(li.dataset.id);
+  const filtered = files.filter(f => 
+    f.name.toLowerCase().endsWith('.csv') || 
+    f.name.toLowerCase().endsWith('.jpg') || 
+    f.name.toLowerCase().endsWith('.jpeg')
+  );
 
 
 
@@ -736,12 +687,8 @@ scanSiteHotDays(siteId).then(map => {
   }
 }
 
-imageFiles = displayable.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); 
-displayFiles(files, nameSpan ? nameSpan.textContent : '');
-
-  console.log("📝 JSON détectés :", files.filter(f => f.name.toLowerCase().endsWith('.json')).map(f => f.name));
-
-
+imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); 
+displayFiles(filtered, nameSpan ? nameSpan.textContent : '');
 
 
 // 🪄 Applique immédiatement les flammes du cache si déjà chargé pour ce site
@@ -761,19 +708,9 @@ if (Object.keys(hotDaysMap).length > 0) {
 
 
 function displayFiles(files, folderName){
-  const tbody = document.querySelector('#csvTable tbody');
-  const downloadBtn = document.getElementById('downloadFolderBtn');
-  tbody.innerHTML = '';
-
-  // 📓 Liste des dates JSON disponibles
-  const jsonDates = new Set();
-  for (const f of files) {
-    if (f.name.toLowerCase().endsWith('.json')) {
-      const m = f.name.match(/(\d{8})/);
-      if (m) jsonDates.add(m[1]);
-    }
-  }
-
+  const tbody=document.querySelector('#csvTable tbody');
+  const downloadBtn=document.getElementById('downloadFolderBtn');
+  tbody.innerHTML='';
 
   if(files.length===0){
     tbody.innerHTML='<tr><td colspan="5" style="text-align:center;">Aucun fichier</td></tr>';
@@ -810,25 +747,16 @@ if (match) {
   const dateKey = match[1];
 
   // 🔥 flamme si déjà détectée dans le cache
- if (hotDaysMap[dateKey]) {
-  let icons = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
-  if (jsonDates.has(dateKey)) {
-    icons += ` <span class="note" title="Note disponible pour ce jour">📝</span>`;
-  }
-  tdFlame.innerHTML = icons;
-} else {
-  // 🕓 attente de la fin du scan → on vérifie à nouveau après 1 seconde
-  setTimeout(() => {
-    if (hotDaysMap[dateKey]) {
-      let icons = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
-      if (jsonDates.has(dateKey)) {
-        icons += ` <span class="note" title="Note disponible pour ce jour">📝</span>`;
+  if (hotDaysMap[dateKey]) {
+    tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+  } else {
+    // 🕓 attente de la fin du scan → on vérifie à nouveau après 1 seconde
+    setTimeout(() => {
+      if (hotDaysMap[dateKey]) {
+        tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
       }
-      tdFlame.innerHTML = icons;
-    }
-  }, 1000);
-}
-
+    }, 1000);
+  }
 }
 
 
@@ -1501,24 +1429,3 @@ if (last) {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
