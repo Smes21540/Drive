@@ -653,14 +653,25 @@ if (siteId && siteId !== currentSiteId) {
   currentSiteId = siteId;
   console.log(`[SITE] Changement de site → ${siteLi.querySelector(".folder-name")?.textContent}`);
   
-  // 🔥 Lancer le scan en arrière-plan sans bloquer l'affichage
-  scanSiteHotDays(siteId).then(map => {
-    hotDaysMap = map;
-    console.log(`[CACHE] 🔥 ${Object.keys(hotDaysMap).length} jours chauds détectés et chargés pour ${siteLi.querySelector(".folder-name")?.textContent}`);
-    // 🔄 rafraîchir la table actuelle une fois le scan terminé
-    const active = document.querySelector('#folderTree .active-folder');
-    if (active) active.click();
+// 🔥 Lancer le scan en arrière-plan sans bloquer l'affichage
+scanSiteHotDays(siteId).then(map => {
+  hotDaysMap = map;
+  console.log(`[CACHE] 🔥 ${Object.keys(hotDaysMap).length} jours chauds détectés et chargés pour ${siteLi.querySelector(".folder-name")?.textContent}`);
+
+  // 🪄 Rafraîchir seulement les flammes dans le tableau actuel
+  document.querySelectorAll('#csvTable tbody tr').forEach(tr => {
+    const nameCell = tr.cells[3]; // colonne Nom du fichier
+    const flameCell = tr.cells[1]; // colonne flamme
+    if (!nameCell || !flameCell) return;
+
+    const fname = nameCell.textContent.trim();
+    const m = fname.match(/(\d{8})\.csv$/i);
+    if (m && hotDaysMap[m[1]]) {
+      flameCell.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+    }
   });
+});
+
 } else if (siteId && Object.keys(hotDaysMap).length === 0) {
   hotDaysMap = loadSiteHotDays(siteId);
   if (Object.keys(hotDaysMap).length === 0) {
@@ -1395,6 +1406,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
