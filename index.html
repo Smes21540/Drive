@@ -643,8 +643,11 @@ while (parentLi) {
 
 
 // 🧭 Détermination du site courant
-const siteLi = li.parentElement.closest("li");
-const siteId = siteLi ? siteLi.dataset.id : null;
+const siteLi = li.parentElement.closest("li"); // parent direct du dossier cliqué (le site)
+let siteId = null;
+if (siteLi && siteLi.dataset.id) {
+  siteId = siteLi.dataset.id;
+}
 
 // 🧹 Si on change de site → vider le cache
 if (siteId && siteId !== currentSiteId) {
@@ -662,6 +665,9 @@ if (siteId && siteId !== currentSiteId) {
     console.log(`[CACHE] ${Object.keys(hotDaysMap).length} jours chauds chargés depuis cache`);
   }
 }
+
+
+
 
 
   
@@ -1345,6 +1351,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
