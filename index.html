@@ -364,9 +364,6 @@ let imageFiles=[], currentImageIndex=0;
 let filterStartDate="", filterEndDate="";
 let themeMenuTimer;
 let cancelScan = false; // 🛑 permet d’arrêter le scan si on clique ailleurs
-// 🔥 Gestion du site actif et des jours chauds (par site)
-let currentSiteId = null;
-let currentHotDays = new Set();
 
 
 /* ----------- Utilitaires UI ----------- */
@@ -572,42 +569,43 @@ async function fetchChildren(folderId){
   return files.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
 }
 
-async function loadFolderFilesOnClick(li) {
+async function loadFolderFilesOnClick(li){
   await toggleFolder(li);
 
-  // 🧭 Déclaration UNE SEULE FOIS, accessible dans toute la fonction
-  const siteLi = li.parentElement.closest("li");
+// 🔄 Réinitialiser la sélection visuelle
+document.querySelectorAll('#folderTree li span.folder-name').forEach(s => s.classList.remove('active-folder'));
 
-  // 🔄 Réinitialiser la sélection visuelle
-  document.querySelectorAll('#folderTree li span.folder-name')
-          .forEach(s => s.classList.remove('active-folder'));
+// ✅ Surligne le dossier cliqué
+const nameSpan = li.querySelector('span.folder-name');
+if (nameSpan) nameSpan.classList.add('active-folder');
 
-  const nameSpan = li.querySelector('span.folder-name');
-  if (nameSpan) nameSpan.classList.add('active-folder');
-
-  let parentLi = li.parentElement.closest('li');
-  while (parentLi) {
-    const parentSpan = parentLi.querySelector('span.folder-name');
-    if (parentSpan) parentSpan.classList.add('active-folder');
-    parentLi = parentLi.parentElement.closest('li');
-  }
+// ✅ Surligne aussi tous les parents (chemin hiérarchique)
+let parentLi = li.parentElement.closest('li');
+while (parentLi) {
+  const parentSpan = parentLi.querySelector('span.folder-name');
+  if (parentSpan) parentSpan.classList.add('active-folder');
+  parentLi = parentLi.parentElement.closest('li');
+}
 
   localStorage.setItem('lastFolderId', li.dataset.id);
+
   const folderName = nameSpan ? nameSpan.textContent.toLowerCase() : "";
 
   // ⚡ Gestion spéciale Z3
   if (folderName.includes("traça_temp") || folderName.includes("traca_temp")) {
+    // récupérer le dossier parent (= site)
+    const siteLi = li.parentElement.closest("li");
     if (siteLi && siteLi.dataset.id) {
       const siblings = await fetchFolderContents(siteLi.dataset.id);
-      const hist = siblings.find(s =>
-        s.mimeType === 'application/vnd.google-apps.folder' &&
+      const hist = siblings.find(s => 
+        s.mimeType === 'application/vnd.google-apps.folder' && 
         s.name.toLowerCase().includes("historique")
       );
 
       if (hist) {
         const histFiles = await fetchFolderContents(hist.id);
-        const z3Files = histFiles.filter(ff =>
-          ff.name.toUpperCase().startsWith("Z3") &&
+        const z3Files = histFiles.filter(ff => 
+          ff.name.toUpperCase().startsWith("Z3") && 
           ff.name.toLowerCase().endsWith(".csv")
         );
         localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
@@ -617,90 +615,40 @@ async function loadFolderFilesOnClick(li) {
         console.warn("[Z3] Aucun dossier Historique trouvé pour", nameSpan.textContent);
       }
     }
-  } else if (folderName.includes("historique")) {
+  } 
+  else if (folderName.includes("historique")) {
+    // directement charger les Z3 de ce dossier
     const histFiles = await fetchFolderContents(li.dataset.id);
-    const z3Files = histFiles.filter(ff =>
-      ff.name.toUpperCase().startsWith("Z3") &&
+    const z3Files = histFiles.filter(ff => 
+      ff.name.toUpperCase().startsWith("Z3") && 
       ff.name.toLowerCase().endsWith(".csv")
     );
     localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
     console.log("[Z3] Préchargés directement (Historique):", z3Files.length);
-  } else {
+  } 
+  else {
+    // Sinon → effacer le cache Z3
     localStorage.removeItem("csvZ3Files");
     console.log("[Z3] Cache vidé (hors Traça_Temp / Historique)");
   }
 
-// 🔥 Scan automatique du dossier Traça_Temp du site (une seule fois par site)
-if (siteLi && siteLi.dataset.id) {
-  const siteId = siteLi.dataset.id;
-
-  // ⚡ Si on change de site, on efface l'ancien cache pour éviter la confusion
-  if (currentSiteId && currentSiteId !== siteId) {
-    console.log(`[SCAN] Nouveau site détecté → réinitialisation du cache précédent`);
-    localStorage.removeItem(`${currentSiteId}_hotDays`);
-    currentHotDays.clear();
-  }
-
-  // ⚙️ On ne scanne que si aucune donnée n'existe déjà pour ce site
-  const cached = localStorage.getItem(`${siteId}_hotDays`);
-  if (!cached) {
-    console.log(`[SCAN] Aucun cache trouvé pour ${siteLi.querySelector('.folder-name')?.textContent}, lancement du scan Traça_Temp...`);
-    computeHotDaysFor(siteLi).then(set => {
-      console.log(`🔥 ${set.size} jours chauds détectés pour le site ${siteLi.querySelector('.folder-name')?.textContent}`);
-    });
-  } else {
-    console.log(`[CACHE] ${siteLi.querySelector('.folder-name')?.textContent} déjà scanné (cache trouvé).`);
-  }
-}
-
-
-  // 📂 Affichage final des fichiers
+  // Charger fichiers CSV/JPG classiques du dossier
   const files = await fetchFolderContents(li.dataset.id);
-  const filtered = files.filter(f =>
-    f.name.toLowerCase().endsWith('.csv') ||
-    f.name.toLowerCase().endsWith('.jpg') ||
+  const filtered = files.filter(f => 
+    f.name.toLowerCase().endsWith('.csv') || 
+    f.name.toLowerCase().endsWith('.jpg') || 
     f.name.toLowerCase().endsWith('.jpeg')
   );
-  imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name));
+  imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); // pour la modale
   displayFiles(filtered, nameSpan ? nameSpan.textContent : '');
 }
 
 
 
-
-async function displayFiles(files, folderName){
-
+function displayFiles(files, folderName){
   const tbody=document.querySelector('#csvTable tbody');
   const downloadBtn=document.getElementById('downloadFolderBtn');
   tbody.innerHTML='';
-
-  // 🔥 Si on n'est pas dans Traça_Temp, chercher les jours chauds du site
-let hotDays = new Set();
-
-// 🔥 Toujours essayer de remonter au site racine, peu importe le dossier
-let siteLi = null;
-let currentLi = document.querySelector("#folderTree .active-folder")?.closest("li");
-while (currentLi) {
-  const maybeSite = currentLi.parentElement.closest("li");
-  if (!maybeSite) {
-    siteLi = currentLi; // on est arrivé au dossier racine du site
-    break;
-  }
-  currentLi = maybeSite;
-}
-
-// ✅ Charger les jours chauds du cache ou les calculer si absents
-if (siteLi && siteLi.dataset.id) {
-  const cached = localStorage.getItem(`${siteLi.dataset.id}_hotDays`);
-  if (cached) {
-    hotDays = new Set(JSON.parse(cached));
-    console.log(`[FLAMME] ${siteLi.querySelector('.folder-name')?.textContent} → ${hotDays.size} jours chauds rechargés`);
-  } else {
-    hotDays = await computeHotDaysFor(siteLi);
-  }
-}
-
-
 
   if(files.length===0){
     tbody.innerHTML='<tr><td colspan="5" style="text-align:center;">Aucun fichier</td></tr>';
@@ -859,24 +807,7 @@ if(f.name.toLowerCase().endsWith('.csv')){
 
 
 tr.appendChild(tdDate);
-// 🔥 Gestion des flammes (affichage dans la liste pour tous les dossiers)
-const dateKey = date ? date.replace(/-/g, "") : "";
-
-// 1️⃣ Cas 1 : on est dans Traça_Temp → flamme détectée directement dans le fichier
-if (
-  (folderName.toLowerCase().includes("traça_temp") ||
-   folderName.toLowerCase().includes("traca_temp")) &&
-  tdFlame.innerHTML.includes("🔥")
-) {
-  // Rien à faire, déjà géré ci-dessus (scan direct du fichier)
-}
-// 2️⃣ Cas 2 : autres dossiers → flamme selon jours chauds du site
-else if (hotDays.has(dateKey)) {
-  tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là (détecté via Traça_Temp du site)">🔥</span>`;
-}
-
-
-tr.appendChild(tdFlame);
+    tr.appendChild(tdFlame);
 tr.appendChild(tdAction);
 tr.appendChild(tdName);
 tr.appendChild(tdFolder);
@@ -1275,90 +1206,6 @@ function markFolderWithFlame(li) {
   }
 }
 
-/* ----------- 🔥 Scan global du site basé sur Traça_Temp ----------- */
-async function computeHotDaysFor(siteLi) {
-  if (!siteLi || !siteLi.dataset.id) return new Set();
-
-  // Si le site n’a pas changé → on réutilise les jours déjà détectés
-  if (siteLi.dataset.id === currentSiteId && currentHotDays.size > 0) {
-    return currentHotDays;
-  }
-
-  // Nouveau site → reset
-  currentSiteId = siteLi.dataset.id;
-  currentHotDays = new Set();
-
-  // Trouver le dossier Traça_Temp du site
-  const subFolders = await fetchChildren(siteLi.dataset.id);
-  const tracatemp = subFolders.find(f =>
-    f.name.toLowerCase().includes("traça_temp") ||
-    f.name.toLowerCase().includes("traca_temp")
-  );
-  if (!tracatemp) return currentHotDays;
-
-  // Charger les fichiers CSV du dossier Traça_Temp
-  const files = await fetchFolderContents(tracatemp.id);
-  const csvFiles = files.filter(f => f.name.toLowerCase().endsWith(".csv"));
-  if (csvFiles.length === 0) return currentHotDays;
-
-  // Lecture rapide de chaque CSV pour détecter les jours chauds
-  for (const f of csvFiles) {
-    try {
-      const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`);
-      if (!res.ok) continue;
-      const text = await res.text();
-      const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
-      if (lines.length < 2) continue;
-
-      const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim().toLowerCase());
-      let idxInf = headers.findIndex(h => h.includes("sonde ac inf"));
-      let idxSup = headers.findIndex(h => h.includes("sonde ac sup"));
-      if (idxInf === -1 && idxSup === -1) continue;
-
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(",").map(c => c.replace(/"/g, "").trim());
-        const vInf = idxInf !== -1 ? parseFloat(cols[idxInf]) : NaN;
-        const vSup = idxSup !== -1 ? parseFloat(cols[idxSup]) : NaN;
-        if ((isFinite(vInf) && vInf > FLAME_THRESHOLD) || (isFinite(vSup) && vSup > FLAME_THRESHOLD)) {
-          // 🔥 Extraire la date du nom de fichier
-          const m = f.name.match(/(\d{8})\.csv$/i);
-          if (m) {
-            currentHotDays.add(m[1]); // ex: "20251024"
-          }
-          break; // inutile de lire tout le fichier
-        }
-      }
-    } catch (err) {
-      console.warn("Erreur scan rapide Traça_Temp:", f.name, err);
-    }
-  }
-
-  // Optionnel : cache local
-  // 💾 Cache local
-  localStorage.setItem(`${siteLi.dataset.id}_hotDays`, JSON.stringify([...currentHotDays]));
-
-  // 🔥 Marquer les dossiers de ce site avec une flamme si jours chauds trouvés
-  if (currentHotDays.size > 0) {
-    const allFolders = siteLi.querySelectorAll("span.folder-name");
-    allFolders.forEach(span => {
-      const name = span.textContent.toLowerCase();
-      if (
-        name.includes("traça_temp") ||
-        name.includes("traca_temp") ||
-        name.includes("historique") ||
-        name.includes("echantillonnage")
-      ) {
-        if (!span.classList.contains("has-flame")) {
-          span.classList.add("has-flame");
-          span.innerHTML = `<span class="flame-folder" title="Jours chauds détectés dans ce site">🔥</span> ` + span.innerHTML;
-        }
-      }
-    });
-  }
-
-  return currentHotDays;
-}
-
 
 
 
@@ -1381,13 +1228,3 @@ window.onload=()=>{
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
