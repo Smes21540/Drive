@@ -642,19 +642,7 @@ while (parentLi) {
 
 
 
-// 🧭 Détermination du site courant
-const siteLi = li.parentElement.closest("li"); // parent direct du dossier cliqué (le site)
-let siteId = null;
-if (siteLi && siteLi.dataset.id) {
-  siteId = siteLi.dataset.id;
-}
 
-// 🧭 Détermination du site courant
-const siteLi = li.parentElement.closest("li");
-let siteId = null;
-if (siteLi && siteLi.dataset.id) {
-  siteId = siteLi.dataset.id;
-}
 
 // 🧭 Détermination du site courant
 const siteLi = li.parentElement.closest("li");
@@ -1392,6 +1380,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
