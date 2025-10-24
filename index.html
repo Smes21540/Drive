@@ -708,6 +708,9 @@ scanSiteHotDays(siteId).then(map => {
 imageFiles = displayable.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); 
 displayFiles(files, nameSpan ? nameSpan.textContent : '');
 
+  console.log("📝 JSON détectés :", files.filter(f => f.name.toLowerCase().endsWith('.json')).map(f => f.name));
+
+
 
 
 // 🪄 Applique immédiatement les flammes du cache si déjà chargé pour ce site
@@ -1467,6 +1470,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
