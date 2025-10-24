@@ -1358,16 +1358,20 @@ const res = await fetch(url);
 }
 
 function markFolderWithFlame(li) {
+  if (!li) return; // sécurité
+
   const span = li.querySelector(".folder-name");
-  if (span && !span.classList.contains("has-flame")) {
+  if (!(span instanceof HTMLElement)) return; // évite les erreurs de type
+
+  if (!span.classList.contains("has-flame")) {
     span.classList.add("has-flame");
     span.innerHTML = `<span class="flame-folder" title="Brûleur(s) actuellement en fonctionnement">🔥</span> ` + span.innerHTML;
+  }
 
-  }
-  if (li.parentElement && li.parentElement.closest("li")) {
-    markFolderWithFlame(li.parentElement.closest("li"));
-  }
+  const parent = li.parentElement?.closest("li");
+  if (parent) markFolderWithFlame(parent);
 }
+
 
 
 
@@ -1391,6 +1395,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
