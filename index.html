@@ -647,13 +647,16 @@ while (parentLi) {
     console.log("[Z3] Cache vidé (hors Traça_Temp / Historique)");
   }
 
-  // Charger fichiers CSV/JPG classiques du dossier
-  const files = await fetchFolderContents(li.dataset.id);
-  const filtered = files.filter(f => 
-    f.name.toLowerCase().endsWith('.csv') || 
-    f.name.toLowerCase().endsWith('.jpg') || 
-    f.name.toLowerCase().endsWith('.jpeg')
-  );
+// Charger tous les fichiers du dossier (inclut les .json pour les 📝)
+const files = await fetchFolderContents(li.dataset.id);
+
+// On garde uniquement ceux à afficher (CSV + JPG)
+const displayable = files.filter(f => 
+  f.name.toLowerCase().endsWith('.csv') || 
+  f.name.toLowerCase().endsWith('.jpg') || 
+  f.name.toLowerCase().endsWith('.jpeg')
+);
+
 
 
 
@@ -702,8 +705,9 @@ scanSiteHotDays(siteId).then(map => {
   }
 }
 
-imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); 
-displayFiles(filtered, nameSpan ? nameSpan.textContent : '');
+imageFiles = displayable.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); 
+displayFiles(files, nameSpan ? nameSpan.textContent : '');
+
 
 
 // 🪄 Applique immédiatement les flammes du cache si déjà chargé pour ce site
@@ -1463,6 +1467,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
