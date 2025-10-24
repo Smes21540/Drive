@@ -846,11 +846,22 @@ if(f.name.toLowerCase().endsWith('.csv')){
 
 
 tr.appendChild(tdDate);
-// 🔥 Si le jour est chaud d'après le Traça_Temp du site → afficher flamme
+// 🔥 Gestion des flammes (affichage dans la liste pour tous les dossiers)
 const dateKey = date ? date.replace(/-/g, "") : "";
-if (hotDays.has(dateKey)) {
-  tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là (Traça_Temp du site)">🔥</span>`;
+
+// 1️⃣ Cas 1 : on est dans Traça_Temp → flamme détectée directement dans le fichier
+if (
+  (folderName.toLowerCase().includes("traça_temp") ||
+   folderName.toLowerCase().includes("traca_temp")) &&
+  tdFlame.innerHTML.includes("🔥")
+) {
+  // Rien à faire, déjà géré ci-dessus (scan direct du fichier)
 }
+// 2️⃣ Cas 2 : autres dossiers → flamme selon jours chauds du site
+else if (hotDays.has(dateKey)) {
+  tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là (détecté via Traça_Temp du site)">🔥</span>`;
+}
+
 
 tr.appendChild(tdFlame);
 tr.appendChild(tdAction);
@@ -1357,6 +1368,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
