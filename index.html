@@ -570,7 +570,7 @@ async function fetchChildren(folderId){
 }
 
 async function loadFolderFilesOnClick(li){
-await toggleFolder(li);
+  await toggleFolder(li);
 
 // 🔄 Réinitialiser la sélection visuelle
 document.querySelectorAll('#folderTree li span.folder-name').forEach(s => s.classList.remove('active-folder'));
@@ -587,14 +587,7 @@ while (parentLi) {
   parentLi = parentLi.parentElement.closest('li');
 }
 
-localStorage.setItem('lastFolderId', li.dataset.id);
-
-// 🟠 NOUVEAU : dès qu’on est dans un dossier du site, on scanne le Traça_Temp du site
-const siteRoot = li.closest('#folderTree > li');
-if (siteRoot) {
-  scanSiteFlame(siteRoot);
-}
-
+  localStorage.setItem('lastFolderId', li.dataset.id);
 
   const folderName = nameSpan ? nameSpan.textContent.toLowerCase() : "";
 
@@ -1154,43 +1147,52 @@ async function checkTraçaTempToday(parentLi, tracatempId) {
     String(today.getDate()).padStart(2, "0");
 
   const files = await fetchFolderContents(tracatempId);
+  // accepter tout CSV contenant la date du jour
   const todayFile = files.find(f => f.name.includes(yyyymmdd) && f.name.endsWith(".csv"));
-  if (!todayFile) return false;
+  if (!todayFile) return;
 
   try {
-    const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${todayFile.id}&name=${encodeURIComponent(todayFile.name)}&t=${Date.now()}&site=Smes_Acces`;
-    const res = await fetch(url);
-    if (!res.ok) return false;
+const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${todayFile.id}&name=${encodeURIComponent(todayFile.name)}&t=${Date.now()}&site=Smes_Acces`;
+
+const res = await fetch(url);
+
     const text = await res.text();
 
+    // lire les dernières lignes
     const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
     const lastLine = lines[lines.length - 1];
-    if (!lastLine) return false;
+    if (!lastLine) return;
 
+    // Nettoyage : enlever guillemets et espaces
     const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
     const cols = lastLine.split(",").map(c => c.replace(/"/g, "").trim());
 
-    let supIndices = headers.map((h, i) => ({ h, i })).filter(o => o.h.toLowerCase().includes("sonde ac sup"));
+    // Trouver la 2ème occurrence de "Sonde AC Sup"
+    let supIndices = headers
+      .map((h, i) => ({ h, i }))
+      .filter(o => o.h.toLowerCase().includes("sonde ac sup"));
     let idxSup = supIndices.length >= 2 ? supIndices[1].i : supIndices[0]?.i;
 
-    let infIndices = headers.map((h, i) => ({ h, i })).filter(o => o.h.toLowerCase().includes("sonde ac inf"));
+    // Trouver la 2ème occurrence de "Sonde AC Inf"
+    let infIndices = headers
+      .map((h, i) => ({ h, i }))
+      .filter(o => o.h.toLowerCase().includes("sonde ac inf"));
     let idxInf = infIndices.length >= 2 ? infIndices[1].i : infIndices[0]?.i;
 
+    // Valeurs
     const vSup = idxSup !== undefined ? parseFloat(cols[idxSup]) : NaN;
     const vInf = idxInf !== undefined ? parseFloat(cols[idxInf]) : NaN;
 
-    const isHot = ((vSup && vSup > FLAME_THRESHOLD) || (vInf && vInf > FLAME_THRESHOLD));
-    if (isHot) {
-      markFolderWithFlame(parentLi); // garde le marquage existant
-      return true;
+    // 🔥 seuil
+    if ((vSup && vSup > FLAME_THRESHOLD) || (vInf && vInf > FLAME_THRESHOLD)) {
+      markFolderWithFlame(parentLi);
     }
-    return false;
+
+
   } catch (e) {
     console.error("Erreur lecture CSV dans Temp", e);
-    return false;
   }
 }
-
 
 function markFolderWithFlame(li) {
   const span = li.querySelector(".folder-name");
@@ -1204,38 +1206,6 @@ function markFolderWithFlame(li) {
   }
 }
 
-function markSiteWithFlame(siteLi) {
-  siteLi.querySelectorAll(".folder-name").forEach(span => {
-    if (!span.classList.contains("has-flame")) {
-      span.classList.add("has-flame");
-      span.innerHTML = `<span class="flame-folder" title="Brûleur actif sur le site">🔥</span> ` + span.innerHTML;
-    }
-  });
-}
-
-// Évite de rescanner 50 fois le même site pendant la session
-async function scanSiteFlame(siteLi) {
-  if (!siteLi || siteLi.dataset.flameScanned === "1") return;
-
-  try {
-    const subFolders = await fetchChildren(siteLi.dataset.id);
-    const tracatemp = subFolders.find(f =>
-      f.name.toLowerCase().includes("traça_temp") ||
-      f.name.toLowerCase().includes("traca_temp")
-    );
-    if (!tracatemp) { siteLi.dataset.flameScanned = "1"; return; }
-
-    const isHot = await checkTraçaTempToday(siteLi, tracatemp.id);
-    if (isHot) {
-      // ⚠️ checkTraçaTempToday marque déjà le site via markFolderWithFlame
-      // Ici on étend le marquage à tous les sous-dossiers pour cohérence visuelle
-      markSiteWithFlame(siteLi);
-    }
-  } finally {
-    // Qu'il y ait feu ou pas, on évite de rescanner sans fin
-    siteLi.dataset.flameScanned = "1";
-  }
-}
 
 
 
@@ -1258,4 +1228,3 @@ window.onload=()=>{
 </script>
 </body>
 </html>
-
