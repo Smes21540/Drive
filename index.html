@@ -572,46 +572,42 @@ async function fetchChildren(folderId){
   return files.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
 }
 
-async function loadFolderFilesOnClick(li){
+async function loadFolderFilesOnClick(li) {
   await toggleFolder(li);
 
-    const siteLi = li.parentElement.closest("li");
+  // 🧭 Déclaration UNE SEULE FOIS, accessible dans toute la fonction
+  const siteLi = li.parentElement.closest("li");
 
+  // 🔄 Réinitialiser la sélection visuelle
+  document.querySelectorAll('#folderTree li span.folder-name')
+          .forEach(s => s.classList.remove('active-folder'));
 
-// 🔄 Réinitialiser la sélection visuelle
-document.querySelectorAll('#folderTree li span.folder-name').forEach(s => s.classList.remove('active-folder'));
+  const nameSpan = li.querySelector('span.folder-name');
+  if (nameSpan) nameSpan.classList.add('active-folder');
 
-// ✅ Surligne le dossier cliqué
-const nameSpan = li.querySelector('span.folder-name');
-if (nameSpan) nameSpan.classList.add('active-folder');
-
-// ✅ Surligne aussi tous les parents (chemin hiérarchique)
-let parentLi = li.parentElement.closest('li');
-while (parentLi) {
-  const parentSpan = parentLi.querySelector('span.folder-name');
-  if (parentSpan) parentSpan.classList.add('active-folder');
-  parentLi = parentLi.parentElement.closest('li');
-}
+  let parentLi = li.parentElement.closest('li');
+  while (parentLi) {
+    const parentSpan = parentLi.querySelector('span.folder-name');
+    if (parentSpan) parentSpan.classList.add('active-folder');
+    parentLi = parentLi.parentElement.closest('li');
+  }
 
   localStorage.setItem('lastFolderId', li.dataset.id);
-
   const folderName = nameSpan ? nameSpan.textContent.toLowerCase() : "";
 
   // ⚡ Gestion spéciale Z3
   if (folderName.includes("traça_temp") || folderName.includes("traca_temp")) {
-    // récupérer le dossier parent (= site)
-  
     if (siteLi && siteLi.dataset.id) {
       const siblings = await fetchFolderContents(siteLi.dataset.id);
-      const hist = siblings.find(s => 
-        s.mimeType === 'application/vnd.google-apps.folder' && 
+      const hist = siblings.find(s =>
+        s.mimeType === 'application/vnd.google-apps.folder' &&
         s.name.toLowerCase().includes("historique")
       );
 
       if (hist) {
         const histFiles = await fetchFolderContents(hist.id);
-        const z3Files = histFiles.filter(ff => 
-          ff.name.toUpperCase().startsWith("Z3") && 
+        const z3Files = histFiles.filter(ff =>
+          ff.name.toUpperCase().startsWith("Z3") &&
           ff.name.toLowerCase().endsWith(".csv")
         );
         localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
@@ -621,42 +617,37 @@ while (parentLi) {
         console.warn("[Z3] Aucun dossier Historique trouvé pour", nameSpan.textContent);
       }
     }
-  } 
-  else if (folderName.includes("historique")) {
-    // directement charger les Z3 de ce dossier
+  } else if (folderName.includes("historique")) {
     const histFiles = await fetchFolderContents(li.dataset.id);
-    const z3Files = histFiles.filter(ff => 
-      ff.name.toUpperCase().startsWith("Z3") && 
+    const z3Files = histFiles.filter(ff =>
+      ff.name.toUpperCase().startsWith("Z3") &&
       ff.name.toLowerCase().endsWith(".csv")
     );
     localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
     console.log("[Z3] Préchargés directement (Historique):", z3Files.length);
-  } 
-  else {
-    // Sinon → effacer le cache Z3
+  } else {
     localStorage.removeItem("csvZ3Files");
     console.log("[Z3] Cache vidé (hors Traça_Temp / Historique)");
   }
 
-  // Charger fichiers CSV/JPG classiques du dossier
+  // 🔥 Scan automatique du dossier Traça_Temp du site
+  if (siteLi && siteLi.dataset.id) {
+    computeHotDaysFor(siteLi).then(set => {
+      console.log(`🔥 ${set.size} jours chauds détectés pour le site ${siteLi.querySelector('.folder-name')?.textContent}`);
+    });
+  }
+
+  // 📂 Affichage final des fichiers
   const files = await fetchFolderContents(li.dataset.id);
-  const filtered = files.filter(f => 
-    f.name.toLowerCase().endsWith('.csv') || 
-    f.name.toLowerCase().endsWith('.jpg') || 
+  const filtered = files.filter(f =>
+    f.name.toLowerCase().endsWith('.csv') ||
+    f.name.toLowerCase().endsWith('.jpg') ||
     f.name.toLowerCase().endsWith('.jpeg')
   );
-  imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); // pour la modale
-
-// 🔥 Scan du dossier Traça_Temp du site, même si on n’est pas dedans
-if (siteLi && siteLi.dataset.id) {
-  computeHotDaysFor(siteLi).then(set => {
-    console.log(`🔥 ${set.size} jours chauds détectés pour le site ${siteLi.querySelector('.folder-name')?.textContent}`);
-  });
-}
-
-
+  imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name));
   displayFiles(filtered, nameSpan ? nameSpan.textContent : '');
 }
+
 
 
 
@@ -1328,6 +1319,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
