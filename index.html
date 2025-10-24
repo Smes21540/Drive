@@ -648,7 +648,22 @@ while (parentLi) {
   }
 
 // Charger tous les fichiers du dossier (inclut les .json pour les 📝)
-const files = await fetchFolderContents(li.dataset.id);
+let files = await fetchFolderContents(li.dataset.id);
+
+// Si aucun .json détecté, tentative secondaire sans casser le cache
+if (!files.some(f => f.name.toLowerCase().endsWith(".json"))) {
+  try {
+    const more = await fetchFolderContents(li.dataset.id + "&includeJson=true");
+    const jsonFiles = more.filter(f => f.name.toLowerCase().endsWith(".json"));
+    if (jsonFiles.length > 0) {
+      console.log(`📝 ${jsonFiles.length} fichiers JSON ajoutés manuellement pour ${li.dataset.id}`);
+      files = [...files, ...jsonFiles];
+    }
+  } catch (e) {
+    console.warn("⚠️ Erreur en tentant de charger les JSON :", e);
+  }
+}
+
 
 // 🧩 Ajout manuel des fichiers .json manquants dans le dossier Traça_Temp
 if (nameSpan && nameSpan.textContent.toLowerCase().includes("traça_temp")) {
@@ -1487,6 +1502,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
