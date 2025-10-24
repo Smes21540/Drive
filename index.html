@@ -1397,15 +1397,24 @@ window.onload=()=>{
   document.getElementById("downloadFolderBtn").style.display="none";
 
   loadRootFolders();
-  const last=localStorage.getItem('lastFolderId');
-  if(last){
-    const temp={dataset:{id:last}, querySelector:()=>({classList:{add:()=>{}}})};
-    loadFolderFilesOnClick(temp);
-  }
+const last = localStorage.getItem("lastFolderId");
+if (last) {
+  // attendre un peu que l'arborescence soit rendue
+  setTimeout(() => {
+    const li = document.querySelector(`#folderTree li[data-id="${last}"]`);
+    if (li) {
+      loadFolderFilesOnClick(li);
+    } else {
+      console.warn("[INIT] Impossible de retrouver le dernier dossier ouvert :", last);
+    }
+  }, 1200);
+}
+
 };
 </script>
 </body>
 </html>
+
 
 
 
