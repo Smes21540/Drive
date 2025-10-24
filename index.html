@@ -364,6 +364,9 @@ let imageFiles=[], currentImageIndex=0;
 let filterStartDate="", filterEndDate="";
 let themeMenuTimer;
 let cancelScan = false; // 🛑 permet d’arrêter le scan si on clique ailleurs
+// 🔥 Gestion du site actif et des jours chauds (par site)
+let currentSiteId = null;
+let currentHotDays = new Set();
 
 
 /* ----------- Utilitaires UI ----------- */
@@ -650,6 +653,21 @@ function displayFiles(files, folderName){
   const downloadBtn=document.getElementById('downloadFolderBtn');
   tbody.innerHTML='';
 
+  // 🔥 Si on n'est pas dans Traça_Temp, chercher les jours chauds du site
+let hotDays = new Set();
+if (!folderName.toLowerCase().includes("traça_temp") && !folderName.toLowerCase().includes("traca_temp")) {
+  const siteLi = document.querySelector("#folderTree .active-folder")?.closest("li")?.parentElement?.closest("li");
+  if (siteLi) {
+    const cached = localStorage.getItem(`${siteLi.dataset.id}_hotDays`);
+    if (cached) {
+      hotDays = new Set(JSON.parse(cached));
+    } else {
+      hotDays = await computeHotDaysFor(siteLi);
+    }
+  }
+}
+
+
   if(files.length===0){
     tbody.innerHTML='<tr><td colspan="5" style="text-align:center;">Aucun fichier</td></tr>';
     downloadBtn.style.display="none";
@@ -807,7 +825,13 @@ if(f.name.toLowerCase().endsWith('.csv')){
 
 
 tr.appendChild(tdDate);
-    tr.appendChild(tdFlame);
+// 🔥 Si le jour est chaud d'après le Traça_Temp du site → afficher flamme
+const dateKey = date ? date.replace(/-/g, "") : "";
+if (hotDays.has(dateKey)) {
+  tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là (Traça_Temp du site)">🔥</span>`;
+}
+
+tr.appendChild(tdFlame);
 tr.appendChild(tdAction);
 tr.appendChild(tdName);
 tr.appendChild(tdFolder);
@@ -1206,6 +1230,69 @@ function markFolderWithFlame(li) {
   }
 }
 
+/* ----------- 🔥 Scan global du site basé sur Traça_Temp ----------- */
+async function computeHotDaysFor(siteLi) {
+  if (!siteLi || !siteLi.dataset.id) return new Set();
+
+  // Si le site n’a pas changé → on réutilise les jours déjà détectés
+  if (siteLi.dataset.id === currentSiteId && currentHotDays.size > 0) {
+    return currentHotDays;
+  }
+
+  // Nouveau site → reset
+  currentSiteId = siteLi.dataset.id;
+  currentHotDays = new Set();
+
+  // Trouver le dossier Traça_Temp du site
+  const subFolders = await fetchChildren(siteLi.dataset.id);
+  const tracatemp = subFolders.find(f =>
+    f.name.toLowerCase().includes("traça_temp") ||
+    f.name.toLowerCase().includes("traca_temp")
+  );
+  if (!tracatemp) return currentHotDays;
+
+  // Charger les fichiers CSV du dossier Traça_Temp
+  const files = await fetchFolderContents(tracatemp.id);
+  const csvFiles = files.filter(f => f.name.toLowerCase().endsWith(".csv"));
+  if (csvFiles.length === 0) return currentHotDays;
+
+  // Lecture rapide de chaque CSV pour détecter les jours chauds
+  for (const f of csvFiles) {
+    try {
+      const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`);
+      if (!res.ok) continue;
+      const text = await res.text();
+      const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+      if (lines.length < 2) continue;
+
+      const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim().toLowerCase());
+      let idxInf = headers.findIndex(h => h.includes("sonde ac inf"));
+      let idxSup = headers.findIndex(h => h.includes("sonde ac sup"));
+      if (idxInf === -1 && idxSup === -1) continue;
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(",").map(c => c.replace(/"/g, "").trim());
+        const vInf = idxInf !== -1 ? parseFloat(cols[idxInf]) : NaN;
+        const vSup = idxSup !== -1 ? parseFloat(cols[idxSup]) : NaN;
+        if ((isFinite(vInf) && vInf > FLAME_THRESHOLD) || (isFinite(vSup) && vSup > FLAME_THRESHOLD)) {
+          // 🔥 Extraire la date du nom de fichier
+          const m = f.name.match(/(\d{8})\.csv$/i);
+          if (m) {
+            currentHotDays.add(m[1]); // ex: "20251024"
+          }
+          break; // inutile de lire tout le fichier
+        }
+      }
+    } catch (err) {
+      console.warn("Erreur scan rapide Traça_Temp:", f.name, err);
+    }
+  }
+
+  // Optionnel : cache local
+  localStorage.setItem(`${siteLi.dataset.id}_hotDays`, JSON.stringify([...currentHotDays]));
+
+  return currentHotDays;
+}
 
 
 
@@ -1228,3 +1315,4 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
