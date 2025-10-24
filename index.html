@@ -639,6 +639,29 @@ while (parentLi) {
     f.name.toLowerCase().endsWith('.jpg') || 
     f.name.toLowerCase().endsWith('.jpeg')
   );
+
+// 🧭 Détermination du site courant
+const siteLi = li.parentElement.closest("li");
+const siteId = siteLi ? siteLi.dataset.id : null;
+
+// 🧹 Si on change de site → vider le cache
+if (siteId && siteId !== currentSiteId) {
+  clearSiteHotDays();
+  currentSiteId = siteId;
+  console.log(`[SITE] Changement de site → ${siteLi.querySelector(".folder-name")?.textContent}`);
+  hotDaysMap = await scanSiteHotDays(siteId);
+} else if (siteId && Object.keys(hotDaysMap).length === 0) {
+  // 🔄 Site identique mais cache vide (par ex. rechargement page)
+  hotDaysMap = loadSiteHotDays(siteId);
+  if (Object.keys(hotDaysMap).length === 0) {
+    console.log(`[CACHE] Aucun cache trouvé pour ${siteLi.querySelector(".folder-name")?.textContent}, relance du scan...`);
+    hotDaysMap = await scanSiteHotDays(siteId);
+  } else {
+    console.log(`[CACHE] ${Object.keys(hotDaysMap).length} jours chauds chargés depuis cache`);
+  }
+}
+
+  
   imageFiles = filtered.filter(f => /\.(jpg|jpeg)$/i.test(f.name)); // pour la modale
   displayFiles(filtered, nameSpan ? nameSpan.textContent : '');
 }
@@ -676,6 +699,16 @@ const tr=document.createElement('tr');
 tdFlame.style.textAlign = "center";
 tdFlame.style.width = "26px";
 tdFlame.textContent = "";
+
+    // 🔥 Application flamme si le fichier correspond à un jour chaud
+const match = f.name.match(/(\d{8})\.csv$/i);
+if (match) {
+  const dateKey = match[1];
+  if (hotDaysMap[dateKey]) {
+    tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+  }
+}
+
 
 
 // Bloc DATE avec affichage du jour
@@ -1228,3 +1261,4 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
