@@ -1206,63 +1206,86 @@ let currentSiteId = null;
 let hotDaysMap = {}; // { 'YYYYMMDD': true }
 
 async function scanSiteHotDays(siteId) {
-  const children = await fetchChildren(siteId);
-  const tracatemp = children.find(f =>
-    f.name.toLowerCase().includes("traça_temp") || f.name.toLowerCase().includes("traca_temp")
-  );
-  if (!tracatemp) {
-    console.warn("Pas de Traça_Temp trouvé pour ce site.");
-    return {};
-  }
-
-  console.log(`[SCAN] Scan du site ${siteId} → dossier ${tracatemp.name}`);
-
-  const files = (await fetchFolderContents(tracatemp.id)).filter(f => f.name.toLowerCase().endsWith(".csv"));
   const hotDays = {};
+  console.time(`[SCAN] Durée scanSiteHotDays (${siteId})`);
+  console.log(`[SCAN] Scan du site ${siteId} → dossier Traça_Temp`);
 
-  for (const f of files) {
-    try {
-      const res = await fetch(
-        `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`
-      );
-      if (!res.ok) continue;
-      const text = await res.text();
-      const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
-      if (lines.length < 2) continue;
+  try {
+    const siblings = await fetchFolderContents(siteId);
+    const tracatemp = siblings.find(s => 
+      s.mimeType === 'application/vnd.google-apps.folder' &&
+      (s.name.toLowerCase().includes("traça_temp") || s.name.toLowerCase().includes("traca_temp"))
+    );
+    if (!tracatemp) {
+      console.warn(`[SCAN] Aucun dossier Traça_Temp trouvé pour le site ${siteId}`);
+      return hotDays;
+    }
 
-      const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim().toLowerCase());
-      let idxInf = headers.findIndex(h => h.includes("sonde ac inf"));
-      let idxSup = headers.findIndex(h => h.includes("sonde ac sup"));
-      if (idxInf === -1 && idxSup === -1) continue;
+    const files = await fetchFolderContents(tracatemp.id);
+    const csvFiles = files.filter(f => f.name.toLowerCase().endsWith(".csv"));
+    console.log(`[SCAN] ${csvFiles.length} CSV trouvés dans ${tracatemp.name}`);
 
-      let countOver = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(",").map(c => c.replace(/"/g, "").trim());
-        const timeStr = cols[0];
-        if (timeStr && /^(\d{2}):/.test(timeStr)) {
-          const hh = parseInt(timeStr.slice(0, 2));
-          if (hh < 5 || hh >= 23) continue; // ignore la nuit
-        }
-        const vInf = idxInf !== -1 ? parseFloat(cols[idxInf]) : NaN;
-        const vSup = idxSup !== -1 ? parseFloat(cols[idxSup]) : NaN;
-        if ((isFinite(vInf) && vInf > FLAME_THRESHOLD) || (isFinite(vSup) && vSup > FLAME_THRESHOLD)) {
-          countOver++;
-          if (countOver >= FLAME_MIN_LINES) {
-            const m = f.name.match(/(\d{8})\.csv$/i);
-            if (m) hotDays[m[1]] = true;
-            break;
+    for (const f of csvFiles) {
+      try {
+        const res = await fetch(
+          `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`
+        );
+        if (!res.ok) continue;
+
+        const text = await res.text();
+        const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+        if (lines.length < 2) continue;
+
+        const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim().toLowerCase());
+
+        // 🔍 2ème occurrence (comme ton ancien index)
+        let idxInf = headers.map((h,i)=>({h,i})).filter(o=>o.h.includes("sonde ac inf"))[1]?.i;
+        let idxSup = headers.map((h,i)=>({h,i})).filter(o=>o.h.includes("sonde ac sup"))[1]?.i;
+        if (idxInf === undefined && idxSup === undefined) continue;
+
+        let countFlame = 0;
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(",").map(c => c.replace(/"/g, "").trim());
+
+          // 🕔 ignore la nuit (<5h)
+          const timeStr = cols[0];
+          if (timeStr && /^(\d{2}):(\d{2})/.test(timeStr)) {
+            const [_, hh] = timeStr.match(/^(\d{2}):/);
+            const hour = parseInt(hh, 10);
+            if (hour < 5) continue;
+          }
+
+          const vInf = idxInf !== undefined ? parseFloat(cols[idxInf]) : NaN;
+          const vSup = idxSup !== undefined ? parseFloat(cols[idxSup]) : NaN;
+
+          if ((isFinite(vInf) && vInf > FLAME_THRESHOLD) ||
+              (isFinite(vSup) && vSup > FLAME_THRESHOLD)) {
+            countFlame++;
           }
         }
-      }
-    } catch (err) {
-      console.warn("Erreur scan jour chaud:", f.name, err);
-    }
-  }
 
-  console.log(`🔥 ${Object.keys(hotDays).length} jours chauds détectés pour le site ${siteId}`);
-  localStorage.setItem(`siteHotDays_${siteId}`, JSON.stringify(hotDays));
-  return hotDays;
+        if (countFlame >= 1) {
+          const m = f.name.match(/(\d{8})\.csv$/i);
+          if (m) hotDays[m[1]] = true;
+        }
+
+      } catch (e) {
+        console.warn(`[SCAN] Erreur lecture fichier ${f.name}:`, e);
+      }
+    }
+
+    console.log(`[SCAN] 🔥 ${Object.keys(hotDays).length} jours chauds détectés pour le site`);
+    console.timeEnd(`[SCAN] Durée scanSiteHotDays (${siteId})`);
+    localStorage.setItem(`hotDays_${siteId}`, JSON.stringify(hotDays));
+    return hotDays;
+
+  } catch (err) {
+    console.error("[SCAN] Erreur générale scanSiteHotDays:", err);
+    console.timeEnd(`[SCAN] Durée scanSiteHotDays (${siteId})`);
+    return hotDays;
+  }
 }
+
 
 function loadSiteHotDays(siteId) {
   const data = localStorage.getItem(`siteHotDays_${siteId}`);
@@ -1369,6 +1392,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
