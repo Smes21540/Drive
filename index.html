@@ -721,10 +721,20 @@ tdFlame.textContent = "";
 const match = f.name.match(/(\d{8})\.csv$/i);
 if (match) {
   const dateKey = match[1];
+
+  // 🔥 flamme si déjà détectée dans le cache
   if (hotDaysMap[dateKey]) {
     tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+  } else {
+    // 🕓 attente de la fin du scan → on vérifie à nouveau après 1 seconde
+    setTimeout(() => {
+      if (hotDaysMap[dateKey]) {
+        tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+      }
+    }, 1000);
   }
 }
+
 
 
 
@@ -1380,6 +1390,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
