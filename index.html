@@ -677,6 +677,17 @@ tdFlame.style.textAlign = "center";
 tdFlame.style.width = "26px";
 tdFlame.textContent = "";
 
+// ✅ Si ce fichier correspond à un jour "chaud" connu, afficher la flamme
+const m = f.name.match(/(\d{8})\.csv$/i);
+if (m) {
+  const yyyymmdd = m[1];
+  const hotDays = JSON.parse(localStorage.getItem("hotDays") || "[]");
+  if (hotDays.includes(yyyymmdd)) {
+    tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+  }
+}
+
+
 
 // Bloc DATE avec affichage du jour
 const tdDate=document.createElement('td');
@@ -698,24 +709,22 @@ if (date) {
 const tdName = document.createElement('td');
 tdName.textContent = f.name;
 
-// === FLAMME FILE (avec cancelScan) ===
+// === FLAMME FILE (avec cache global hotDays) ===
 if (f.name.toLowerCase().endsWith(".csv") &&
     (folderName.toLowerCase().includes("traça_temp") || folderName.toLowerCase().includes("traca_temp"))) {
   
-  // Message provisoire
   tdName.innerHTML = `${f.name}&nbsp;&nbsp;&nbsp;<span style="color:gray;font-size:11px;">(scan en cours...)</span>`;
 
   (async () => {
     try {
-      if (cancelScan) { tdName.innerHTML = f.name; return; } // 🛑 stop si demandé
+      if (cancelScan) { tdName.innerHTML = f.name; return; }
 
       const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`;
-
       const res = await fetch(url);
       if (!res.ok) { tdName.innerHTML = f.name; return; }
 
       const text = await res.text();
-      if (cancelScan) { tdName.innerHTML = f.name; return; } // 🛑 stop si demandé
+      if (cancelScan) { tdName.innerHTML = f.name; return; }
 
       const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
       if (lines.length < 2) { tdName.innerHTML = f.name; return; }
@@ -723,44 +732,47 @@ if (f.name.toLowerCase().endsWith(".csv") &&
       const headers = lines[0].split(",").map(h => h.replace(/"/g,"").trim().toLowerCase());
       let idxInf = headers.map((h,i)=>({h,i})).filter(o=>o.h.includes("sonde ac inf"))[1]?.i;
       let idxSup = headers.map((h,i)=>({h,i})).filter(o=>o.h.includes("sonde ac sup"))[1]?.i;
-
       if (idxInf === undefined && idxSup === undefined) { tdName.innerHTML = f.name; return; }
 
       let countFlame = 0;
-for (let i = 1; i < lines.length; i++) {
-  const cols = lines[i].split(",").map(c => c.replace(/"/g,"").trim());
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(",").map(c => c.replace(/"/g,"").trim());
+        const timeStr = cols[0];
+        if (timeStr && /^(\d{2}):(\d{2})/.test(timeStr)) {
+          const [_, hh] = timeStr.match(/^(\d{2}):/);
+          const hour = parseInt(hh, 10);
+          if (hour < 5 || hour >= 24) continue;
+        }
+        const vInf = idxInf !== undefined ? parseFloat(cols[idxInf]) : NaN;
+        const vSup = idxSup !== undefined ? parseFloat(cols[idxSup]) : NaN;
+        if ((isFinite(vInf) && vInf > FLAME_THRESHOLD) || (isFinite(vSup) && vSup > FLAME_THRESHOLD)) {
+          countFlame++;
+        }
+      }
 
-  // 🕔 Vérifie l’heure (colonne 0 supposée être l’heure du point)
-  const timeStr = cols[0];
-  if (timeStr && /^(\d{2}):(\d{2})/.test(timeStr)) {
-    const [_, hh, mm] = timeStr.match(/^(\d{2}):(\d{2})/);
-    const hour = parseInt(hh, 10);
+      if (countFlame >= 1) {
+        tdFlame.innerHTML = `<span class="flame" title="Brûleur actif détecté ce jour !">🔥</span>`;
 
-    // ⏰ Ignore les valeurs avant 5h ou après 23h59
-    if (hour < 5 || hour >= 24) continue;
-  }
+        // ✅ Enregistre ce jour comme "chaud"
+        const m = f.name.match(/(\d{8})\.csv$/i);
+        if (m) {
+          const yyyymmdd = m[1];
+          const hotDays = JSON.parse(localStorage.getItem("hotDays") || "[]");
+          if (!hotDays.includes(yyyymmdd)) {
+            hotDays.push(yyyymmdd);
+            localStorage.setItem("hotDays", JSON.stringify(hotDays));
+          }
+        }
+      }
 
-  const vInf = idxInf !== undefined ? parseFloat(cols[idxInf]) : NaN;
-  const vSup = idxSup !== undefined ? parseFloat(cols[idxSup]) : NaN;
-
-  if ((isFinite(vInf) && vInf > FLAME_THRESHOLD) ||
-      (isFinite(vSup) && vSup > FLAME_THRESHOLD)) {
-    countFlame++;
-  }
-}
-
-
-if (countFlame >= 1) {
-  tdFlame.innerHTML = `<span class="flame" title="Brûleur actif détecté ce jour !">🔥</span>`;
-}
-tdName.textContent = f.name;
-
+      tdName.textContent = f.name;
     } catch(e) {
       console.error("Erreur flamme fichier:", f.name, e);
       tdName.innerHTML = f.name;
     }
   })();
 }
+
 // === FIN FLAMME FILE ===
 
 
@@ -1228,6 +1240,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
