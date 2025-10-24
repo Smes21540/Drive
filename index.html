@@ -575,6 +575,9 @@ async function fetchChildren(folderId){
 async function loadFolderFilesOnClick(li){
   await toggleFolder(li);
 
+    const siteLi = li.parentElement.closest("li");
+
+
 // 🔄 Réinitialiser la sélection visuelle
 document.querySelectorAll('#folderTree li span.folder-name').forEach(s => s.classList.remove('active-folder'));
 
@@ -1325,6 +1328,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
