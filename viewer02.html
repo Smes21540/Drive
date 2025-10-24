@@ -819,7 +819,7 @@ const notesPlugin = {
     const yScale = chart.scales.y;
 
     ctx.save();
-    ctx.font = "20px 'Segoe UI Emoji'";
+    ctx.font = "16px Segoe UI";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = getCSSVar("--danger") || "red";
@@ -1440,17 +1440,10 @@ try {
     if (noteFile) {
       console.log("📥 Fichier de notes détecté :", noteFile.name, noteFile.id);
       const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${noteFile.id}`;
-const res = await fetch(`${url}?nocache=${Date.now()}`, {
-  cache: "reload",
-  headers: { "Cache-Control": "no-cache, no-store, must-revalidate" }
-});
-if (!res.ok) throw new Error("Erreur HTTP " + res.status);
-
-console.log("🌐 URL JSON appelée :", res.url);
-const jsonText = await res.text();
-const notes = JSON.parse(jsonText);
-console.log(`📊 Notes chargées depuis ${noteFile.id} → ${notes.length} éléments`);
-
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+      const jsonText = await res.text();
+      const notes = JSON.parse(jsonText);
       console.log("✅ Notes chargées :", notes);
 
       // 🔧 Conversion et nettoyage des données avant affichage
@@ -1639,7 +1632,7 @@ body: new URLSearchParams({
   id: crypto.randomUUID(),                        // 🆔 identifiant unique
   csvName: baseFileName || "inconnu.csv",
   fileId: baseFileId,
-  folderId: currentFolderId || localStorage.getItem("lastFolderId"),
+  folderId: localStorage.getItem("lastFolderId"),  // ✅ bon dossier conservé
   author: authorInput.value || "Anonyme",
   note: content,
   x: clickedPoint ? clickedPoint.x : "",
@@ -1723,7 +1716,7 @@ showConfirm("Confirmer la suppression de cette note ?", async () => {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
 body: new URLSearchParams({
   id: note.id || "",                             // 🆔 identifiant pour mise à jour
-  folderId: currentFolderId || localStorage.getItem("lastFolderId"),
+  folderId: localStorage.getItem("lastFolderId"), // ✅ on revient au bon dossier !
   csvName: baseFileName,
   note: note.text || note.note,
   x: note.x,
@@ -1871,53 +1864,4 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
