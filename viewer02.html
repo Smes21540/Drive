@@ -1655,7 +1655,7 @@ document.getElementById("saveNoteBtn").addEventListener("click", async () => {
   try {
     const createdAt = new Date().toISOString();
 const response = await fetch(
-  "https://script.google.com/macros/s/AKfycbzEzsgUeJ_hjEz-J0IdKFWnm3b7yLBnwWeDwkV4D0RLKdyBkt762nlOuAL14yBLWlpt/exec",
+  "https://script.google.com/macros/s/AKfycbyU5j_Y-U_Vz41AVWor7nbkezQKBBJRJh9f-HrQFiBOq7KkiRN_Dhbex3jrOfNmxidE/exec",
 
       {
         method: "POST",
@@ -1742,7 +1742,7 @@ showConfirm("Confirmer la suppression de cette note ?", async () => {
     showPointEffect(note.x, note.y, "rgba(220,0,0,0.6)");
 
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbzEzsgUeJ_hjEz-J0IdKFWnm3b7yLBnwWeDwkV4D0RLKdyBkt762nlOuAL14yBLWlpt/exec",
+      "https://script.google.com/macros/s/AKfycbyU5j_Y-U_Vz41AVWor7nbkezQKBBJRJh9f-HrQFiBOq7KkiRN_Dhbex3jrOfNmxidE/exec",
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -1896,6 +1896,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
