@@ -589,6 +589,23 @@ while (parentLi) {
 
   localStorage.setItem('lastFolderId', li.dataset.id);
 
+// 📂 Sauvegarde du chemin complet (ex: Voreppe/Traça_Temp)
+function buildFullFolderPath(li) {
+  const parts = [];
+  let current = li;
+  while (current) {
+    const nameSpan = current.querySelector(".folder-name");
+    if (nameSpan) parts.unshift(nameSpan.textContent.trim());
+    current = current.parentElement.closest("li");
+  }
+  return parts.join("/");
+}
+
+const fullPath = buildFullFolderPath(li);
+localStorage.setItem("lastFolderPath", fullPath);
+console.log("[Folder] Chemin complet enregistré :", fullPath);
+
+  
   const folderName = nameSpan ? nameSpan.textContent.toLowerCase() : "";
 
   // ⚡ Gestion spéciale Z3
@@ -1447,6 +1464,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
