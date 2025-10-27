@@ -543,6 +543,21 @@ document.getElementById("currentFolderName").textContent = folderName;
 // 🧭 on conserve au moins le nom du dossier comme chemin texte
 currentFolderPath = getParam("folderPath") || (folder ? folder.name : "");
 
+// 🔹 Récupération du chemin complet du dossier
+let folderPath = new URLSearchParams(window.location.search).get("folderPath");
+
+// 🔹 Si pas trouvé dans l’URL (ou test local), on le reprend du localStorage
+if (!folderPath || folderPath.trim() === "") {
+  folderPath = localStorage.getItem("currentFolderPath") || "";
+}
+
+// 🔹 Pour vérif
+console.log("[Viewer02] Chemin dossier récupéré :", folderPath);
+
+// 🔹 On synchronise la variable globale
+currentFolderPath = folderPath;
+
+  
 
 } catch (e) {
   console.warn("⚠️ Erreur récupération dossier courant", e);
@@ -1952,6 +1967,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
