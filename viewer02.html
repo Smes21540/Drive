@@ -1715,16 +1715,17 @@ const response = await fetch(
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
 body: new URLSearchParams({
-  id: crypto.randomUUID(),                        // 🆔 identifiant unique
+  id: crypto.randomUUID(),
   csvName: baseFileName || "inconnu.csv",
   fileId: baseFileId,
-  folderId: localStorage.getItem("lastFolderId"),  // ✅ bon dossier conservé
+  folderId: localStorage.getItem("lastFolderId"),
   author: authorInput.value || "Anonyme",
   note: content,
   x: clickedPoint ? clickedPoint.x : "",
   y: clickedPoint ? clickedPoint.y : "",
   createdAt: createdAt,
-  status: "active"                                // ✅ statut explicite
+  status: "active",
+  dossier: currentFolderPath || ""   // 🆕 ajouté ici
 })
 
 
@@ -1950,6 +1951,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
