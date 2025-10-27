@@ -982,21 +982,27 @@ async function openViewer(viewer, id, name){
     localStorage.removeItem("planSondes");
   }
 
-  // 📂 Construit le chemin complet du dossier sélectionné (ex: Valbonne/Traça_Temp)
-  function buildFullFolderPath(li) {
-    const parts = [];
-    let current = li;
-    while (current) {
-      const nameSpan = current.querySelector(".folder-name");
-      if (nameSpan) parts.unshift(nameSpan.textContent.trim());
-      current = current.parentElement.closest("li");
-    }
-    return parts.join("/");
+// 📂 Construit le chemin complet du dossier sélectionné (ex: Voreppe/Traça_Temp)
+function buildFullFolderPath(li) {
+  const parts = [];
+  let current = li;
+  while (current) {
+    const nameSpan = current.querySelector(".folder-name");
+    if (nameSpan) parts.unshift(nameSpan.textContent.trim());
+    current = current.parentElement.closest("li");
   }
+  return parts.join("/");
+}
 
-  const fullPath = buildFullFolderPath(active.closest("li"));
-  localStorage.setItem("lastFolderPath", fullPath);
-  console.log("[Viewer] Chemin complet stocké :", fullPath);
+// 🧭 Récupère le dossier cliqué + son parent si existant
+const li = active.closest("li");
+const parentLi = li.parentElement.closest("li");
+const targetLi = parentLi || li;  // inclut toujours un niveau au-dessus si dispo
+
+const fullPath = buildFullFolderPath(targetLi);
+localStorage.setItem("lastFolderPath", fullPath);
+console.log("[Viewer] Chemin complet stocké :", fullPath);
+
 
   window.open(url,'_blank');
   setTimeout(() => { cancelScan = false; }, 1000);
@@ -1438,6 +1444,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
