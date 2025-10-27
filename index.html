@@ -1004,29 +1004,7 @@ console.log("[Viewer] Dossier ajouté à l’URL :", folderPath);
     localStorage.removeItem("planSondes");
   }
 
-// 📂 Construit le chemin complet du dossier sélectionné (ex: Voreppe/Traça_Temp)
-function buildFullFolderPath(li) {
-  const parts = [];
-  let current = li;
-  while (current) {
-    const nameSpan = current.querySelector(".folder-name");
-    if (nameSpan) parts.unshift(nameSpan.textContent.trim());
-    current = current.parentElement.closest("li");
-  }
-  return parts.join("/");
-}
 
-// 🧭 Récupère le dossier cliqué + son parent si existant
-// 🧭 Récupère le dernier dossier actif dans la sélection (le plus profond)
-const allActive = document.querySelectorAll('#folderTree .active-folder');
-const li = allActive.length > 0 ? allActive[allActive.length - 1].closest('li') : active.closest('li');
-const parentLi = li.parentElement.closest('li');
-
-const targetLi = parentLi || li;  // inclut toujours un niveau au-dessus si dispo
-
-const fullPath = buildFullFolderPath(targetLi);
-localStorage.setItem("lastFolderPath", fullPath);
-console.log("[Viewer] Chemin complet stocké :", fullPath);
 
 
   window.open(url,'_blank');
@@ -1469,6 +1447,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
