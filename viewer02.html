@@ -1696,7 +1696,8 @@ document.getElementById("saveNoteBtn").addEventListener("click", async () => {
       x: clickedPoint ? clickedPoint.x : "",
       y: clickedPoint ? clickedPoint.y : "",
       createdAt: createdAt,
-      status: "active"
+      status: "active",
+      dossier: currentFolderPath || ""   // 🆕 chemin texte du dossier (simple texte)
     };
     console.log("📤 Données envoyées au Script Google :", payload);
 
@@ -1943,6 +1944,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
