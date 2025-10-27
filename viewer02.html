@@ -519,46 +519,26 @@ async function loadCSVFromDrive(){
   document.getElementById('exportPDF').style.display = "inline-block";
   document.getElementById('resetZoom').style.display = "inline-block";
 
-// 💾 Détermination du dossier courant (ID + chemin complet)
+// 💾 Détermination du dossier courant uniquement
 try {
   const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
   const f = list.find(x => x.id === baseFileId);
 
-  // 🧱 On garde l'ID du dossier parent (inchangé)
   if (f && Array.isArray(f.parents) && f.parents.length > 0) {
-    currentFolderId = f.parents[0];
+    currentFolderId = f.parents[0]; // dossier exact du CSV
+    console.log("📁 Dossier courant (exact):", currentFolderId);
   } else {
+    console.warn("⚠️ Aucun dossier trouvé pour ce fichier, currentFolderId = null");
     currentFolderId = null;
   }
 
-  // 🗺️ Fonction récursive pour reconstruire le chemin complet
-  function buildFolderPath(folderId, depth = 0) {
-    if (!folderId || depth > 10) return "";
-    const folder = list.find(x => x.id === folderId);
-    if (!folder) return "";
-    const parent = (folder.parents && folder.parents[0])
-      ? buildFolderPath(folder.parents[0], depth + 1)
-      : "";
-    return parent ? `${parent}/${folder.name}` : folder.name;
-  }
-
-  // 🔍 On obtient le chemin complet du dossier
-  let currentFolderPath = "";
-  if (currentFolderId) currentFolderPath = buildFolderPath(currentFolderId);
-
-  // 🧭 On l’affiche joliment
-  const folderDisplay = document.getElementById("currentFolderName");
-  folderDisplay.textContent = currentFolderPath
-    ? `📁 ${currentFolderPath}`
-    : "(Dossier inconnu)";
-
-  // 💾 On sauvegarde pour les notes
-  localStorage.setItem("lastFolderId", currentFolderId || "");
-  localStorage.setItem("lastFolderPath", currentFolderPath || "");
+  // affiche juste le nom du dossier courant (facultatif)
+  const folder = list.find(x => x.id === currentFolderId);
+  document.getElementById("currentFolderName").textContent =
+    folder ? folder.name : "(Dossier inconnu)";
 } catch (e) {
   console.warn("⚠️ Erreur récupération dossier courant", e);
 }
-
 
 
 
@@ -826,11 +806,6 @@ const z3LinesPlugin = {
   }
 };
 
-// === 🗒️ Données des notes ===
-let notesData = []; // [{x, y, text, author, createdAt, status}]
-
-
-    
 const notesPlugin = {
   id: "notesPlugin",
   afterDatasetsDraw(chart) {
@@ -1715,19 +1690,17 @@ const response = await fetch(
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
 body: new URLSearchParams({
-  id: crypto.randomUUID(),
+  id: crypto.randomUUID(),                        // 🆔 identifiant unique
   csvName: baseFileName || "inconnu.csv",
   fileId: baseFileId,
-  folderId: localStorage.getItem("lastFolderId"),      // ✅ ID Drive (inchangé)
-  folderPath: localStorage.getItem("lastFolderPath") || "", // 🆕 chemin texte complet
+  folderId: localStorage.getItem("lastFolderId"),  // ✅ bon dossier conservé
   author: authorInput.value || "Anonyme",
   note: content,
   x: clickedPoint ? clickedPoint.x : "",
   y: clickedPoint ? clickedPoint.y : "",
   createdAt: createdAt,
-  status: "active"
+  status: "active"                                // ✅ statut explicite
 })
-
 
 
       }
@@ -1797,24 +1770,25 @@ showConfirm("Confirmer la suppression de cette note ?", async () => {
     // 💥 effet rouge visuel
     showPointEffect(note.x, note.y, "rgba(220,0,0,0.6)");
 
-const response = await fetch(
-  "https://script.google.com/macros/s/AKfycbwNJcvZ7S99TC1vi3Z7zQMjw92CSx1_3wnszsaP_Yoy5zEHdJwXdPuWvy6vnIDFPUEj/exec",
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      id: note.id || "",
-      folderId: localStorage.getItem("lastFolderId"),        // ✅ ID Drive (inchangé)
-      folderPath: localStorage.getItem("lastFolderPath") || "", // 🆕 chemin texte complet
-      csvName: baseFileName,
-      note: note.text || note.note,
-      x: note.x,
-      y: note.y,
-      status: "inactive"
-    })
-  }
-);
+    const response = await fetch(
+      "https://script.google.com/macros/s/AKfycbwNJcvZ7S99TC1vi3Z7zQMjw92CSx1_3wnszsaP_Yoy5zEHdJwXdPuWvy6vnIDFPUEj/exec",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+body: new URLSearchParams({
+  id: note.id || "",                             // 🆔 identifiant pour mise à jour
+  folderId: localStorage.getItem("lastFolderId"), // ✅ on revient au bon dossier !
+  csvName: baseFileName,
+  note: note.text || note.note,
+  x: note.x,
+  y: note.y,
+  status: "inactive"
+})
 
+
+
+      }
+    );
 
     console.log("Réponse suppression :", await response.text());
 
@@ -1951,8 +1925,6 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
-
-
 
 
 
