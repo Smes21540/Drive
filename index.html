@@ -912,33 +912,32 @@ async function openViewer(viewer, id, name){
 
   const folderId = localStorage.getItem('lastFolderId');
 
-// 📂 Charger tous les fichiers du dossier courant
-const files = await fetchFolderContents(folderId);
+  // 📂 Charger tous les fichiers du dossier courant
+  const files = await fetchFolderContents(folderId);
 
-// 🧩 Séparer les fichiers CSV et JSON
-const saFiles = files.filter(f =>
-  f.name.toUpperCase().startsWith("SA") &&
-  f.name.toLowerCase().endsWith(".csv")
-);
-const jsonFiles = files.filter(f =>
-  f.name.toLowerCase().endsWith(".json")
-);
+  // 🧩 Séparer les fichiers CSV et JSON
+  const saFiles = files.filter(f =>
+    f.name.toUpperCase().startsWith("SA") &&
+    f.name.toLowerCase().endsWith(".csv")
+  );
+  const jsonFiles = files.filter(f =>
+    f.name.toLowerCase().endsWith(".json")
+  );
 
-// 🔗 Récupérer les Z3 préchargés
-const z3Files = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
+  // 🔗 Récupérer les Z3 préchargés
+  const z3Files = JSON.parse(localStorage.getItem("csvZ3Files") || "[]");
 
-// 🗒️ Ajouter les fichiers .json dans le cache
-if (jsonFiles.length > 0) {
-  console.log(`[Notes] ${jsonFiles.length} fichiers .json ajoutés au cache`);
-  jsonFiles.forEach(jf => {
-    if (!jf.parents) jf.parents = [folderId];
-    if (!jf.mimeType) jf.mimeType = "application/json";
-  });
-}
+  // 🗒️ Ajouter les fichiers .json dans le cache
+  if (jsonFiles.length > 0) {
+    console.log(`[Notes] ${jsonFiles.length} fichiers .json ajoutés au cache`);
+    jsonFiles.forEach(jf => {
+      if (!jf.parents) jf.parents = [folderId];
+      if (!jf.mimeType) jf.mimeType = "application/json";
+    });
+  }
 
-// 🧠 Fusionner le tout
-const allCsv = [...saFiles, ...z3Files, ...jsonFiles];
-
+  // 🧠 Fusionner le tout
+  const allCsv = [...saFiles, ...z3Files, ...jsonFiles];
 
   function addFolderHierarchy(li, acc){
     if (!li) return;
@@ -953,6 +952,7 @@ const allCsv = [...saFiles, ...z3Files, ...jsonFiles];
       acc.push(folderObj);
     }
   }
+
   const activeLi = active.closest('li');
   addFolderHierarchy(activeLi, allCsv);
   allCsv.forEach(f => {
@@ -962,9 +962,6 @@ const allCsv = [...saFiles, ...z3Files, ...jsonFiles];
     }
   });
 
-
-
-  
   localStorage.setItem("csvFilesList", JSON.stringify(allCsv));
   const index = allCsv.findIndex(f => f.id === id);
   localStorage.setItem("csvFileIndex", index);
@@ -975,9 +972,7 @@ const allCsv = [...saFiles, ...z3Files, ...jsonFiles];
 
   if (planFile) {
     try {
-const respPlan = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${planFile.id}&name=${encodeURIComponent(planFile.name)}&site=Smes_Acces`);
-
-
+      const respPlan = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${planFile.id}&name=${encodeURIComponent(planFile.name)}&site=Smes_Acces`);
       const textPlan = await respPlan.text();
       localStorage.setItem("planSondes", textPlan);
     } catch (e) {
@@ -987,14 +982,26 @@ const respPlan = await fetch(`https://smes21540.netlify.app/.netlify/functions/d
     localStorage.removeItem("planSondes");
   }
 
+  // 📂 Construit le chemin complet du dossier sélectionné (ex: Valbonne/Traça_Temp)
+  function buildFullFolderPath(li) {
+    const parts = [];
+    let current = li;
+    while (current) {
+      const nameSpan = current.querySelector(".folder-name");
+      if (nameSpan) parts.unshift(nameSpan.textContent.trim());
+      current = current.parentElement.closest("li");
+    }
+    return parts.join("/");
+  }
 
+  const fullPath = buildFullFolderPath(active.closest("li"));
+  localStorage.setItem("lastFolderPath", fullPath);
+  console.log("[Viewer] Chemin complet stocké :", fullPath);
 
-  
   window.open(url,'_blank');
-
-  // 🔄 après un petit délai → réautoriser les scans
   setTimeout(() => { cancelScan = false; }, 1000);
 }
+
 
   // 📂 Construit le chemin complet du dossier sélectionné (ex: Valbonne/Traça_Temp)
   function buildFullFolderPath(li) {
@@ -1447,4 +1454,5 @@ if (last) {
 </script>
 </body>
 </html>
+
 
