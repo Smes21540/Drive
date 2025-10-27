@@ -392,6 +392,7 @@
   <script>
   /* ===================== CONFIG / STATE ===================== */
     let csvData=[], chart, currentX="", currentY=[];
+    let notesData = []; // 🗒️ Liste des notes actives à afficher sur le graphe
     let currentFolderId = null; // 🧩 dossier actuel du CSV
 
   let baseFileName="", baseFileId="", headers=[], timeField="", baseDateYYYYMMDD="";
@@ -1925,6 +1926,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
