@@ -806,10 +806,6 @@ const z3LinesPlugin = {
   }
 };
 
-// === 🗒️ Plugin pour afficher les icônes de notes ===
-// === 🗒️ Plugin de gestion d'affichage des notes ===
-let notesData = []; // [{x,y,text,author,createdAt,status}]
-
 const notesPlugin = {
   id: "notesPlugin",
   afterDatasetsDraw(chart) {
@@ -817,6 +813,7 @@ const notesPlugin = {
     const ctx = chart.ctx;
     const xScale = chart.scales.x;
     const yScale = chart.scales.y;
+    const canvas = chart.canvas;
 
     ctx.save();
     ctx.font = "20px Segoe UI Emoji";
@@ -832,42 +829,74 @@ const notesPlugin = {
       if (y < yScale.top || y > yScale.bottom) return;
       ctx.fillText("🖊️", x, y);
     });
-
     ctx.restore();
 
-    // 🔥 Détection du survol pour changer le curseur
-    const canvas = chart.canvas;
-    canvas.style.cursor = "default";
+    // ===== Gestion du survol et tooltip =====
+    const rect = canvas.getBoundingClientRect();
+    const mouse = chart.$mousePos;
 
+    let hovered = null;
+    if (mouse) {
+      for (const n of notesData) {
+        if (n.status !== "active") continue;
+        const x = xScale.getPixelForValue(n.x);
+        const y = yScale.getPixelForValue(n.y);
+        const d = Math.hypot(mouse.x - x, mouse.y - y);
+        if (d < 20) { hovered = n; break; }
+      }
+    }
+
+    canvas.style.cursor = hovered ? "pointer" : "default";
+
+    // ===== Dessin tooltip =====
+    if (hovered) {
+      const x = xScale.getPixelForValue(hovered.x);
+      const y = yScale.getPixelForValue(hovered.y);
+      const text = hovered.text || hovered.note || "(note vide)";
+      const panel = getCSSVar("--panel") || "#fff";
+      const accent = getCSSVar("--accent") || "black";
+
+      ctx.save();
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "center";
+      const padding = 6;
+      const lines = ctx.measureText(text);
+      const width = Math.min(220, lines.width + padding * 2);
+      const height = 28;
+      const boxX = x - width / 2;
+      const boxY = y - 35; // un peu au-dessus du stylo
+
+      ctx.fillStyle = panel;
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 1;
+      ctx.shadowColor = "rgba(0,0,0,0.25)";
+      ctx.shadowBlur = 3;
+      ctx.beginPath();
+      ctx.roundRect(boxX, boxY, width, height, 6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = accent;
+      ctx.fillText(text, x, boxY + height / 2);
+      ctx.restore();
+    }
+
+    // ===== Mise à jour de la position de la souris =====
     if (!chart.$mousemoveHandlerAttached) {
       chart.$mousemoveHandlerAttached = true;
-canvas.addEventListener("mousemove", (ev) => {
-  const rect = canvas.getBoundingClientRect();
-  const xClick = ev.clientX - rect.left;
-  const yClick = ev.clientY - rect.top;
-
-  let hover = false;
-  for (const n of notesData) {
-    if (n.status !== "active") continue;
-    const x = xScale.getPixelForValue(n.x);
-    const y = yScale.getPixelForValue(n.y);
-    const d = Math.hypot(x - xClick, y - yClick);
-    if (d < 25) {            // ← zone un peu plus large
-      hover = true;
-      break;
-    }
-  }
-
-  // évite les changements trop rapides
-  if (canvas.$lastHover !== hover) {
-    canvas.style.cursor = hover ? "pointer" : "default";
-    canvas.$lastHover = hover;
-  }
-});
-
+      canvas.addEventListener("mousemove", (ev) => {
+        const r = canvas.getBoundingClientRect();
+        chart.$mousePos = { x: ev.clientX - r.left, y: ev.clientY - r.top };
+        chart.update("none");
+      });
+      canvas.addEventListener("mouseleave", () => {
+        chart.$mousePos = null;
+        chart.update("none");
+      });
     }
   },
 };
+
 
 
 
@@ -1896,6 +1925,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
