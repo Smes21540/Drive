@@ -995,8 +995,11 @@ function buildFullFolderPath(li) {
 }
 
 // 🧭 Récupère le dossier cliqué + son parent si existant
-const li = active.closest("li");
-const parentLi = li.parentElement.closest("li");
+// 🧭 Récupère le dernier dossier actif dans la sélection (le plus profond)
+const allActive = document.querySelectorAll('#folderTree .active-folder');
+const li = allActive.length > 0 ? allActive[allActive.length - 1].closest('li') : active.closest('li');
+const parentLi = li.parentElement.closest('li');
+
 const targetLi = parentLi || li;  // inclut toujours un niveau au-dessus si dispo
 
 const fullPath = buildFullFolderPath(targetLi);
@@ -1444,6 +1447,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
