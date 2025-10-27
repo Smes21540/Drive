@@ -541,7 +541,8 @@ const folderName = folder ? folder.name : "(Dossier inconnu)";
 document.getElementById("currentFolderName").textContent = folderName;
 
 // 🧭 on conserve au moins le nom du dossier comme chemin texte
-currentFolderPath = folder ? folder.name : "";
+currentFolderPath = getParam("folderPath") || (folder ? folder.name : "");
+
 
 } catch (e) {
   console.warn("⚠️ Erreur récupération dossier courant", e);
@@ -1951,6 +1952,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
