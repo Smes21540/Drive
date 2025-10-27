@@ -987,6 +987,11 @@ async function openViewer(viewer, id, name){
   const planFile = files.find(f => f.name.toLowerCase() === "plan_sondes.csv");
   let url = `${viewer}?fileId=${id}&fileName=${encodeURIComponent(name)}`;
 
+const folderPath = localStorage.getItem("lastFolderPath") || "";
+url += `&folderPath=${encodeURIComponent(folderPath)}`;
+console.log("[Viewer] Dossier ajouté à l’URL :", folderPath);
+
+  
   if (planFile) {
     try {
       const respPlan = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${planFile.id}&name=${encodeURIComponent(planFile.name)}&site=Smes_Acces`);
@@ -1464,6 +1469,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
