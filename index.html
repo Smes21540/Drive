@@ -990,6 +990,9 @@ async function openViewer(viewer, id, name){
 const folderPath = localStorage.getItem("lastFolderPath") || "";
 url += `&folderPath=${encodeURIComponent(folderPath)}`;
 console.log("[Viewer] Dossier ajouté à l’URL :", folderPath);
+  // 🔹 Sauvegarde explicite du chemin pour le viewer02
+localStorage.setItem("currentFolderPath", folderPath);
+
 
   
   if (planFile) {
@@ -1447,6 +1450,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
