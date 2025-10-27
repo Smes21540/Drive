@@ -535,27 +535,13 @@ try {
     currentFolderId = null;
   }
 
-// Fonction utilitaire pour remonter la hiérarchie complète
-function getFullFolderPath(id, list) {
-  const parts = [];
-  let currentId = id;
-
-  while (currentId && currentId !== "root") {
-    const item = list.find(x => x.id === currentId);
-    if (!item) break;
-    parts.unshift(item.name);
-    currentId = (item.parents && item.parents[0]) || null;
-  }
-
-  return parts.join("/");
-}
-
-// Calcul et affichage du chemin complet
+// affiche le nom du dossier courant et mémorise le "chemin" texte
 const folder = list.find(x => x.id === currentFolderId);
-const fullPath = getFullFolderPath(currentFolderId, list);
-document.getElementById("currentFolderName").textContent = fullPath || "(Dossier inconnu)";
-currentFolderPath = fullPath || "";
+const folderName = folder ? folder.name : "(Dossier inconnu)";
+document.getElementById("currentFolderName").textContent = folderName;
 
+// 🧭 on conserve au moins le nom du dossier comme chemin texte
+currentFolderPath = folder ? folder.name : "";
 
 } catch (e) {
   console.warn("⚠️ Erreur récupération dossier courant", e);
@@ -1965,7 +1951,6 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
-
 
 
 
