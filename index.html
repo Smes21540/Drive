@@ -1003,22 +1003,6 @@ async function openViewer(viewer, id, name){
 }
 
 
-  // 📂 Construit le chemin complet du dossier sélectionné (ex: Valbonne/Traça_Temp)
-  function buildFullFolderPath(li) {
-    const parts = [];
-    let current = li;
-    while (current) {
-      const nameSpan = current.querySelector(".folder-name");
-      if (nameSpan) parts.unshift(nameSpan.textContent.trim());
-      current = current.parentElement.closest("li");
-    }
-    return parts.join("/");
-  }
-
-  const fullPath = buildFullFolderPath(active.closest("li"));
-  localStorage.setItem("lastFolderPath", fullPath);
-  console.log("[Viewer] Chemin complet stocké :", fullPath);
-
 
 
 /* ----------- Filtres ----------- */
@@ -1454,5 +1438,6 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
