@@ -987,12 +987,30 @@ const respPlan = await fetch(`https://smes21540.netlify.app/.netlify/functions/d
     localStorage.removeItem("planSondes");
   }
 
+
+
+  
   window.open(url,'_blank');
 
   // 🔄 après un petit délai → réautoriser les scans
   setTimeout(() => { cancelScan = false; }, 1000);
 }
 
+  // 📂 Construit le chemin complet du dossier sélectionné (ex: Valbonne/Traça_Temp)
+  function buildFullFolderPath(li) {
+    const parts = [];
+    let current = li;
+    while (current) {
+      const nameSpan = current.querySelector(".folder-name");
+      if (nameSpan) parts.unshift(nameSpan.textContent.trim());
+      current = current.parentElement.closest("li");
+    }
+    return parts.join("/");
+  }
+
+  const fullPath = buildFullFolderPath(active.closest("li"));
+  localStorage.setItem("lastFolderPath", fullPath);
+  console.log("[Viewer] Chemin complet stocké :", fullPath);
 
 
 
@@ -1429,3 +1447,4 @@ if (last) {
 </script>
 </body>
 </html>
+
