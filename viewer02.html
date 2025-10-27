@@ -394,6 +394,8 @@
     let csvData=[], chart, currentX="", currentY=[];
     let notesData = []; // 🗒️ Liste des notes actives à afficher sur le graphe
     let currentFolderId = null; // 🧩 dossier actuel du CSV
+    let currentFolderPath = ""; // 🆕 texte lisible du dossier courant
+
 
   let baseFileName="", baseFileId="", headers=[], timeField="", baseDateYYYYMMDD="";
   let colors=[]; let themeMenuTimer;
@@ -533,10 +535,14 @@ try {
     currentFolderId = null;
   }
 
-  // affiche juste le nom du dossier courant (facultatif)
-  const folder = list.find(x => x.id === currentFolderId);
-  document.getElementById("currentFolderName").textContent =
-    folder ? folder.name : "(Dossier inconnu)";
+// affiche le nom du dossier courant et mémorise le "chemin" texte
+const folder = list.find(x => x.id === currentFolderId);
+const folderName = folder ? folder.name : "(Dossier inconnu)";
+document.getElementById("currentFolderName").textContent = folderName;
+
+// 🧭 on conserve au moins le nom du dossier comme chemin texte
+currentFolderPath = folder ? folder.name : "";
+
 } catch (e) {
   console.warn("⚠️ Erreur récupération dossier courant", e);
 }
@@ -1944,6 +1950,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
