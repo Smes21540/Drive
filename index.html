@@ -690,18 +690,21 @@ scanSiteHotDays(siteId).then(map => {
   hotDaysMap = map;
   console.log(`[CACHE] 🔥 ${Object.keys(hotDaysMap).length} jours chauds détectés et chargés pour ${siteLi.querySelector(".folder-name")?.textContent}`);
 
-  // 🪄 Rafraîchir seulement les flammes dans le tableau actuel
-  document.querySelectorAll('#csvTable tbody tr').forEach(tr => {
-    const nameCell = tr.cells[3]; // colonne Nom du fichier
-    const flameCell = tr.cells[1]; // colonne flamme
-    if (!nameCell || !flameCell) return;
+// 🪄 Rafraîchir seulement les flammes dans le tableau actuel sans supprimer les notes 📝
+document.querySelectorAll('#csvTable tbody tr').forEach(tr => {
+  const nameCell = tr.cells[3];
+  const flameCell = tr.cells[1];
+  if (!nameCell || !flameCell) return;
 
-    const fname = nameCell.textContent.trim();
-    const m = fname.match(/(\d{8})\.csv$/i);
-    if (m && hotDaysMap[m[1]]) {
-      flameCell.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
-    }
-  });
+  const fname = nameCell.textContent.trim();
+  const m = fname.match(/(\d{8})\.csv$/i);
+  if (m && hotDaysMap[m[1]]) {
+    const hadNote = flameCell.innerHTML.includes("📝");
+    flameCell.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+    if (hadNote) flameCell.innerHTML += ` <span class="note" title="Note associée">📝</span>`;
+  }
+});
+
 });
 
 } else if (siteId && Object.keys(hotDaysMap).length === 0) {
@@ -1513,6 +1516,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
