@@ -61,9 +61,12 @@ body{
 @keyframes flicker{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
 
 /* ===== Titre date/heure ===== */
-#datetimeLabel{
-  font-weight:bold; font-size:18px; text-align:center; color:var(--danger);
-  margin:8px auto 6px;
+#datetimeLabel {
+  font-weight: bold;
+  font-size: 18px;
+  text-align: center;
+  color: var(--danger);
+  margin: 8px auto 14px; /* ⬅️ augmenté pour espacer avant les tuiles */
 }
 
 /* ===== PAGE LAYOUT : main (3/4) + side (1/4) ===== */
@@ -95,10 +98,15 @@ body{
   overflow:hidden;  /* ✅ pas de scrollbar dans la zone tuiles */
 }
 
-#grid{
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap: calc(var(--tile-size) * var(--split-gap)); /* espace vertical entre top/bottom */
+#grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--tile-size) * var(--split-gap));
+  margin-bottom: 16px; /* ⬅️ espace après la grille complète */
 }
+
 
 /* Sous-grilles 22 colonnes chacune */
 .grid-part{
@@ -133,14 +141,15 @@ body{
 }
 
 /* ===== Sidebar temporelle (en dessous de la grille) ===== */
-#bottomBar{
-  display:flex;
-  flex-direction:column;   /* ✅ en colonne au lieu de côte à côte */
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  padding:10px 0 14px;
+#bottomBar {
+  display: flex;
+  flex-direction: column; /* ⬅️ les éléments passent en colonne */
+  align-items: center;
+  justify-content: center;
+  gap: 12px; /* ⬅️ espace vertical entre le slider et le scaleBox */
+  padding: 10px 0 14px;
 }
+
 
 #timeBar{
   width: calc(var(--timebar-cols) * var(--tile-size) + (var(--timebar-cols) - 1) * var(--cell-gap));
@@ -1487,6 +1496,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
