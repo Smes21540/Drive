@@ -315,6 +315,41 @@ body{
   color: var(--text-dark) !important;
 }
 
+.timeBar-label {
+  font-size: 13px;
+  color: var(--accent-darker);
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.scaleBox-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-align: center;
+  color: var(--accent-darker);
+}
+
+#scaleGradient {
+  width: 100%;
+  height: 12px;
+  margin: 6px 0 10px;
+  border-radius: 6px;
+  background: linear-gradient(to right,
+    rgb(0,150,255),
+    rgb(0,255,0),
+    rgb(255,255,0),
+    rgb(255,165,0),
+    rgb(255,0,0)
+  );
+}
+
+.scaleBox-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+}
+
   
 </style>
 </head>
@@ -345,11 +380,28 @@ body{
     </div>
 
     <!-- ===== Sidebar temporelle + min/max ===== -->
-    <div id="bottomBar">
-      <div id="timeBar">
-        <input type="range" id="slider" min="0" max="0" value="0"/>
-      </div>
-      <div id="scaleBox" title="Réglage des bornes couleurs">
+<div id="bottomBar">
+  <div id="timeBar">
+    <div class="timeBar-label">
+      ⏱️ Ligne temporelle — faites glisser pour parcourir la journée
+    </div>
+    <input type="range" id="slider" min="0" max="0" value="0"/>
+  </div>
+
+  <div id="scaleBox" title="Ajuste la plage de température utilisée pour les couleurs">
+    <div class="scaleBox-title">
+      🌡️ Échelle de température affichée
+    </div>
+    <div id="scaleGradient"></div>
+    <div class="scaleBox-inputs">
+      <label>Min (°C)</label>
+      <input type="number" id="minInput" step="0.1" value="30"/>
+      <label>Max (°C)</label>
+      <input type="number" id="maxInput" step="0.1" value="60"/>
+    </div>
+  </div>
+</div>
+
         <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
         <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
       </div>
@@ -1455,3 +1507,4 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
