@@ -157,12 +157,25 @@ body{
 }
 #slider{ width:100%; height: calc(var(--tile-size) * 0.35); }
 
-#scaleBox{
-  background:var(--panel); border:1px solid #ddd; border-radius:8px;
-  padding:8px 10px; box-shadow:0 2px 8px rgba(0,0,0,0.12); font-size:13px; color:var(--text);
+#scaleBox {
+  background: var(--panel);
+  border: 1px solid var(--accent-muted);
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  font-size: 13px;
+  color: var(--text);
+  text-align: center;
+  min-width: 280px;
 }
-#scaleBox label{ margin-right:6px; }
-#scaleBox input{ width:70px; padding:4px; border:1px solid #ccc; border-radius:6px; }
+#scaleBox input {
+  width: 70px;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  text-align: right;
+}
+
 
 /* Scrollbars (grille) */
 #gridWrap::-webkit-scrollbar{height:10px;width:10px;}
@@ -375,12 +388,20 @@ body{
   <div id="timeBar">
     <input type="range" id="slider" min="0" max="0" value="0"/>
   </div>
-  <div id="scaleBoxWrap">
-    <div id="scaleBox" title="Réglage des bornes couleurs">
-      <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
-      <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
+<div id="scaleBoxWrap">
+  <div id="scaleBox" title="Réglage de l’échelle de couleur">
+    <div style="font-weight:600; color:var(--accent-darker); margin-bottom:4px;">
+      Échelle de température (°C)
+    </div>
+    <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
+      <label for="minInput">Min :</label>
+      <input type="number" id="minInput" step="0.1" value="30"/>
+      <label for="maxInput">Max :</label>
+      <input type="number" id="maxInput" step="0.1" value="60"/>
     </div>
   </div>
+</div>
+
 </div>
 
   </div>
@@ -1496,6 +1517,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
