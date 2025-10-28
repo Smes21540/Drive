@@ -839,22 +839,25 @@ const notesPlugin = {
     const canvas = chart.canvas;
 
     ctx.save();
-    ctx.font = "20px Segoe UI Emoji";
+    ctx.font = "12px Segoe UI";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = getCSSVar("--danger") || "red";
 
+    // 🎯 Affiche chaque note directement sur le graphe
     notesData.forEach(n => {
       if (n.status !== "active") return;
       const x = xScale.getPixelForValue(n.x);
       const y = yScale.getPixelForValue(n.y);
       if (x < xScale.left || x > xScale.right) return;
       if (y < yScale.top || y > yScale.bottom) return;
-      ctx.fillText("🖊️", x, y);
+
+      const text = n.text || n.note || "(note vide)";
+      ctx.fillText(text, x, y);
     });
     ctx.restore();
 
-    // ===== Gestion du survol et tooltip =====
+    // ===== Gestion du survol pour clic / curseur =====
     const rect = canvas.getBoundingClientRect();
     const mouse = chart.$mousePos;
 
@@ -865,46 +868,12 @@ const notesPlugin = {
         const x = xScale.getPixelForValue(n.x);
         const y = yScale.getPixelForValue(n.y);
         const d = Math.hypot(mouse.x - x, mouse.y - y);
-        if (d < 20) { hovered = n; break; }
+        if (d < 25) { hovered = n; break; }
       }
     }
 
     canvas.style.cursor = hovered ? "pointer" : "default";
 
-    // ===== Dessin tooltip =====
-    if (hovered) {
-      const x = xScale.getPixelForValue(hovered.x);
-      const y = yScale.getPixelForValue(hovered.y);
-      const text = hovered.text || hovered.note || "(note vide)";
-      const panel = getCSSVar("--panel") || "#fff";
-      const accent = getCSSVar("--accent") || "black";
-
-      ctx.save();
-      ctx.font = "12px sans-serif";
-      ctx.textAlign = "center";
-      const padding = 6;
-      const lines = ctx.measureText(text);
-      const width = Math.min(220, lines.width + padding * 2);
-      const height = 28;
-      const boxX = x - width / 2;
-      const boxY = y - 35; // un peu au-dessus du stylo
-
-      ctx.fillStyle = panel;
-      ctx.strokeStyle = accent;
-      ctx.lineWidth = 1;
-      ctx.shadowColor = "rgba(0,0,0,0.25)";
-      ctx.shadowBlur = 3;
-      ctx.beginPath();
-      ctx.roundRect(boxX, boxY, width, height, 6);
-      ctx.fill();
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = accent;
-      ctx.fillText(text, x, boxY + height / 2);
-      ctx.restore();
-    }
-
-    // ===== Mise à jour de la position de la souris =====
     if (!chart.$mousemoveHandlerAttached) {
       chart.$mousemoveHandlerAttached = true;
       canvas.addEventListener("mousemove", (ev) => {
@@ -919,6 +888,7 @@ const notesPlugin = {
     }
   },
 };
+
 
 
 
@@ -1979,6 +1949,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
