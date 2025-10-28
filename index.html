@@ -758,14 +758,32 @@ function displayFiles(files, folderName){
 
 downloadBtn.style.display="inline-block";
 
-// 🔍 Prépare la liste des dates ayant un fichier JSON
+// 🔍 Prépare la liste des dates ayant un JSON "actif"
 const jsonDates = new Set();
-for (const file of files) {
-  if (file.name.toLowerCase().endsWith(".json")) {
+
+await Promise.all(files
+  .filter(f => f.name.toLowerCase().endsWith(".json"))
+  .map(async (file) => {
     const m = file.name.match(/(\d{8})/);
-    if (m) jsonDates.add(m[1]);
-  }
-}
+    if (!m) return;
+
+    try {
+      const res = await fetch(
+        `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name)}&site=Smes_Acces`
+      );
+      if (!res.ok) return;
+      const text = await res.text();
+
+      // 🟢 Si le JSON contient "active" (insensible à la casse)
+      if (/active/i.test(text)) {
+        jsonDates.add(m[1]);
+      }
+    } catch (err) {
+      console.warn("Erreur lecture JSON :", file.name, err);
+    }
+  })
+);
+
 
 // ➕ Helpers pour ajouter sans écraser
 function addFlame(cell){
@@ -1516,6 +1534,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
