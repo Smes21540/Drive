@@ -388,39 +388,41 @@ const fileName=params.get("fileName");
 
 /* =================== Header dossier + flamme =================== */
 (function hydrateFolderHeader() {
-  let title = "";
-  try {
-    const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
-    const f = list.find(x => x.id === fileId);
-    if (f && f.parents && f.parents.length) {
-      const parent = list.find(x => x.id === f.parents[0]);
-      if (parent && parent.name) {
-        title = parent.name;
-        if (parent.parents && parent.parents.length) {
-          const root = list.find(x => x.id === parent.parents[0]);
-          if (root && root.name) {
-            title = root.name + " / " + parent.name;
-          }
-        }
-      }
+  // 🔹 On récupère d’abord le chemin complet transmis par index.html
+  const urlParams = new URLSearchParams(window.location.search);
+  let title =
+    urlParams.get("folderPath") ||
+    localStorage.getItem("currentFolderPath") ||
+    localStorage.getItem("lastFolderPath") ||
+    localStorage.getItem("chemin") ||
+    localStorage.getItem("dossier") ||
+    "";
+
+  // 🔸 Si rien trouvé → tentative via csvFilesList (fallback)
+  if (!title) {
+    try {
+      const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+      const f = list.find(x => x.id === fileId);
+      if (f && f.folder) title = f.folder;
+    } catch (e) {
+      console.warn("Erreur lecture dossier parent :", e);
     }
-  } catch (e) {
-    console.warn("Erreur lecture dossier parent :", e);
   }
 
-  // 🔹 Ne plus afficher le nom du fichier à gauche
+  // 🔥 Conversion flammes animées
   const flameTitle = title
     ? title.replace(/🔥/g, '<span class="flame" title="Brûleur(s) en fonctionnement">🔥</span>')
     : "";
 
-  // Gauche : dossier
+  // Gauche → dossier / chemin complet
   const el = document.getElementById("currentFolderName");
   if (el) el.innerHTML = flameTitle;
 
-  // Droite : nom du fichier seul
+  // Droite → nom du fichier seul
   const fn = document.getElementById("fileName");
   if (fn) fn.textContent = decodeURIComponent(fileName || "");
 })();
+
 
 
 /* =================== Plan depuis localStorage =================== */
@@ -1467,4 +1469,5 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
