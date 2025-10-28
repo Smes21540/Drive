@@ -843,6 +843,9 @@ const notesPlugin = {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
+    // Liste des zones de clic calculées
+    chart.$noteHitZones = [];
+
     notesData.forEach(n => {
       if (n.status !== "active") return;
       const x = xScale.getPixelForValue(n.x);
@@ -851,13 +854,27 @@ const notesPlugin = {
       if (y < yScale.top || y > yScale.bottom) return;
 
       const text = n.text || n.note || "(note vide)";
-      const paddingX = 6;
-      const paddingY = 3;
-      const textWidth = ctx.measureText(text).width;
-      const boxWidth = textWidth + paddingX * 2;
-      const boxHeight = 18;
 
-      // 🎨 Fond blanc semi-transparent
+      // 🌿 Gestion des retours à la ligne automatiques
+      const maxWidth = 160; // largeur max de l’étiquette
+      const words = text.split(" ");
+      const lines = [];
+      let line = "";
+      for (let w of words) {
+        const test = line ? line + " " + w : w;
+        if (ctx.measureText(test).width > maxWidth) {
+          lines.push(line);
+          line = w;
+        } else line = test;
+      }
+      if (line) lines.push(line);
+
+      const paddingX = 8;
+      const paddingY = 4;
+      const boxWidth = Math.min(maxWidth, Math.max(...lines.map(l => ctx.measureText(l).width)) + paddingX * 2);
+      const boxHeight = lines.length * 16 + paddingY * 2;
+
+      // 🎨 Fond blanc semi-transparent + léger contour
       const panel = getCSSVar("--panel") || "#fff";
       const accent = getCSSVar("--accent") || "#000";
       ctx.fillStyle = "rgba(255,255,255,0.85)";
@@ -868,30 +885,44 @@ const notesPlugin = {
       ctx.fill();
       ctx.stroke();
 
-      // ✏️ Texte de la note
+      // ✏️ Texte sur plusieurs lignes
       ctx.fillStyle = getCSSVar("--danger") || "red";
-      ctx.fillText(text, x, y);
+      lines.forEach((l, i) => {
+        ctx.fillText(l, x, y - (boxHeight / 2) + paddingY + 8 + i * 14);
+      });
+
+      // 🧭 Sauvegarde zone de clic (pour survol / ouverture)
+      chart.$noteHitZones.push({
+        note: n,
+        x1: x - boxWidth / 2,
+        y1: y - boxHeight / 2,
+        x2: x + boxWidth / 2,
+        y2: y + boxHeight / 2
+      });
     });
 
     ctx.restore();
 
-    // ===== Gestion du survol et clics =====
+    // ===== Gestion du survol et du curseur =====
     const rect = canvas.getBoundingClientRect();
     const mouse = chart.$mousePos;
-
     let hovered = null;
-    if (mouse) {
-      for (const n of notesData) {
-        if (n.status !== "active") continue;
-        const x = xScale.getPixelForValue(n.x);
-        const y = yScale.getPixelForValue(n.y);
-        const d = Math.hypot(mouse.x - x, mouse.y - y);
-        if (d < 25) { hovered = n; break; }
+
+    if (mouse && chart.$noteHitZones) {
+      for (const zone of chart.$noteHitZones) {
+        const { x1, y1, x2, y2, note } = zone;
+        const x = mouse.x;
+        const y = mouse.y;
+        if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {
+          hovered = note;
+          break;
+        }
       }
     }
 
     canvas.style.cursor = hovered ? "pointer" : "default";
 
+    // Mise à jour position souris
     if (!chart.$mousemoveHandlerAttached) {
       chart.$mousemoveHandlerAttached = true;
       canvas.addEventListener("mousemove", (ev) => {
@@ -906,6 +937,7 @@ const notesPlugin = {
     }
   },
 };
+
 
 
 
@@ -1968,6 +2000,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
