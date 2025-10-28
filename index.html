@@ -775,10 +775,16 @@ await Promise.all(files
       if (!res.ok) return;
       const text = await res.text();
 
-      // 🟢 Si le JSON contient "active" (insensible à la casse)
-      if (/active/i.test(text)) {
-        jsonDates.add(m[1]);
-      }
+try {
+  const data = JSON.parse(text);
+  if (data?.[0]?.status?.toLowerCase() === "active") {
+    jsonDates.add(m[1]);
+  }
+} catch (e) {
+  // Si le JSON n'est pas bien formé, on ignore sans planter
+  console.warn("⚠️ JSON mal formé :", file.name);
+}
+
     } catch (err) {
       console.warn("Erreur lecture JSON :", file.name, err);
     }
@@ -1535,6 +1541,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
