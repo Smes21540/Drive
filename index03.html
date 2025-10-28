@@ -134,9 +134,14 @@ body{
 
 /* ===== Sidebar temporelle (en dessous de la grille) ===== */
 #bottomBar{
-  display:flex; align-items:center; justify-content:center; gap:16px;
+  display:flex;
+  flex-direction:column;   /* ✅ en colonne au lieu de côte à côte */
+  align-items:center;
+  justify-content:center;
+  gap:10px;
   padding:10px 0 14px;
 }
+
 #timeBar{
   width: calc(var(--timebar-cols) * var(--tile-size) + (var(--timebar-cols) - 1) * var(--cell-gap));
   display:flex; align-items:center; justify-content:center;
@@ -357,17 +362,18 @@ body{
     </div>
 
     <!-- ===== Sidebar temporelle + min/max ===== -->
-    <div id="bottomBar">
-      <div id="timeBar">
-        <input type="range" id="slider" min="0" max="0" value="0"/>
-      </div>
-      <div id="scaleBox" title="Réglage des bornes couleurs">
-        <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
-        <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
-      </div>
-      <!-- Bouton optionnel plus tard : Fusion jours (désactivé par défaut) -->
-      <!-- <button id="mergeDaysBtn" style="margin-left:12px;">Fusionner jours</button> -->
+<div id="bottomBar">
+  <div id="timeBar">
+    <input type="range" id="slider" min="0" max="0" value="0"/>
+  </div>
+  <div id="scaleBoxWrap">
+    <div id="scaleBox" title="Réglage des bornes couleurs">
+      <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
+      <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
     </div>
+  </div>
+</div>
+
   </div>
 
   <!-- ===== SIDE (Z3 EVENTS) ===== -->
@@ -1481,6 +1487,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
