@@ -883,9 +883,24 @@ for (let i = 1; i < lines.length; i++) {
 
 
 if (countFlame >= 1) {
-  tdFlame.innerHTML = `<span class="flame" title="Brûleur actif détecté ce jour !">🔥</span>`;
+  // 🔥 Ajoute la flamme sans supprimer le contenu existant (ex. 📝)
+  if (!tdFlame.innerHTML.includes("🔥")) {
+    tdFlame.innerHTML += (tdFlame.innerHTML ? " " : "") +
+      `<span class="flame" title="Brûleur actif détecté ce jour !">🔥</span>`;
+  }
 }
+
+// 📝 Si un JSON de la même date existe, on le réapplique ici aussi
+const mNote = f.name.match(/(\d{8})\.csv$/i);
+if (mNote && jsonDates.has(mNote[1])) {
+  if (!tdFlame.innerHTML.includes("📝")) {
+    tdFlame.innerHTML += (tdFlame.innerHTML ? " " : "") +
+      `<span title="Note associée">📝</span>`;
+  }
+}
+
 tdName.textContent = f.name;
+
 
     } catch(e) {
       console.error("Erreur flamme fichier:", f.name, e);
@@ -1481,5 +1496,6 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
