@@ -131,57 +131,12 @@ body{
 }
 #slider{ width:100%; height: calc(var(--tile-size) * 0.35); }
 
-#scaleBox {
-  background: var(--panel);
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 10px 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  font-size: 13px;
-  color: var(--text);
-  width: 220px;
+#scaleBox{
+  background:var(--panel); border:1px solid #ddd; border-radius:8px;
+  padding:8px 10px; box-shadow:0 2px 8px rgba(0,0,0,0.12); font-size:13px; color:var(--text);
 }
-
-.scaleBox-title {
-  font-weight: 600;
-  margin-bottom: 4px;
-  text-align: center;
-  color: var(--accent-darker);
-}
-
-#scaleGradient {
-  width: 100%;
-  height: 12px;
-  margin: 6px 0 10px;
-  border-radius: 6px;
-  background: linear-gradient(to right,
-    rgb(0,150,255),
-    rgb(0,255,0),
-    rgb(255,255,0),
-    rgb(255,165,0),
-    rgb(255,0,0)
-  );
-}
-
-.scaleBox-inputs {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  align-items: center;
-}
-
-#scaleBox label {
-  margin-right: 4px;
-}
-
-#scaleBox input {
-  width: 70px;
-  padding: 4px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  text-align: center;
-}
-
+#scaleBox label{ margin-right:6px; }
+#scaleBox input{ width:70px; padding:4px; border:1px solid #ccc; border-radius:6px; }
 
 /* Scrollbars (grille) */
 #gridWrap::-webkit-scrollbar{height:10px;width:10px;}
@@ -360,39 +315,50 @@ body{
   color: var(--text-dark) !important;
 }
 
-.timeBar-label {
-  font-size: 13px;
-  color: var(--accent-darker);
-  margin-bottom: 4px;
-  text-align: center;
-}
-
-.scaleBox-title {
-  font-weight: 600;
-  margin-bottom: 4px;
-  text-align: center;
-  color: var(--accent-darker);
-}
-
-#scaleGradient {
-  width: 100%;
-  height: 12px;
-  margin: 6px 0 10px;
-  border-radius: 6px;
-  background: linear-gradient(to right,
-    rgb(0,150,255),
-    rgb(0,255,0),
-    rgb(255,255,0),
-    rgb(255,165,0),
-    rgb(255,0,0)
-  );
-}
-
-.scaleBox-inputs {
+/* ===== Ajustement Sidebar hauteur et section d’aide ===== */
+#sideCol {
+  height: calc(var(--tile-size) * 6 + 5 * var(--cell-gap));
+  min-height: unset;
+  max-height: unset;
   display: flex;
-  justify-content: center;
-  gap: 10px;
+  flex-direction: row;   /* deux zones côte à côte */
+  align-items: stretch;
+}
+
+#sideInfo {
+  flex: 0 0 calc(var(--tile-size) * 2 + var(--cell-gap));
+  background: var(--accent-muted);
+  color: var(--accent-darker);
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.3;
+  border-right: 2px solid var(--accent);
+  display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+#sideContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Boîte min/max élargie et info ===== */
+#scaleBox {
+  width: calc(var(--tile-size) * 2 + var(--cell-gap));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+#scaleInfo {
+  font-size: 12px;
+  color: var(--accent-darker);
+  margin-top: 4px;
+  line-height: 1.2;
 }
 
   
@@ -425,31 +391,16 @@ body{
     </div>
 
     <!-- ===== Sidebar temporelle + min/max ===== -->
-<div id="bottomBar">
-  <div id="timeBar">
-    <div class="timeBar-label">
-      ⏱️ Ligne temporelle — faites glisser pour parcourir la journée
-    </div>
-    <input type="range" id="slider" min="0" max="0" value="0"/>
-  </div>
-
-  <div id="scaleBox" title="Ajuste la plage de température utilisée pour les couleurs">
-    <div class="scaleBox-title">
-      🌡️ Échelle de température affichée
-    </div>
-    <div id="scaleGradient"></div>
-    <div class="scaleBox-inputs">
-      <label>Min (°C)</label>
-      <input type="number" id="minInput" step="0.1" value="30"/>
-      <label>Max (°C)</label>
-      <input type="number" id="maxInput" step="0.1" value="60"/>
-    </div>
-  </div>
+    <div id="bottomBar">
+      <div id="timeBar">
+        <input type="range" id="slider" min="0" max="0" value="0"/>
+      </div>
+<div id="scaleBox" title="Réglage des bornes couleurs">
+  <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
+  <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
+  <div id="scaleInfo">Définit la plage de température colorée<br>(en °C) sur le plan des sondes</div>
 </div>
 
-        <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
-        <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
-      </div>
       <!-- Bouton optionnel plus tard : Fusion jours (désactivé par défaut) -->
       <!-- <button id="mergeDaysBtn" style="margin-left:12px;">Fusionner jours</button> -->
     </div>
@@ -457,9 +408,17 @@ body{
 
   <!-- ===== SIDE (Z3 EVENTS) ===== -->
 <aside id="sideCol">
-  <div id="sideHeader">🧰 Evenements</div>
-  <div id="z3List"></div>
+  <div id="sideInfo">
+    Cette colonne affiche les <b>événements Z3</b> détectés en cours de séchage :
+    mise en route brûleurs, arrêts ventilateurs, anomalies, etc.
+  </div>
+
+  <div id="sideContent">
+    <div id="sideHeader">🧰 Événements</div>
+    <div id="z3List"></div>
+  </div>
 </aside>
+
 
 
     
@@ -1552,5 +1511,3 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
-
-
