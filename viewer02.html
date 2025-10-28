@@ -842,9 +842,7 @@ const notesPlugin = {
     ctx.font = "12px Segoe UI";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = getCSSVar("--danger") || "red";
 
-    // 🎯 Affiche chaque note directement sur le graphe
     notesData.forEach(n => {
       if (n.status !== "active") return;
       const x = xScale.getPixelForValue(n.x);
@@ -853,11 +851,31 @@ const notesPlugin = {
       if (y < yScale.top || y > yScale.bottom) return;
 
       const text = n.text || n.note || "(note vide)";
+      const paddingX = 6;
+      const paddingY = 3;
+      const textWidth = ctx.measureText(text).width;
+      const boxWidth = textWidth + paddingX * 2;
+      const boxHeight = 18;
+
+      // 🎨 Fond blanc semi-transparent
+      const panel = getCSSVar("--panel") || "#fff";
+      const accent = getCSSVar("--accent") || "#000";
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.roundRect(x - boxWidth / 2, y - boxHeight / 2, boxWidth, boxHeight, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      // ✏️ Texte de la note
+      ctx.fillStyle = getCSSVar("--danger") || "red";
       ctx.fillText(text, x, y);
     });
+
     ctx.restore();
 
-    // ===== Gestion du survol pour clic / curseur =====
+    // ===== Gestion du survol et clics =====
     const rect = canvas.getBoundingClientRect();
     const mouse = chart.$mousePos;
 
@@ -888,6 +906,7 @@ const notesPlugin = {
     }
   },
 };
+
 
 
 
@@ -1949,6 +1968,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
