@@ -776,6 +776,25 @@ if (match) {
   }
 }
 
+// 📝 Vérifie si un fichier .json existe pour la même date que ce CSV
+if (match) {
+  const dateKey = match[1];
+  const jsonMatch = files.some(ff =>
+    ff.name.toLowerCase().endsWith(".json") &&
+    ff.name.includes(dateKey)
+  );
+
+  if (jsonMatch) {
+    // Si flamme déjà présente → ajoute la note à côté
+    if (tdFlame.innerHTML.includes("🔥")) {
+      tdFlame.innerHTML += ` <span title="Note associée">📝</span>`;
+    } else {
+      tdFlame.innerHTML = `<span title="Note associée">📝</span>`;
+    }
+  }
+}
+
+
 
 
 
@@ -1450,6 +1469,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
