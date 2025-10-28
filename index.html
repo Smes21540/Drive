@@ -740,7 +740,9 @@ function displayFiles(files, folderName){
 
   downloadBtn.style.display="inline-block";
 
-  // 🔍 Prépare la liste des dates ayant un fichier JSON
+downloadBtn.style.display="inline-block";
+
+// 🔍 Prépare la liste des dates ayant un fichier JSON
 const jsonDates = new Set();
 for (const file of files) {
   if (file.name.toLowerCase().endsWith(".json")) {
@@ -749,10 +751,27 @@ for (const file of files) {
   }
 }
 
+// ➕ Helpers pour ajouter sans écraser
+function addFlame(cell){
+  if (!cell.innerHTML.includes("🔥")) {
+    cell.innerHTML += (cell.innerHTML ? " " : "") + `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+  }
+}
+function addNote(cell){
+  if (!cell.innerHTML.includes("📝")) {
+    cell.innerHTML += (cell.innerHTML ? " " : "") + `<span title="Note associée">📝</span>`;
+  }
+}
 
-  for(const f of files){
+
+
+for(const f of files){
+    // ❌ On n'affiche pas les .json : ils servent juste à poser 📝
+    if (f.name.toLowerCase().endsWith(".json")) continue;
+
     // Date
     let date='';
+
     const m=f.name.match(/(\d{8})\.csv$/i);
     if(m){ date=`${m[1].slice(0,4)}-${m[1].slice(4,6)}-${m[1].slice(6,8)}`; }
     else if(/\.(jpg|jpeg)$/i.test(f.name)){
@@ -771,32 +790,23 @@ tdFlame.textContent = "";
 
     
 
-    // 🔥 Application flamme si le fichier correspond à un jour chaud
+// 🔥 Application flamme si le fichier correspond à un jour chaud
 const match = f.name.match(/(\d{8})\.csv$/i);
 if (match) {
   const dateKey = match[1];
 
-  // 🔥 flamme si déjà détectée dans le cache
   if (hotDaysMap[dateKey]) {
-    tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
+    addFlame(tdFlame);
   } else {
-    // 🕓 attente de la fin du scan → on vérifie à nouveau après 1 seconde
     setTimeout(() => {
-      if (hotDaysMap[dateKey]) {
-        tdFlame.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
-      }
+      if (hotDaysMap[dateKey]) addFlame(tdFlame);
     }, 1000);
   }
 }
 
 // 📝 Ajoute une icône si un JSON de la même date est présent
-if (match && jsonDates.has(match[1])) {
-  if (tdFlame.innerHTML.includes("🔥")) {
-    tdFlame.innerHTML += ` <span title="Note associée">📝</span>`;
-  } else {
-    tdFlame.innerHTML = `<span title="Note associée">📝</span>`;
-  }
-}
+if (match && jsonDates.has(match[1])) addNote(tdFlame);
+
 
 
 
@@ -1471,4 +1481,5 @@ if (last) {
 </script>
 </body>
 </html>
+
 
