@@ -1105,18 +1105,34 @@ if (opts.unit) unit = opts.unit;
 
 // 🔸 Format d'affichage selon la nature de la donnée
 let decimals = 1;
-if (["minuterie", "modulee", "nbextract"].some(k => L.includes(k))) {
-  decimals = 0; // format entier
-  unit = opts.unit || ""; // pas de °C par défaut
+let formatAsTime = false;
+
+if (["minuterie", "modulee"].some(k => L.includes(k))) {
+  formatAsTime = true; // affichage mm:ss
+  unit = ""; // pas de °C ni de 's'
+} else if (L.includes("nbextract")) {
+  decimals = 0;
+  unit = "";
 } else if (L.includes("cumul")) {
   decimals = 1;
   unit = opts.unit || "t";
 }
 
+
     // --- Style valeur ---
     const vdiv = el.querySelector(".val");
     vdiv.style.fontSize = "clamp(11px, calc(var(--tile-size)*0.13), 17px)";
-    vdiv.textContent = isNaN(val) ? `-- ${unit}` : `${val.toFixed(decimals)} ${unit}`;
+    if (isNaN(val)) {
+  vdiv.textContent = `-- ${unit}`;
+} else if (formatAsTime) {
+  const total = Math.max(0, Math.round(val));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  vdiv.textContent = `${m}:${s.toString().padStart(2, "0")}`;
+} else {
+  vdiv.textContent = `${val.toFixed(decimals)} ${unit}`;
+}
+
 
 
     // --- Consignes ACsup/ACinf/Grain (comme avant) ---
@@ -1439,6 +1455,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
