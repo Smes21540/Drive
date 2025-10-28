@@ -651,11 +651,13 @@ console.log("[Folder] Chemin complet enregistré :", fullPath);
 
   // Charger fichiers CSV/JPG classiques du dossier
   const files = await fetchFolderContents(li.dataset.id);
-  const filtered = files.filter(f => 
-    f.name.toLowerCase().endsWith('.csv') || 
-    f.name.toLowerCase().endsWith('.jpg') || 
-    f.name.toLowerCase().endsWith('.jpeg')
-  );
+const filtered = files.filter(f => 
+  f.name.toLowerCase().endsWith('.csv') || 
+  f.name.toLowerCase().endsWith('.jpg') || 
+  f.name.toLowerCase().endsWith('.jpeg') ||
+  f.name.toLowerCase().endsWith('.json')
+);
+
 
 
 
@@ -1469,3 +1471,4 @@ if (last) {
 </script>
 </body>
 </html>
+
