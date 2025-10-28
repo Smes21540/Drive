@@ -387,29 +387,41 @@ const fileId=params.get("fileId");
 const fileName=params.get("fileName");
 
 /* =================== Header dossier + flamme =================== */
-(function hydrateFolderHeader(){
-  let title="";
-  try{
-    const list = JSON.parse(localStorage.getItem("csvFilesList")||"[]");
-    const f = list.find(x=>x.id===fileId);
-    if(f && f.parents && f.parents.length){
-      const parent = list.find(x=>x.id===f.parents[0]);
-      if(parent && parent.name){
+(function hydrateFolderHeader() {
+  let title = "";
+  try {
+    const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+    const f = list.find(x => x.id === fileId);
+    if (f && f.parents && f.parents.length) {
+      const parent = list.find(x => x.id === f.parents[0]);
+      if (parent && parent.name) {
         title = parent.name;
-        if(parent.parents && parent.parents.length){
-          const root = list.find(x=>x.id===parent.parents[0]);
-          if(root && root.name) title = root.name+" / "+parent.name;
+        if (parent.parents && parent.parents.length) {
+          const root = list.find(x => x.id === parent.parents[0]);
+          if (root && root.name) {
+            title = root.name + " / " + parent.name;
+          }
         }
       }
     }
-  }catch(e){}
-  if(!title) title = decodeURIComponent(fileName||"");
-  const flameTitle = title.replace(/🔥/g,'<span class="flame" title="Brûleur(s) en fonctionnement">🔥</span>');
-  const el=document.getElementById("currentFolderName");
-  if(el) el.innerHTML=flameTitle;
-  const fn=document.getElementById("fileName");
-  if(fn) fn.textContent = decodeURIComponent(fileName||"");
+  } catch (e) {
+    console.warn("Erreur lecture dossier parent :", e);
+  }
+
+  // 🔹 Ne plus afficher le nom du fichier à gauche
+  const flameTitle = title
+    ? title.replace(/🔥/g, '<span class="flame" title="Brûleur(s) en fonctionnement">🔥</span>')
+    : "";
+
+  // Gauche : dossier
+  const el = document.getElementById("currentFolderName");
+  if (el) el.innerHTML = flameTitle;
+
+  // Droite : nom du fichier seul
+  const fn = document.getElementById("fileName");
+  if (fn) fn.textContent = decodeURIComponent(fileName || "");
 })();
+
 
 /* =================== Plan depuis localStorage =================== */
 function loadPlan(){
@@ -1455,3 +1467,4 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
