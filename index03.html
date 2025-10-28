@@ -131,6 +131,40 @@ body{
 }
 #slider{ width:100%; height: calc(var(--tile-size) * 0.35); }
 
+.timeBar-label {
+  font-size: 13px;
+  color: var(--accent-darker);
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+  .scaleBox-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-align: center;
+  color: var(--accent-darker);
+}
+#scaleGradient {
+  width: 100%;
+  height: 12px;
+  margin: 6px 0 10px;
+  border-radius: 6px;
+  background: linear-gradient(to right,
+    rgb(0,150,255),
+    rgb(0,255,0),
+    rgb(255,255,0),
+    rgb(255,165,0),
+    rgb(255,0,0)
+  );
+}
+.scaleBox-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+}
+
+  
 #scaleBox{
   background:var(--panel); border:1px solid #ddd; border-radius:8px;
   padding:8px 10px; box-shadow:0 2px 8px rgba(0,0,0,0.12); font-size:13px; color:var(--text);
@@ -145,19 +179,20 @@ body{
 
 /* ===== Événements Z3 (volet élargi + scrollbar + nuance centrée) ===== */
 #sideCol {
-  flex: 0 1 auto;             /* largeur s’adapte au contenu */
-  min-width: 360px;
-  max-width: 600px;           /* largeur max pour les longs textes */
+  flex: 0 1 75%;             /* ✅ prend environ 75 % de la largeur du conteneur */
+  min-width: 600px;          /* largeur mini pour lisibilité */
+  max-width: 75vw;           /* limite à 75 % de la largeur de la fenêtre */
   display: flex;
   flex-direction: column;
   background: var(--panel);
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  max-height: calc(100vh - 160px);
-  overflow: hidden;
-  align-self: flex-start;
-  margin-bottom: 10px;
+  height: 75vh;              /* occupe 75 % de la hauteur visible */
+  overflow-y: auto;          /* scroll vertical si beaucoup d’événements */
+  align-self: center;        /* centre verticalement dans le flex parent */
+  margin: 12px auto 16px;    /* centre horizontalement et espace en bas */
 }
+
 
 
 #sideHeader {
@@ -347,20 +382,23 @@ body{
     <!-- ===== Sidebar temporelle + min/max ===== -->
     <div id="bottomBar">
 <div id="timeBar">
-  <div style="font-size:13px;color:var(--accent-darker);margin-bottom:4px;text-align:center;">
-    ⏱️ Ligne temporelle — faites glisser pour avancer/reculer dans la journée
+  <div class="timeBar-label">
+    ⏱️ Ligne temporelle — faites glisser pour parcourir la journée
   </div>
   <input type="range" id="slider" min="0" max="0" value="0"/>
 </div>
 
 <div id="scaleBox" title="Ajuste la plage de température utilisée pour les couleurs">
-  <div style="font-weight:bold;margin-bottom:4px;text-align:center;color:var(--accent-darker);">
+  <div class="scaleBox-title">
     🌡️ Échelle de température affichée
   </div>
-  <label>Min (°C)</label>
-  <input type="number" id="minInput" step="0.1" value="30" title="Température minimum de l'échelle couleur"/>
-  <label style="margin-left:10px;">Max (°C)</label>
-  <input type="number" id="maxInput" step="0.1" value="60" title="Température maximum de l'échelle couleur"/>
+  <div id="scaleGradient"></div>
+  <div class="scaleBox-inputs">
+    <label>Min (°C)</label>
+    <input type="number" id="minInput" step="0.1" value="30" title="Température minimum de l'échelle couleur"/>
+    <label>Max (°C)</label>
+    <input type="number" id="maxInput" step="0.1" value="60" title="Température maximum de l'échelle couleur"/>
+  </div>
 </div>
 
       <!-- Bouton optionnel plus tard : Fusion jours (désactivé par défaut) -->
@@ -1057,18 +1095,6 @@ function updateGrid(idx){
   if(dateKey&&row[dateKey]) dt+=String(row[dateKey]); 
   if(timeKey&&row[timeKey]) dt+=(dt?" — ":"")+String(row[timeKey]);
   document.getElementById("datetimeLabel").textContent = dt||"";
-  const sliderLabel = document.querySelector("#timeBar .sliderValue");
-if (!sliderLabel) {
-  const lbl = document.createElement("div");
-  lbl.className = "sliderValue";
-  lbl.style.fontSize = "12px";
-  lbl.style.color = "var(--accent-darker)";
-  lbl.style.marginTop = "4px";
-  document.getElementById("timeBar").appendChild(lbl);
-}
-const lbl = document.querySelector("#timeBar .sliderValue");
-lbl.textContent = dt || "--";
-
 
   // === Sondes normales ===
   const allCells = document.querySelectorAll('.sonde:not(.special)');
@@ -1477,15 +1503,3 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
