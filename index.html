@@ -901,12 +901,12 @@ for (let i = 1; i < lines.length; i++) {
 
 
 if (countFlame >= 1) {
-  // 🔥 Ajoute la flamme sans supprimer le contenu existant (ex. 📝)
-  if (!tdFlame.innerHTML.includes("🔥")) {
-    tdFlame.innerHTML += (tdFlame.innerHTML ? " " : "") +
-      `<span class="flame" title="Brûleur actif détecté ce jour !">🔥</span>`;
-  }
+  // 🔥 Ajoute la flamme tout en préservant la note existante
+  const hadNote = tdFlame.innerHTML.includes("📝");
+  tdFlame.innerHTML = `<span class="flame" title="Brûleur actif détecté ce jour !">🔥</span>`;
+  if (hadNote) tdFlame.innerHTML += ` <span class="note" title="Note associée">📝</span>`;
 }
+
 
 // 📝 Si un JSON de la même date existe → conserver même si scan flamme réécrit
 const mNote = f.name.match(/(\d{8})\.csv$/i);
@@ -1513,6 +1513,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
