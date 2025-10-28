@@ -346,13 +346,23 @@ body{
 
     <!-- ===== Sidebar temporelle + min/max ===== -->
     <div id="bottomBar">
-      <div id="timeBar">
-        <input type="range" id="slider" min="0" max="0" value="0"/>
-      </div>
-      <div id="scaleBox" title="Réglage des bornes couleurs">
-        <label>Min</label><input type="number" id="minInput" step="0.1" value="30"/>
-        <label style="margin-left:10px;">Max</label><input type="number" id="maxInput" step="0.1" value="60"/>
-      </div>
+<div id="timeBar">
+  <div style="font-size:13px;color:var(--accent-darker);margin-bottom:4px;text-align:center;">
+    ⏱️ Ligne temporelle — faites glisser pour avancer/reculer dans la journée
+  </div>
+  <input type="range" id="slider" min="0" max="0" value="0"/>
+</div>
+
+<div id="scaleBox" title="Ajuste la plage de température utilisée pour les couleurs">
+  <div style="font-weight:bold;margin-bottom:4px;text-align:center;color:var(--accent-darker);">
+    🌡️ Échelle de température affichée
+  </div>
+  <label>Min (°C)</label>
+  <input type="number" id="minInput" step="0.1" value="30" title="Température minimum de l'échelle couleur"/>
+  <label style="margin-left:10px;">Max (°C)</label>
+  <input type="number" id="maxInput" step="0.1" value="60" title="Température maximum de l'échelle couleur"/>
+</div>
+
       <!-- Bouton optionnel plus tard : Fusion jours (désactivé par défaut) -->
       <!-- <button id="mergeDaysBtn" style="margin-left:12px;">Fusionner jours</button> -->
     </div>
@@ -1047,6 +1057,18 @@ function updateGrid(idx){
   if(dateKey&&row[dateKey]) dt+=String(row[dateKey]); 
   if(timeKey&&row[timeKey]) dt+=(dt?" — ":"")+String(row[timeKey]);
   document.getElementById("datetimeLabel").textContent = dt||"";
+  const sliderLabel = document.querySelector("#timeBar .sliderValue");
+if (!sliderLabel) {
+  const lbl = document.createElement("div");
+  lbl.className = "sliderValue";
+  lbl.style.fontSize = "12px";
+  lbl.style.color = "var(--accent-darker)";
+  lbl.style.marginTop = "4px";
+  document.getElementById("timeBar").appendChild(lbl);
+}
+const lbl = document.querySelector("#timeBar .sliderValue");
+lbl.textContent = dt || "--";
+
 
   // === Sondes normales ===
   const allCells = document.querySelectorAll('.sonde:not(.special)');
@@ -1455,6 +1477,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
