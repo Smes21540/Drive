@@ -856,13 +856,14 @@ function addSpecialsAfterCSV() {
   const hasCptLot     = headers.some(h => normalize(h).includes("cptkwh") && normalize(h).includes("lot"));
 
   specials.push(
-    { id: "Minuterie", label: "Minuterie", col: "R", row: 7, optional: true, active: hasMinuterie },
-    { id: "Modulee",   label: "Modulée",   col: "R", row: 8, optional: true, active: hasModulee },
-    { id: "Cumul",     label: "Cumul",     col: "R", row: 9, optional: true, active: hasCumul },
-    { id: "NbExtract", label: "Nb Extraction", col: "R", row: 10, optional: true, active: hasExtract },
-    { id: "CptTotal",  label: "Compteur kWh Total", col: "B", row: 8, optional: true, active: hasCptTotal },
-    { id: "CptLot",    label: "Compteur kWh Lot", col: "B", row: 9, optional: true, active: hasCptLot }
+    { id: "Minuterie", label: "Minuterie", col: "R", row: 7, optional: true, active: hasMinuterie, unit: "s", bg: "#ccffcc" },   // vert clair
+    { id: "Modulee",   label: "Modulée",   col: "R", row: 8, optional: true, active: hasModulee,   unit: "s", bg: "#cce5ff" },   // bleu clair
+    { id: "Cumul",     label: "Cumul",     col: "R", row: 9, optional: true, active: hasCumul,     unit: "t", bg: "#ccffcc" },   // vert clair
+    { id: "NbExtract", label: "Nb Extraction", col: "R", row: 10, optional: true, active: hasExtract, bg: "#ccffcc" },            // vert clair
+    { id: "CptTotal",  label: "Compteur kWh Total", col: "B", row: 8, optional: true, active: hasCptTotal, unit: "kWh", bg: "#FFCC33" }, // jaune gaz
+    { id: "CptLot",    label: "Compteur kWh Lot", col: "B", row: 9, optional: true, active: hasCptLot, unit: "kWh", bg: "#FFCC33" }     // jaune gaz
   );
+
 
   
   function colIdx(letter){ return letter.toUpperCase().charCodeAt(0) - 64; }
@@ -1098,6 +1099,10 @@ function updateGrid(idx){
     else if (L.includes("gaz") && !L.includes("normal")) unit = "m³/h";
     else if (L.includes("normal")) unit = "Nm³/h";
     else if (L.includes("ip")) unit = "kWh/tee";
+
+    // Priorité à l’unité personnalisée passée dans les options ou le spécial
+if (opts.unit) unit = opts.unit;
+
 
     // --- Style valeur ---
     const vdiv = el.querySelector(".val");
@@ -1424,6 +1429,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
