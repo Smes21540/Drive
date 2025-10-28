@@ -66,7 +66,7 @@ body{
   font-size: 18px;
   text-align: center;
   color: var(--danger);
-  margin: 8px auto 14px; /* ⬅️ augmenté pour espacer avant les tuiles */
+  margin: 10px auto 20px; /* ⬅️ augmenté pour espacer avant les tuiles */
 }
 
 /* ===== PAGE LAYOUT : main (3/4) + side (1/4) ===== */
@@ -1040,7 +1040,7 @@ if (currentDay) mergedDays.add(currentDay);
   );
 
   const minInit = parseFloat(localStorage.getItem("scaleMin") || "30");
-  const maxInit = parseFloat(localStorage.getItem("scaleMax") || "60");
+  const maxInit = parseFloat(localStorage.getItem("scaleMax") || "55");
   document.getElementById("minInput").value = isNaN(minInit) ? 30 : minInit;
   document.getElementById("maxInput").value = isNaN(maxInit) ? 60 : maxInit;
 
@@ -1496,6 +1496,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
