@@ -847,6 +847,24 @@ function addSpecialsAfterCSV() {
     { id: "IPE",       label: "🔥 Ipé",        col: "D", row:10, optional: true, bg: "#33FF00", active: hasIpe }
   ];
 
+  // 🔸 Nouveaux compteurs et chronos
+  const hasMinuterie  = headers.some(h => normalize(h).includes("minuterie"));
+  const hasModulee    = headers.some(h => normalize(h).includes("modulee"));
+  const hasCumul      = headers.some(h => normalize(h).includes("cumul"));
+  const hasExtract    = headers.some(h => normalize(h).includes("extraction"));
+  const hasCptTotal   = headers.some(h => normalize(h).includes("cptkwh") && normalize(h).includes("total"));
+  const hasCptLot     = headers.some(h => normalize(h).includes("cptkwh") && normalize(h).includes("lot"));
+
+  specials.push(
+    { id: "Minuterie", label: "Minuterie", col: "R", row: 7, optional: true, active: hasMinuterie },
+    { id: "Modulee",   label: "Modulée",   col: "R", row: 8, optional: true, active: hasModulee },
+    { id: "Cumul",     label: "Cumul",     col: "R", row: 9, optional: true, active: hasCumul },
+    { id: "NbExtract", label: "Nb Extraction", col: "R", row: 10, optional: true, active: hasExtract },
+    { id: "CptTotal",  label: "Compteur kWh Total", col: "B", row: 8, optional: true, active: hasCptTotal },
+    { id: "CptLot",    label: "Compteur kWh Lot", col: "B", row: 9, optional: true, active: hasCptLot }
+  );
+
+  
   function colIdx(letter){ return letter.toUpperCase().charCodeAt(0) - 64; }
 
   function placeSpecial(s){
@@ -1135,6 +1153,15 @@ function updateGrid(idx){
     prefer: ["ip"]
   });
 
+   // Nouveaux suivis process
+  updateSpecial("Minuterie", "Minuterie", { altLabels: ["Minuterie"], prefer: ["minuterie"] });
+  updateSpecial("Modulée",   "Modulee",   { altLabels: ["Modulee"], prefer: ["modulee"] });
+  updateSpecial("Cumul",     "Cumul",     { altLabels: ["Cumul"], prefer: ["cumul"] });
+  updateSpecial("Nb Extraction", "NbExtract", { altLabels: ["Extractions"], prefer: ["extraction"] });
+  updateSpecial("Compteur kWh Total", "CptTotal", { altLabels: ["CPT KWH TOTAL"], prefer: ["cptkwhtotal"], unit: "kWh" });
+  updateSpecial("Compteur kWh Lot", "CptLot", { altLabels: ["CPT KWH LOT"], prefer: ["cptkwhlot"], unit: "kWh" });
+ 
+
   // ➕ Surligne l'event Z3 le plus proche de l'heure courante
   const mins = minutesFromRowTime(row);
   updateZ3Intensity(mins);
@@ -1397,6 +1424,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
