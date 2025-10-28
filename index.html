@@ -742,7 +742,8 @@ if (Object.keys(hotDaysMap).length > 0) {
 
 
 
-function displayFiles(files, folderName){
+async function displayFiles(files, folderName){
+
   const tbody=document.querySelector('#csvTable tbody');
   const downloadBtn=document.getElementById('downloadFolderBtn');
   tbody.innerHTML='';
@@ -1534,6 +1535,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
