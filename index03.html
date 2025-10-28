@@ -68,8 +68,15 @@ body{
 
 /* ===== PAGE LAYOUT : main (3/4) + side (1/4) ===== */
 #pageWrap{
-  flex:1; display:flex; gap:10px; padding:10px 12px; overflow:hidden;
+  flex:1;
+  display:flex;
+  gap:10px;
+  padding:10px 12px;
+  overflow:hidden;
+  align-items:flex-start;   /* ✅ évite que la grille force le scroll vertical */
+  max-height:calc(100vh - 120px); /* ✅ limite le tout dans la fenêtre */
 }
+
 
 /* ===== Zone centrale : deux sous-grilles 22×6 centrées ===== */
 #mainCol{
@@ -81,9 +88,13 @@ body{
 }
 
 #gridWrap{
-  flex:1; display:flex; align-items:center; justify-content:center;
-  overflow:auto;
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;  /* ✅ pas de scrollbar dans la zone tuiles */
 }
+
 #grid{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap: calc(var(--tile-size) * var(--split-gap)); /* espace vertical entre top/bottom */
@@ -1470,6 +1481,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
