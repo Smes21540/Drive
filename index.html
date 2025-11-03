@@ -286,6 +286,40 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   color: #0d47a1;
 }
 
+/* Conteneur des boutons gaz */
+.gaz-group {
+  display: flex;
+  justify-content: center;   /* centrage horizontal */
+  align-items: center;       /* centrage vertical */
+  gap: 12px;                 /* espace entre les deux boutons */
+  width: 100%;
+}
+
+/* Style général des boutons gaz */
+.gaz-btn {
+  background: linear-gradient(180deg, #ffd54f, #ffb300);
+  color: #5d4037;
+  border: none;
+  font-weight: bold;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: default;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  opacity: 1 !important;
+  visibility: visible !important;
+  text-align: center;
+  transition: transform 0.3s ease, background 0.3s ease;
+  min-width: 110px;          /* largeur fixe pour un alignement parfait */
+}
+
+/* Deuxième bouton (heures) : bleu clair */
+.gaz-group .gaz-btn:nth-of-type(2) {
+  background: linear-gradient(180deg, #bbdefb, #64b5f6);
+  color: #0d47a1;
+}
+
+
 
 </style>
 </head>
@@ -1012,8 +1046,13 @@ if(f.name.toLowerCase().endsWith('.csv')){
 
 // === Si on est dans "Consommation Gaz", calcul du delta sur colonnes 2 (heure HH:MM:SS) et 3 (kWh) ===
 if (folderName.toLowerCase().includes("consommation gaz") && f.name.toLowerCase().endsWith(".csv")) {
-  html += `<button class="gaz-btn" disabled>⏳ Calcul...</button>`;
-  html += `<button class="gaz-btn" disabled>⏳ Heures...</button>`;
+html += `
+  <div class="gaz-group">
+    <button class="gaz-btn" disabled>⏳ Calcul...</button>
+    <button class="gaz-btn" disabled>⏳ Heures...</button>
+  </div>
+`;
+
 
   (async () => {
     try {
@@ -1075,7 +1114,7 @@ if (folderName.toLowerCase().includes("consommation gaz") && f.name.toLowerCase(
 
       // ⚡ KWH
       if (btnKwh) {
-        btnKwh.textContent = `⚡ ${roundedKwh} kWh`;
+        btnKwh.textContent = `🔥 ${roundedKwh} kWh`;
 
         const minScale = 0.85, maxScale = 1.4;
         const normalized = Math.min(Math.max(diffKwh / 200000, 0), 1);
@@ -1669,6 +1708,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
