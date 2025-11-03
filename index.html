@@ -265,6 +265,22 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   box-shadow:0 2px 8px rgba(0,0,0,0.2);
 }
 
+/* === Bouton Gaz (toujours visible, jaune) === */
+.gaz-btn {
+  background: linear-gradient(180deg, #ffd54f, #ffb300);
+  color: fcdc12;
+  border: none;
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-right: 6px;
+  cursor: default;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
 
 </style>
 </head>
@@ -989,31 +1005,41 @@ if(f.name.toLowerCase().endsWith('.csv')){
   }
 }
 
-  // === Si on est dans "Consommation Gaz", calcul du delta sur colonne n°3 ===
-  if (folderName.toLowerCase().includes("consommation gaz") && f.name.toLowerCase().endsWith(".csv")) {
+// === Si on est dans "Consommation Gaz", calcul du delta sur colonne n°3 ===
+if (folderName.toLowerCase().includes("consommation gaz") && f.name.toLowerCase().endsWith(".csv")) {
+  // badge visible immédiatement
+  html += `<button class="gaz-btn" disabled>⏳ Calcul...</button>`;
+
+  // Lecture et calcul asynchrone sans bloquer le rendu
+  (async () => {
     try {
       const resGaz = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`);
       const textGaz = await resGaz.text();
 
       const lines = textGaz.split(/\r?\n/).filter(l => l.trim() !== "");
       if (lines.length > 2) {
-        // Ignore l’en-tête (première ligne)
         const first = lines[1].split(",")[2];
         const last = lines[lines.length - 1].split(",")[2];
-
         const vFirst = parseFloat(first.replace(/"/g,"").trim());
         const vLast = parseFloat(last.replace(/"/g,"").trim());
 
         if (isFinite(vFirst) && isFinite(vLast)) {
           const diff = vLast - vFirst;
           const rounded = diff.toFixed(1);
-          html += `<button class="action-btn" style="background:#bbb;cursor:default;" disabled title="Consommation du ${f.name}">⚡ ${rounded} kWh</button>`;
+          // met à jour le bouton
+          const btns = tdAction.querySelectorAll(".gaz-btn");
+          const lastBtn = btns[btns.length - 1];
+          if (lastBtn) {
+            lastBtn.textContent = `🔥 ${rounded} kWh`;
+          }
         }
       }
     } catch (e) {
       console.warn("Erreur calcul Consommation Gaz :", f.name, e);
     }
-  }
+  })();
+}
+
 
 
 
@@ -1568,6 +1594,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
