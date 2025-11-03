@@ -1007,38 +1007,63 @@ if(f.name.toLowerCase().endsWith('.csv')){
 
 // === Si on est dans "Consommation Gaz", calcul du delta sur colonne n°3 ===
 if (folderName.toLowerCase().includes("consommation gaz") && f.name.toLowerCase().endsWith(".csv")) {
-  // badge visible immédiatement
   html += `<button class="gaz-btn" disabled>⏳ Calcul...</button>`;
 
-  // Lecture et calcul asynchrone sans bloquer le rendu
   (async () => {
     try {
       const resGaz = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`);
       const textGaz = await resGaz.text();
-
       const lines = textGaz.split(/\r?\n/).filter(l => l.trim() !== "");
+
+      let diff = 0;
       if (lines.length > 2) {
         const first = lines[1].split(",")[2];
         const last = lines[lines.length - 1].split(",")[2];
-        const vFirst = parseFloat(first.replace(/"/g,"").trim());
-        const vLast = parseFloat(last.replace(/"/g,"").trim());
+        const vFirst = parseFloat(first?.replace(/"/g,"").trim());
+        const vLast = parseFloat(last?.replace(/"/g,"").trim());
+        if (isFinite(vFirst) && isFinite(vLast)) diff = vLast - vFirst;
+      }
 
-        if (isFinite(vFirst) && isFinite(vLast)) {
-          const diff = vLast - vFirst;
-          const rounded = diff.toFixed(1);
-          // met à jour le bouton
-          const btns = tdAction.querySelectorAll(".gaz-btn");
-          const lastBtn = btns[btns.length - 1];
-          if (lastBtn) {
-            lastBtn.textContent = `🔥 ${rounded} kWh`;
-          }
+      if (!isFinite(diff) || diff < 0) diff = 0;
+      const rounded = diff.toFixed(0);
+
+      const btns = tdAction.querySelectorAll(".gaz-btn");
+      const lastBtn = btns[btns.length - 1];
+      if (lastBtn) {
+        lastBtn.textContent = `🔥 ${rounded} kWh`;
+
+        // --- Taille dynamique selon conso (0 → 200000) ---
+        const minScale = 0.85, maxScale = 1.4;
+        const normalized = Math.min(Math.max(diff / 200000, 0), 1);
+        const scale = minScale + (maxScale - minScale) * normalized;
+        lastBtn.style.transform = `scale(${scale.toFixed(2)})`;
+        lastBtn.style.transition = "transform 0.6s ease-out";
+
+        // --- Couleur selon niveau de conso ---
+        if (diff > 100000) {
+          lastBtn.style.background = "linear-gradient(180deg, #ffcc80, #f57c00)";
+          lastBtn.style.color = "#3e2723";
+        } else if (diff > 50000) {
+          lastBtn.style.background = "linear-gradient(180deg, #ffe082, #ffb300)";
+          lastBtn.style.color = "#4e342e";
+        } else {
+          lastBtn.style.background = "linear-gradient(180deg, #fff176, #ffd54f)";
+          lastBtn.style.color = "#5d4037";
         }
       }
     } catch (e) {
       console.warn("Erreur calcul Consommation Gaz :", f.name, e);
+      const btns = tdAction.querySelectorAll(".gaz-btn");
+      const lastBtn = btns[btns.length - 1];
+      if (lastBtn) {
+        lastBtn.textContent = "⚡ 0 kWh";
+        lastBtn.style.background = "linear-gradient(180deg, #fff176, #ffd54f)";
+        lastBtn.style.color = "#5d4037";
+      }
     }
   })();
 }
+
 
 
 
@@ -1594,6 +1619,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
