@@ -40,11 +40,18 @@ export async function handler(event, context) {
   if (method === "OPTIONS") {
     return {
       statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": allowOrigin,
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-      },
+headers: {
+  "Access-Control-Allow-Origin": allowOrigin,
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  // 🔒 Empêche Netlify de servir une réponse mise en cache sans CORS
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+  "Pragma": "no-cache",
+  "Expires": "0",
+  "Content-Type":
+    response.headers.get("content-type") || "application/octet-stream"
+},
+
       body: ""
     };
   }
