@@ -1010,7 +1010,7 @@ if(f.name.toLowerCase().endsWith('.csv')){
   }
 }
 
-// === Si on est dans "Consommation Gaz", calcul du delta sur colonnes 2 (heure) et 3 (kWh) ===
+// === Si on est dans "Consommation Gaz", calcul du delta sur colonnes 2 (heure HH:MM:SS) et 3 (kWh) ===
 if (folderName.toLowerCase().includes("consommation gaz") && f.name.toLowerCase().endsWith(".csv")) {
   html += `<button class="gaz-btn" disabled>⏳ Calcul...</button>`;
   html += `<button class="gaz-btn" disabled>⏳ Heures...</button>`;
@@ -1024,28 +1024,31 @@ if (folderName.toLowerCase().includes("consommation gaz") && f.name.toLowerCase(
       const lines = textGaz.split(/\r?\n/).filter(l => l.trim() !== "");
 
       let diffKwh = 0;
-      let diffHeures = 0;
+      let diffMinutes = 0;
 
       if (lines.length > 2) {
         const firstCols = lines[1].split(",");
         const lastCols = lines[lines.length - 1].split(",");
 
-        // --- Colonne 2 : heure (format HH:MM)
+        // --- Colonne 2 : heure (format HH:MM:SS)
         const hStart = firstCols[1]?.replace(/"/g, "").trim();
         const hEnd = lastCols[1]?.replace(/"/g, "").trim();
 
         function parseHeureToMinutes(h) {
-          const m = h.match(/^(\d{1,2}):(\d{2})$/);
+          const m = h.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
           if (!m) return NaN;
-          return parseInt(m[1]) * 60 + parseInt(m[2]);
+          const hh = parseInt(m[1]);
+          const mm = parseInt(m[2]);
+          const ss = parseInt(m[3] || "0");
+          return hh * 60 + mm + ss / 60;
         }
 
         const startMin = parseHeureToMinutes(hStart);
         const endMin = parseHeureToMinutes(hEnd);
 
         if (isFinite(startMin) && isFinite(endMin)) {
-          diffHeures = endMin - startMin;
-          if (diffHeures < 0) diffHeures += 24 * 60; // passage minuit
+          diffMinutes = endMin - startMin;
+          if (diffMinutes < 0) diffMinutes += 24 * 60; // passage minuit
         }
 
         // --- Colonne 3 : compteur kWh ---
@@ -1055,11 +1058,11 @@ if (folderName.toLowerCase().includes("consommation gaz") && f.name.toLowerCase(
       }
 
       if (!isFinite(diffKwh) || diffKwh < 0) diffKwh = 0;
-      if (!isFinite(diffHeures) || diffHeures < 0) diffHeures = 0;
+      if (!isFinite(diffMinutes) || diffMinutes < 0) diffMinutes = 0;
 
       // Conversion minutes → HH:MM
-      const hours = Math.floor(diffHeures / 60);
-      const minutes = Math.round(diffHeures % 60);
+      const hours = Math.floor(diffMinutes / 60);
+      const minutes = Math.floor(diffMinutes % 60);
       const hh = String(hours).padStart(2, "0");
       const mm = String(minutes).padStart(2, "0");
       const dureeFormatee = `${hh}:${mm}`;
@@ -1108,6 +1111,7 @@ if (folderName.toLowerCase().includes("consommation gaz") && f.name.toLowerCase(
     }
   })();
 }
+
 
 
 
@@ -1665,6 +1669,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
