@@ -281,6 +281,11 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   visibility: visible !important;
 }
 
+.gaz-btn:nth-of-type(2) {
+  background: linear-gradient(180deg, #bbdefb, #64b5f6); /* bleu clair */
+  color: #0d47a1;
+}
+
 
 </style>
 </head>
@@ -1005,64 +1010,105 @@ if(f.name.toLowerCase().endsWith('.csv')){
   }
 }
 
-// === Si on est dans "Consommation Gaz", calcul du delta sur colonne n°3 ===
+// === Si on est dans "Consommation Gaz", calcul du delta sur colonnes 2 (heure) et 3 (kWh) ===
 if (folderName.toLowerCase().includes("consommation gaz") && f.name.toLowerCase().endsWith(".csv")) {
   html += `<button class="gaz-btn" disabled>⏳ Calcul...</button>`;
+  html += `<button class="gaz-btn" disabled>⏳ Heures...</button>`;
 
   (async () => {
     try {
-      const resGaz = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`);
+      const resGaz = await fetch(
+        `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`
+      );
       const textGaz = await resGaz.text();
       const lines = textGaz.split(/\r?\n/).filter(l => l.trim() !== "");
 
-      let diff = 0;
+      let diffKwh = 0;
+      let diffHeures = 0;
+
       if (lines.length > 2) {
-        const first = lines[1].split(",")[2];
-        const last = lines[lines.length - 1].split(",")[2];
-        const vFirst = parseFloat(first?.replace(/"/g,"").trim());
-        const vLast = parseFloat(last?.replace(/"/g,"").trim());
-        if (isFinite(vFirst) && isFinite(vLast)) diff = vLast - vFirst;
+        const firstCols = lines[1].split(",");
+        const lastCols = lines[lines.length - 1].split(",");
+
+        // --- Colonne 2 : heure (format HH:MM)
+        const hStart = firstCols[1]?.replace(/"/g, "").trim();
+        const hEnd = lastCols[1]?.replace(/"/g, "").trim();
+
+        function parseHeureToMinutes(h) {
+          const m = h.match(/^(\d{1,2}):(\d{2})$/);
+          if (!m) return NaN;
+          return parseInt(m[1]) * 60 + parseInt(m[2]);
+        }
+
+        const startMin = parseHeureToMinutes(hStart);
+        const endMin = parseHeureToMinutes(hEnd);
+
+        if (isFinite(startMin) && isFinite(endMin)) {
+          diffHeures = endMin - startMin;
+          if (diffHeures < 0) diffHeures += 24 * 60; // passage minuit
+        }
+
+        // --- Colonne 3 : compteur kWh ---
+        const vCfirst = parseFloat(firstCols[2]?.replace(/"/g, "").trim());
+        const vClast = parseFloat(lastCols[2]?.replace(/"/g, "").trim());
+        if (isFinite(vCfirst) && isFinite(vClast)) diffKwh = vClast - vCfirst;
       }
 
-      if (!isFinite(diff) || diff < 0) diff = 0;
-      const rounded = diff.toFixed(0);
+      if (!isFinite(diffKwh) || diffKwh < 0) diffKwh = 0;
+      if (!isFinite(diffHeures) || diffHeures < 0) diffHeures = 0;
+
+      // Conversion minutes → HH:MM
+      const hours = Math.floor(diffHeures / 60);
+      const minutes = Math.round(diffHeures % 60);
+      const hh = String(hours).padStart(2, "0");
+      const mm = String(minutes).padStart(2, "0");
+      const dureeFormatee = `${hh}:${mm}`;
+
+      const roundedKwh = diffKwh.toFixed(0);
 
       const btns = tdAction.querySelectorAll(".gaz-btn");
-      const lastBtn = btns[btns.length - 1];
-      if (lastBtn) {
-        lastBtn.textContent = `🔥 ${rounded} kWh`;
+      const btnKwh = btns[0];
+      const btnHeures = btns[1];
 
-        // --- Taille dynamique selon conso (0 → 200000) ---
+      // ⚡ KWH
+      if (btnKwh) {
+        btnKwh.textContent = `⚡ ${roundedKwh} kWh`;
+
         const minScale = 0.85, maxScale = 1.4;
-        const normalized = Math.min(Math.max(diff / 200000, 0), 1);
+        const normalized = Math.min(Math.max(diffKwh / 200000, 0), 1);
         const scale = minScale + (maxScale - minScale) * normalized;
-        lastBtn.style.transform = `scale(${scale.toFixed(2)})`;
-        lastBtn.style.transition = "transform 0.6s ease-out";
+        btnKwh.style.transform = `scale(${scale.toFixed(2)})`;
+        btnKwh.style.transition = "transform 0.6s ease-out";
 
-        // --- Couleur selon niveau de conso ---
-        if (diff > 100000) {
-          lastBtn.style.background = "linear-gradient(180deg, #ffcc80, #f57c00)";
-          lastBtn.style.color = "#3e2723";
-        } else if (diff > 50000) {
-          lastBtn.style.background = "linear-gradient(180deg, #ffe082, #ffb300)";
-          lastBtn.style.color = "#4e342e";
+        if (diffKwh > 100000) {
+          btnKwh.style.background = "linear-gradient(180deg, #ffcc80, #f57c00)";
+          btnKwh.style.color = "#3e2723";
+        } else if (diffKwh > 50000) {
+          btnKwh.style.background = "linear-gradient(180deg, #ffe082, #ffb300)";
+          btnKwh.style.color = "#4e342e";
         } else {
-          lastBtn.style.background = "linear-gradient(180deg, #fff176, #ffd54f)";
-          lastBtn.style.color = "#5d4037";
+          btnKwh.style.background = "linear-gradient(180deg, #fff176, #ffd54f)";
+          btnKwh.style.color = "#5d4037";
         }
       }
+
+      // ⏱ HEURES (format HH:MM)
+      if (btnHeures) {
+        btnHeures.textContent = `⏱ ${dureeFormatee}`;
+        btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
+        btnHeures.style.color = "#0d47a1";
+        btnHeures.style.transform = "scale(0.95)";
+      }
+
     } catch (e) {
       console.warn("Erreur calcul Consommation Gaz :", f.name, e);
       const btns = tdAction.querySelectorAll(".gaz-btn");
-      const lastBtn = btns[btns.length - 1];
-      if (lastBtn) {
-        lastBtn.textContent = "⚡ 0 kWh";
-        lastBtn.style.background = "linear-gradient(180deg, #fff176, #ffd54f)";
-        lastBtn.style.color = "#5d4037";
-      }
+      if (btns[0]) btns[0].textContent = "⚡ 0 kWh";
+      if (btns[1]) btns[1].textContent = "⏱ 00:00";
     }
   })();
 }
+
 
 
 
@@ -1619,6 +1665,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
