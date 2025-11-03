@@ -989,6 +989,33 @@ if(f.name.toLowerCase().endsWith('.csv')){
   }
 }
 
+  // === Si on est dans "Consommation Gaz", calcul du delta sur colonne n°3 ===
+  if (folderName.toLowerCase().includes("consommation gaz") && f.name.toLowerCase().endsWith(".csv")) {
+    try {
+      const resGaz = await fetch(`https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`);
+      const textGaz = await resGaz.text();
+
+      const lines = textGaz.split(/\r?\n/).filter(l => l.trim() !== "");
+      if (lines.length > 2) {
+        // Ignore l’en-tête (première ligne)
+        const first = lines[1].split(",")[2];
+        const last = lines[lines.length - 1].split(",")[2];
+
+        const vFirst = parseFloat(first.replace(/"/g,"").trim());
+        const vLast = parseFloat(last.replace(/"/g,"").trim());
+
+        if (isFinite(vFirst) && isFinite(vLast)) {
+          const diff = vLast - vFirst;
+          const rounded = diff.toFixed(1);
+          html += `<button class="action-btn" style="background:#bbb;cursor:default;" disabled title="Consommation du ${f.name}">⚡ ${rounded} kWh</button>`;
+        }
+      }
+    } catch (e) {
+      console.warn("Erreur calcul Consommation Gaz :", f.name, e);
+    }
+  }
+
+
 
 
     if(/\.(jpg|jpeg)$/i.test(f.name)){
@@ -1541,6 +1568,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
