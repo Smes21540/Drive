@@ -1761,12 +1761,15 @@ let fpEnd = null;
 function initDatePickers() {
   const commonOpts = {
     dateFormat: "Y-m-d",
-    locale: "fr", // 🇫🇷 forcer la langue du calendrier
+    locale: flatpickr.l10ns.fr, // ✅ langue française correcte
     allowInput: true,
     clickOpens: true,
 
-    // 💡 Dès l’ouverture, coloration immédiate des jours chauds
+    // 💡 Dès l’ouverture → coloration immédiate des jours chauds
     onOpen: function(selectedDates, dateStr, instance) {
+      recolorHotDays(instance);
+    },
+    onReady: function(selectedDates, dateStr, instance) {
       recolorHotDays(instance);
     },
     onMonthChange: function(selectedDates, dateStr, instance) {
@@ -1786,6 +1789,7 @@ function initDatePickers() {
       const yyyymmdd = dayElem.dateObj.toISOString().slice(0,10).replaceAll("-", "");
       if (hotDaysMap && hotDaysMap[yyyymmdd]) {
         dayElem.classList.add("hot-day");
+        dayElem.title = "Jour chaud détecté";
       }
     }
   };
@@ -1797,10 +1801,13 @@ function initDatePickers() {
   fpStart = flatpickr("#startDate", commonOpts);
   fpEnd = flatpickr("#endDate", commonOpts);
 
-  // 📅 Les icônes ouvrent le calendrier
-  document.getElementById("iconStart").onclick = () => fpStart.open();
-  document.getElementById("iconEnd").onclick = () => fpEnd.open();
+  // 📅 Icônes calendrier cliquables (plus grandes)
+  const iconStart = document.getElementById("iconStart");
+  const iconEnd = document.getElementById("iconEnd");
+  if (iconStart) iconStart.onclick = () => fpStart.open();
+  if (iconEnd) iconEnd.onclick = () => fpEnd.open();
 }
+
 
 /* ----------- Coloration des jours chauds ----------- */
 function recolorHotDays(instance) {
@@ -1865,6 +1872,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
