@@ -126,7 +126,8 @@ body{
 }
 
 /* Masque le champ tant qu’aucune date n’est choisie */
-.date-field input[type="date"] {
+/* Flatpickr remplace les inputs type="date" par .flatpickr-input */
+.date-field .flatpickr-input {
   display: none;
   border: none;
   outline: none;
@@ -135,9 +136,10 @@ body{
   color: var(--text);
   padding: 6px 2px;
 }
-.date-field.has-date input[type="date"] {
+.date-field.has-date .flatpickr-input {
   display: inline-block;
 }
+
 
 input[type="date"]::-webkit-calendar-picker-indicator {
   display: none;
@@ -380,8 +382,9 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 
 <!-- Calendrier enrichi -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+
 
   
 </head>
@@ -1758,11 +1761,11 @@ let fpEnd = null;
 function initDatePickers() {
   const commonOpts = {
     dateFormat: "Y-m-d",
-    locale: flatpickr.l10ns.fr, // 🇫🇷 langue du calendrier
+    locale: "fr", // 🇫🇷 forcer la langue du calendrier
     allowInput: true,
     clickOpens: true,
 
-    // colorie les jours chauds à chaque affichage ou changement
+    // 💡 Dès l’ouverture, coloration immédiate des jours chauds
     onOpen: function(selectedDates, dateStr, instance) {
       recolorHotDays(instance);
     },
@@ -1787,7 +1790,7 @@ function initDatePickers() {
     }
   };
 
-  // 🔄 Détruit les instances précédentes pour éviter les doublons
+  // 🔄 Détruire les anciens calendriers pour forcer le redraw
   if (fpStart) fpStart.destroy();
   if (fpEnd) fpEnd.destroy();
 
@@ -1798,6 +1801,22 @@ function initDatePickers() {
   document.getElementById("iconStart").onclick = () => fpStart.open();
   document.getElementById("iconEnd").onclick = () => fpEnd.open();
 }
+
+/* ----------- Coloration des jours chauds ----------- */
+function recolorHotDays(instance) {
+  const days = instance.calendarContainer.querySelectorAll(".flatpickr-day");
+  days.forEach(dayElem => {
+    const yyyymmdd = dayElem.dateObj.toISOString().slice(0,10).replaceAll("-", "");
+    if (hotDaysMap && hotDaysMap[yyyymmdd]) {
+      dayElem.classList.add("hot-day");
+      dayElem.title = "Jour chaud détecté";
+    } else {
+      dayElem.classList.remove("hot-day");
+      dayElem.removeAttribute("title");
+    }
+  });
+}
+
 
 /* ----------- Coloration des jours chauds ----------- */
 function recolorHotDays(instance) {
@@ -1846,6 +1865,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
