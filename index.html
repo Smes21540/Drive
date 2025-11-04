@@ -329,6 +329,14 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 }
 
 
+/* Cache le bloc de filtres de date tant qu’aucun dossier n’est sélectionné */
+.controls {
+  display: none;
+}
+
+
+
+  
 
 </style>
 
@@ -525,6 +533,10 @@ async function loadRootFolders(){
   const rootUL = document.getElementById('folderTree');
   rootUL.innerHTML = '';
 
+// 🔒 Cacher les filtres quand on revient à la racine
+document.querySelector(".controls").style.display = "none";
+
+  
   files
   .filter(f => f.mimeType === 'application/vnd.google-apps.folder')
   .sort((a,b) => a.name.localeCompare(b.name, 'fr', { sensitivity:'base' }))
@@ -817,6 +829,10 @@ async function displayFiles(files, folderName){
   const tbody=document.querySelector('#csvTable tbody');
   const downloadBtn=document.getElementById('downloadFolderBtn');
   tbody.innerHTML='';
+
+  // ✅ Afficher les filtres uniquement dans un dossier final (contenant des fichiers)
+document.querySelector(".controls").style.display = "flex";
+
 
   if(files.length===0){
     tbody.innerHTML='<tr><td colspan="5" style="text-align:center;">Aucun fichier</td></tr>';
@@ -1707,6 +1723,8 @@ function initDatePickers() {
   const commonOpts = {
     dateFormat: "Y-m-d",
     locale: "fr",
+    allowInput: true,
+    clickOpens: true,
     onDayCreate: function(dObj, dStr, fp, dayElem) {
       const yyyymmdd = dayElem.dateObj.toISOString().slice(0,10).replaceAll("-", "");
       if (hotDaysMap && hotDaysMap[yyyymmdd]) {
@@ -1716,14 +1734,18 @@ function initDatePickers() {
     }
   };
 
-  // 🔄 Supprime les anciens calendriers pour forcer un vrai redraw
+  // Détruit les instances précédentes pour un vrai redraw
   if (fpStart) fpStart.destroy();
   if (fpEnd) fpEnd.destroy();
 
-  // ✅ Recréation avec les nouveaux jours chauds
   fpStart = flatpickr("#startDate", commonOpts);
   fpEnd = flatpickr("#endDate", commonOpts);
+
+  // ✅ L’icône 📅 déclenche maintenant le calendrier
+  document.getElementById("iconStart").onclick = () => fpStart.open();
+  document.getElementById("iconEnd").onclick = () => fpEnd.open();
 }
+
 
 
 
@@ -1757,6 +1779,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
