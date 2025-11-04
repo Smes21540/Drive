@@ -1711,27 +1711,20 @@ function initDatePickers() {
       const yyyymmdd = dayElem.dateObj.toISOString().slice(0,10).replaceAll("-", "");
       if (hotDaysMap && hotDaysMap[yyyymmdd]) {
         dayElem.classList.add("hot-day");
-        dayElem.title = "🔥 Brûleur actif ce jour-là";
-
-        const flame = document.createElement("span");
-        flame.textContent = "🔥";
-        flame.style.fontSize = "10px";
-        flame.style.position = "absolute";
-        flame.style.bottom = "2px";
-        flame.style.right = "2px";
-        dayElem.style.position = "relative";
-        dayElem.appendChild(flame);
+        dayElem.title = "Jour chaud détecté";
       }
     }
   };
 
-  // 🔄 Détruire les anciens calendriers s’ils existent (pour éviter doublons)
+  // 🔄 Supprime les anciens calendriers pour forcer un vrai redraw
   if (fpStart) fpStart.destroy();
   if (fpEnd) fpEnd.destroy();
 
+  // ✅ Recréation avec les nouveaux jours chauds
   fpStart = flatpickr("#startDate", commonOpts);
   fpEnd = flatpickr("#endDate", commonOpts);
 }
+
 
 
 
@@ -1764,6 +1757,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
