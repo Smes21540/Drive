@@ -319,9 +319,22 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   color: #0d47a1;
 }
 
+/* --- Jours chauds dans le calendrier --- */
+.hot-day {
+  background: var(--accent-muted) !important;
+  color: var(--danger) !important;
+  border-radius: 50% !important;
+  font-weight: bold !important;
+}
 
 
 </style>
+
+<!-- Calendrier enrichi -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  
 </head>
 <body>
 
@@ -1678,6 +1691,31 @@ function markFolderWithFlame(li) {
 }
 
 
+/* ----------- Datepickers enrichis (Flatpickr) ----------- */
+function initDatePickers() {
+  const commonOpts = {
+    dateFormat: "Y-m-d",
+    locale: "fr",
+    onDayCreate: function(dObj, dStr, fp, dayElem) {
+      const yyyymmdd = dayElem.dateObj.toISOString().slice(0,10).replaceAll("-", "");
+      if (hotDaysMap && hotDaysMap[yyyymmdd]) {
+        dayElem.classList.add("hot-day");
+        dayElem.title = "🔥 Brûleur actif ce jour-là";
+        const flame = document.createElement("span");
+        flame.textContent = "🔥";
+        flame.style.fontSize = "10px";
+        flame.style.position = "absolute";
+        flame.style.bottom = "2px";
+        flame.style.right = "2px";
+        dayElem.style.position = "relative";
+        dayElem.appendChild(flame);
+      }
+    }
+  };
+
+  flatpickr("#startDate", commonOpts);
+  flatpickr("#endDate", commonOpts);
+}
 
 
 
@@ -1691,6 +1729,7 @@ window.onload=()=>{
   document.getElementById("downloadFolderBtn").style.display="none";
 
   loadRootFolders();
+  initDatePickers();
 const last = localStorage.getItem("lastFolderId");
 if (last) {
   // attendre un peu que l'arborescence soit rendue
@@ -1708,6 +1747,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
