@@ -100,16 +100,54 @@ body{
 }
 .controls button:hover{background:var(--accent-darker);transform:scale(1.05);}
 
-/* Champs date + icône custom */
-.date-field{
-  display:flex;align-items:center;gap:6px;background:var(--panel);
-  border:2px solid var(--table-border);border-radius:6px;padding:4px 8px;
+/* --- Champs date modernisés --- */
+.date-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 2px solid var(--table-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  transition: all 0.3s ease;
 }
-.date-field span{font-size:16px;color:var(--accent);cursor:pointer;user-select:none;transition:0.2s;}
-.date-field span:hover{transform:scale(1.2);}
-.date-field input[type=date]{border:none;outline:none;background:transparent;font-size:14px;color:var(--text);padding:6px 2px;}
-input[type="date"]::-webkit-calendar-picker-indicator{display:none;-webkit-appearance:none;}
-.date-field input[type=date]:focus {box-shadow:0 0 6px var(--accent);border-color:var(--accent);color:var(--danger);}
+
+/* 📅 Icône calendrier plus grande et cliquable */
+.date-field span {
+  font-size: 24px; /* plus visible */
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s, color 0.2s;
+}
+.date-field span:hover {
+  transform: scale(1.2);
+  color: var(--accent-darker);
+}
+
+/* Masque le champ tant qu’aucune date n’est choisie */
+.date-field input[type="date"] {
+  display: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  color: var(--text);
+  padding: 6px 2px;
+}
+.date-field.has-date input[type="date"] {
+  display: inline-block;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.flatpickr-calendar {
+  font-size: 1.1em; /* calendrier plus grand */
+}
+
 
 /* Tableau */
 #tableWrapper{flex:1;overflow:auto;}
@@ -342,6 +380,7 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 
 <!-- Calendrier enrichi -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
   
@@ -1719,7 +1758,7 @@ let fpEnd = null;
 function initDatePickers() {
   const commonOpts = {
     dateFormat: "Y-m-d",
-    locale: "fr",
+    locale: "fr", // 🇫🇷 langue du calendrier
     allowInput: true,
     clickOpens: true,
     onDayCreate: function(dObj, dStr, fp, dayElem) {
@@ -1728,20 +1767,25 @@ function initDatePickers() {
         dayElem.classList.add("hot-day");
         dayElem.title = "Jour chaud détecté";
       }
+    },
+    onChange: function(selectedDates, dateStr, instance) {
+      const parent = instance.input.closest(".date-field");
+      if (dateStr) parent.classList.add("has-date");
+      else parent.classList.remove("has-date");
     }
   };
 
-  // Détruit les instances précédentes pour un vrai redraw
   if (fpStart) fpStart.destroy();
   if (fpEnd) fpEnd.destroy();
 
   fpStart = flatpickr("#startDate", commonOpts);
   fpEnd = flatpickr("#endDate", commonOpts);
 
-  // ✅ L’icône 📅 déclenche maintenant le calendrier
+  // 📅 L’icône déclenche le calendrier
   document.getElementById("iconStart").onclick = () => fpStart.open();
   document.getElementById("iconEnd").onclick = () => fpEnd.open();
 }
+
 
 
 
@@ -1776,6 +1820,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
