@@ -325,7 +325,9 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   color: var(--danger) !important;
   border-radius: 50% !important;
   font-weight: bold !important;
+  box-shadow: 0 0 6px rgba(255, 100, 0, 0.6);
 }
+
 
 
 </style>
@@ -1531,10 +1533,11 @@ async function scanSiteHotDays(siteId) {
       s.mimeType === 'application/vnd.google-apps.folder' &&
       (s.name.toLowerCase().includes("traça_temp") || s.name.toLowerCase().includes("traca_temp"))
     );
-    if (!tracatemp) {
-      console.warn(`[SCAN] Aucun dossier Traça_Temp trouvé pour le site ${siteId}`);
-      return hotDays;
-    }
+if (!tracatemp) {
+  console.warn(`[SCAN] Aucun dossier Traça_Temp trouvé pour le site ${siteId}`);
+  return hotDays;
+}
+
 
     const files = await fetchFolderContents(tracatemp.id);
     const csvFiles = files.filter(f => f.name.toLowerCase().endsWith(".csv"));
@@ -1589,10 +1592,15 @@ async function scanSiteHotDays(siteId) {
       }
     }
 
-    console.log(`[SCAN] 🔥 ${Object.keys(hotDays).length} jours chauds détectés pour le site`);
-    console.timeEnd(`[SCAN] Durée scanSiteHotDays (${siteId})`);
-    localStorage.setItem(`hotDays_${siteId}`, JSON.stringify(hotDays));
-    return hotDays;
+console.log(`[SCAN] 🔥 ${Object.keys(hotDays).length} jours chauds détectés pour le site`);
+console.timeEnd(`[SCAN] Durée scanSiteHotDays (${siteId})`);
+localStorage.setItem(`hotDays_${siteId}`, JSON.stringify(hotDays));
+
+// ✅ Recharge les calendriers maintenant que hotDaysMap est prêt
+initDatePickers();
+
+return hotDays;
+
 
   } catch (err) {
     console.error("[SCAN] Erreur générale scanSiteHotDays:", err);
@@ -1692,6 +1700,9 @@ function markFolderWithFlame(li) {
 
 
 /* ----------- Datepickers enrichis (Flatpickr) ----------- */
+let fpStart = null;
+let fpEnd = null;
+
 function initDatePickers() {
   const commonOpts = {
     dateFormat: "Y-m-d",
@@ -1701,6 +1712,7 @@ function initDatePickers() {
       if (hotDaysMap && hotDaysMap[yyyymmdd]) {
         dayElem.classList.add("hot-day");
         dayElem.title = "🔥 Brûleur actif ce jour-là";
+
         const flame = document.createElement("span");
         flame.textContent = "🔥";
         flame.style.fontSize = "10px";
@@ -1713,9 +1725,14 @@ function initDatePickers() {
     }
   };
 
-  flatpickr("#startDate", commonOpts);
-  flatpickr("#endDate", commonOpts);
+  // 🔄 Détruire les anciens calendriers s’ils existent (pour éviter doublons)
+  if (fpStart) fpStart.destroy();
+  if (fpEnd) fpEnd.destroy();
+
+  fpStart = flatpickr("#startDate", commonOpts);
+  fpEnd = flatpickr("#endDate", commonOpts);
 }
+
 
 
 
@@ -1747,6 +1764,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
