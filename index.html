@@ -146,9 +146,33 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   -webkit-appearance: none;
 }
 
+/* --- Style amélioré du calendrier --- */
 .flatpickr-calendar {
-  font-size: 1.1em; /* calendrier plus grand */
+  font-size: 1.3em !important;
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  border-radius: 12px;
+  z-index: 3000 !important;
 }
+
+.flatpickr-day {
+  width: 2.4em !important;
+  height: 2.4em !important;
+  line-height: 2.4em !important;
+  font-weight: 500 !important;
+}
+
+.flatpickr-months .flatpickr-month {
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.flatpickr-weekday {
+  font-size: 0.9em;
+  color: var(--accent-darker);
+  font-weight: 600;
+}
+
 
 
 /* Tableau */
@@ -1798,14 +1822,23 @@ function initDatePickers() {
   if (fpStart) fpStart.destroy();
   if (fpEnd) fpEnd.destroy();
 
-  fpStart = flatpickr("#startDate", commonOpts);
-  fpEnd = flatpickr("#endDate", commonOpts);
+// 📅 Icônes calendrier (plus grandes) + positionnement localisé
+const iconStart = document.getElementById("iconStart");
+const iconEnd = document.getElementById("iconEnd");
 
-  // 📅 Icônes calendrier cliquables (plus grandes)
-  const iconStart = document.getElementById("iconStart");
-  const iconEnd = document.getElementById("iconEnd");
-  if (iconStart) iconStart.onclick = () => fpStart.open();
-  if (iconEnd) iconEnd.onclick = () => fpEnd.open();
+fpStart = flatpickr("#startDate", {
+  ...commonOpts,
+  positionElement: iconStart, // 👈 s’affiche collé à l’icône
+});
+fpEnd = flatpickr("#endDate", {
+  ...commonOpts,
+  positionElement: iconEnd,   // 👈 idem
+});
+
+// 📅 clic sur les icônes pour ouvrir le calendrier
+if (iconStart) iconStart.onclick = () => fpStart.open();
+if (iconEnd) iconEnd.onclick = () => fpEnd.open();
+
 }
 
 
@@ -1872,6 +1905,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
