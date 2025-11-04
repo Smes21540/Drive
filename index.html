@@ -146,10 +146,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   -webkit-appearance: none;
 }
 
-/* --- Style amélioré du calendrier --- */
+/* --- Style équilibré du calendrier Flatpickr --- */
 .flatpickr-calendar {
-  font-size: 1.3em !important;
-  transform: scale(1.05);
+  font-size: 1em !important;          /* ✅ police normale (plus de chevauchement) */
+  transform: scale(1.15);             /* ✅ zoom global du calendrier (plus grand sans grossir le texte) */
+  transform-origin: top left;         /* garde l’ouverture propre près de l’icône */
   box-shadow: 0 6px 16px rgba(0,0,0,0.25);
   border-radius: 12px;
   z-index: 3000 !important;
@@ -159,19 +160,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   width: 2.4em !important;
   height: 2.4em !important;
   line-height: 2.4em !important;
-  font-weight: 500 !important;
+  font-size: 0.95em !important;       /* ✅ jours un peu plus petits, lisibles */
+  font-weight: 500;
 }
 
 .flatpickr-months .flatpickr-month {
-  font-size: 1.1em;
+  font-size: 1em;                     /* ✅ mois et navigation lisibles mais pas énormes */
   font-weight: bold;
 }
 
 .flatpickr-weekday {
-  font-size: 0.9em;
+  font-size: 0.85em;                  /* ✅ noms des jours ajustés */
   color: var(--accent-darker);
   font-weight: 600;
 }
+
 
 
 
@@ -1905,6 +1908,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
