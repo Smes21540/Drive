@@ -1758,35 +1758,61 @@ let fpEnd = null;
 function initDatePickers() {
   const commonOpts = {
     dateFormat: "Y-m-d",
-    locale: "fr", // 🇫🇷 langue du calendrier
+    locale: flatpickr.l10ns.fr, // 🇫🇷 langue du calendrier
     allowInput: true,
     clickOpens: true,
-    onDayCreate: function(dObj, dStr, fp, dayElem) {
-      const yyyymmdd = dayElem.dateObj.toISOString().slice(0,10).replaceAll("-", "");
-      if (hotDaysMap && hotDaysMap[yyyymmdd]) {
-        dayElem.classList.add("hot-day");
-        dayElem.title = "Jour chaud détecté";
-      }
+
+    // colorie les jours chauds à chaque affichage ou changement
+    onOpen: function(selectedDates, dateStr, instance) {
+      recolorHotDays(instance);
     },
+    onMonthChange: function(selectedDates, dateStr, instance) {
+      recolorHotDays(instance);
+    },
+    onYearChange: function(selectedDates, dateStr, instance) {
+      recolorHotDays(instance);
+    },
+
     onChange: function(selectedDates, dateStr, instance) {
       const parent = instance.input.closest(".date-field");
       if (dateStr) parent.classList.add("has-date");
       else parent.classList.remove("has-date");
+    },
+
+    onDayCreate: function(dObj, dStr, fp, dayElem) {
+      const yyyymmdd = dayElem.dateObj.toISOString().slice(0,10).replaceAll("-", "");
+      if (hotDaysMap && hotDaysMap[yyyymmdd]) {
+        dayElem.classList.add("hot-day");
+      }
     }
   };
 
+  // 🔄 Détruit les instances précédentes pour éviter les doublons
   if (fpStart) fpStart.destroy();
   if (fpEnd) fpEnd.destroy();
 
   fpStart = flatpickr("#startDate", commonOpts);
   fpEnd = flatpickr("#endDate", commonOpts);
 
-  // 📅 L’icône déclenche le calendrier
+  // 📅 Les icônes ouvrent le calendrier
   document.getElementById("iconStart").onclick = () => fpStart.open();
   document.getElementById("iconEnd").onclick = () => fpEnd.open();
 }
 
-
+/* ----------- Coloration des jours chauds ----------- */
+function recolorHotDays(instance) {
+  const days = instance.calendarContainer.querySelectorAll(".flatpickr-day");
+  days.forEach(dayElem => {
+    const yyyymmdd = dayElem.dateObj.toISOString().slice(0,10).replaceAll("-", "");
+    if (hotDaysMap && hotDaysMap[yyyymmdd]) {
+      dayElem.classList.add("hot-day");
+      dayElem.title = "Jour chaud détecté";
+    } else {
+      dayElem.classList.remove("hot-day");
+      dayElem.removeAttribute("title");
+    }
+  });
+}
 
 
 
@@ -1820,6 +1846,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
