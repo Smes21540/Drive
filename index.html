@@ -1451,9 +1451,6 @@ function sortTable(colIndex, type) {
   if (arrow) arrow.textContent = currentSort.asc ? "▲" : "▼";
 }
 
-/* ----------- Icônes calendrier cliquables ----------- */
-document.getElementById("iconStart").onclick=()=>document.getElementById("startDate").showPicker?.()||document.getElementById("startDate").focus();
-document.getElementById("iconEnd").onclick=()=>document.getElementById("endDate").showPicker?.()||document.getElementById("endDate").focus();
 
 /* ----------- Menu secret (thèmes) ----------- */
 document.getElementById("secretBtn").onclick=()=>{
@@ -1779,6 +1776,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
