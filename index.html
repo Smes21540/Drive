@@ -1812,13 +1812,16 @@ function initDatePickers() {
       else parent.classList.remove("has-date");
     },
 
-    onDayCreate: function(dObj, dStr, fp, dayElem) {
-      const yyyymmdd = dayElem.dateObj.toISOString().slice(0,10).replaceAll("-", "");
-      if (hotDaysMap && hotDaysMap[yyyymmdd]) {
-        dayElem.classList.add("hot-day");
-        dayElem.title = "Jour chaud détecté";
-      }
-    }
+onDayCreate: function(dObj, dStr, fp, dayElem) {
+  const yyyymmdd = dayElem.dateObj.getFullYear().toString() +
+    String(dayElem.dateObj.getMonth() + 1).padStart(2, "0") +
+    String(dayElem.dateObj.getDate()).padStart(2, "0");
+  if (hotDaysMap && hotDaysMap[yyyymmdd]) {
+    dayElem.classList.add("hot-day");
+    dayElem.title = "Jour chaud détecté";
+  }
+}
+
   };
 
   // 🔄 Détruire les anciens calendriers pour forcer le redraw
@@ -1849,7 +1852,10 @@ if (iconEnd) iconEnd.onclick = () => fpEnd.open();
 function recolorHotDays(instance) {
   const days = instance.calendarContainer.querySelectorAll(".flatpickr-day");
   days.forEach(dayElem => {
-    const yyyymmdd = dayElem.dateObj.toISOString().slice(0,10).replaceAll("-", "");
+    const yyyymmdd = dayElem.dateObj.getFullYear().toString() +
+  String(dayElem.dateObj.getMonth() + 1).padStart(2, "0") +
+  String(dayElem.dateObj.getDate()).padStart(2, "0");
+
     if (hotDaysMap && hotDaysMap[yyyymmdd]) {
       dayElem.classList.add("hot-day");
       dayElem.title = "Jour chaud détecté";
@@ -1861,20 +1867,6 @@ function recolorHotDays(instance) {
 }
 
 
-/* ----------- Coloration des jours chauds ----------- */
-function recolorHotDays(instance) {
-  const days = instance.calendarContainer.querySelectorAll(".flatpickr-day");
-  days.forEach(dayElem => {
-    const yyyymmdd = dayElem.dateObj.toISOString().slice(0,10).replaceAll("-", "");
-    if (hotDaysMap && hotDaysMap[yyyymmdd]) {
-      dayElem.classList.add("hot-day");
-      dayElem.title = "Jour chaud détecté";
-    } else {
-      dayElem.classList.remove("hot-day");
-      dayElem.removeAttribute("title");
-    }
-  });
-}
 
 
 
@@ -1908,6 +1900,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
