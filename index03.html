@@ -1405,9 +1405,26 @@ async function refreshFromDrive() {
     const buf = await res.arrayBuffer();
     const text = decodeSmart(buf);
 
-    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
-    csvData = parsed.data || [];
-    headers = parsed.meta.fields || [];
+// ✅ Même logique que loadCSV pour garder les bons noms de colonnes
+const seen = {};
+const parsed = Papa.parse(text, {
+  header: true,
+  skipEmptyLines: true,
+  transformHeader: (h) => {
+    h = (h || "").replace(/"/g, "").trim();
+    if (seen[h]) {
+      seen[h]++;
+      return h + "_" + seen[h];
+    } else {
+      seen[h] = 1;
+      return h + "_1";
+    }
+  },
+});
+
+csvData = parsed.data || [];
+headers = parsed.meta.fields || [];
+
 
     // Mise à jour de la ligne count et du slider
     document.getElementById("slider").max = csvData.length - 1;
@@ -1660,6 +1677,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
