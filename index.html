@@ -680,13 +680,13 @@ rootUL.appendChild(li);
 }
 
 async function toggleFolder(li){
-  const toggle=li.querySelector('.folder-toggle');
-  if(li.dataset.loaded==='true'){
-    const ul=li.querySelector('ul');
-    if(ul){ul.style.display=ul.style.display==='none'?'block':'none'; toggle.textContent=ul.style.display==='block'?'–':'+';}
-    return;
-  }
-  toggle.textContent='…';
+// Plus de toggle : gestion simple du dépliage
+if (li.dataset.loaded === 'true') {
+  const ul = li.querySelector('ul');
+  if (ul) ul.style.display = ul.style.display === 'none' ? 'block' : 'none';
+  return;
+}
+
   const files=await fetchFolderContents(li.dataset.id);
   const ul=document.createElement('ul');
   const folders = files
@@ -1917,3 +1917,4 @@ if (last) {
 </script>
 </body>
 </html>
+
