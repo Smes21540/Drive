@@ -1076,9 +1076,7 @@ function decodeSmart(arrayBuffer) {
 const res = await fetch(url);
 if (!res.ok) throw new Error("Erreur proxy Drive");
 
-// ✅ Décodage intelligent UTF-8 / ISO-8859-1
-const buf = await res.arrayBuffer();
-text = decodeSmart(buf);
+
 
 
       
@@ -1721,6 +1719,7 @@ console.log("🧾 Taille du fichier Drive :", text.length, "caractères");
 </script>
 </body>
 </html>
+
 
 
 
