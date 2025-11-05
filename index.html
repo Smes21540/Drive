@@ -335,17 +335,21 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 
 /* Petite flamme pour les dossiers dans l’arborescence */
 .flame-folder {
-  display: inline;               
-  font-size: 14px;               
-  margin-right: 4px;             
-  line-height: 1;                
-  vertical-align: middle;
-  text-shadow: 
+  position: absolute;             /* 🔹 sort la flamme du flux */
+  left: -18px;                    /* 🔹 ancre fixe à gauche du texte */
+  font-size: 14px;
+  transform: translateY(2px);
+  text-shadow:
     0 0 3px rgba(255, 140, 0, 0.8),
     0 0 6px rgba(255, 80, 0, 0.7);
   animation: flicker 1s infinite alternate;
 }
 
+.folder-name {
+  position: relative;             /* 🔹 pour que la flamme se positionne par rapport au dossier */
+}
+
+  
 .note {
   display: inline-flex;
   justify-content: center;
@@ -1944,6 +1948,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
