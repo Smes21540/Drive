@@ -1372,6 +1372,7 @@ document.getElementById("btnNextDay").addEventListener("click", async () => {
 /* 🎬 Mode LIVE (recharge depuis Google Drive sans F5) */
 const playBtn = document.getElementById("btnPlay");
 let liveInterval = null;
+let tickCount = 0; // ✅ compteur global ajouté
 
 playBtn.addEventListener("click", async () => {
   const slider = document.getElementById("slider");
@@ -1398,14 +1399,15 @@ playBtn.addEventListener("click", async () => {
     // Recharge immédiate une fois
     await refreshFromDrive();
 
-    // Puis toutes les minutes
+    // Puis toutes les 5 secondes (pour test)
     liveInterval = setInterval(async () => {
-        tickCount++;
-  console.log(`⏱️ Tick ${tickCount} — refreshFromDrive()`);
+      tickCount++;
+      console.log(`⏱️ Tick ${tickCount} — refreshFromDrive()`);
       await refreshFromDrive();
     }, 5000);
   }
 });
+
 
 /* 📡 Mode LIVE intelligent : recharge uniquement les nouvelles lignes */
 async function refreshFromDrive() {
@@ -1719,6 +1721,7 @@ console.log("🧾 Taille du fichier Drive :", text.length, "caractères");
 </script>
 </body>
 </html>
+
 
 
 
