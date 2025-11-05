@@ -73,9 +73,30 @@ body{
   margin: 0;
 }
 
+/* --- Indentation progressive pour les sous-dossiers --- */
 #folderTree li {
+  position: relative;
   margin: 4px 0;
 }
+
+/* décalage visuel pour les sous-niveaux */
+#folderTree ul ul {
+  margin-left: 18px;
+  border-left: 2px solid var(--accent-muted);
+  padding-left: 10px;
+}
+
+/* fine ligne de repère verticale */
+#folderTree li::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed var(--accent-muted);
+  opacity: 0.4;
+}
+
 
 .folder-name {
   cursor: pointer;
@@ -450,7 +471,7 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 
 <!-- Sidebar dossiers -->
 <div id="sidebar">
-  <h2><span>📁</span>Sites/Séchoirs</h2>
+  <h2><span>🌽</span>Sites / Séchoirs</h2>
   <ul id="folderTree"></ul>
 </div>
 
@@ -644,7 +665,7 @@ const span = document.createElement('span');
 span.className = 'folder-name';
 
 const lowerName = f.name.toLowerCase();
-let icon = " ";
+let icon = "📁 ";
 
 if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
   icon = "📈";
@@ -1923,6 +1944,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
