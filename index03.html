@@ -1401,7 +1401,7 @@ playBtn.addEventListener("click", async () => {
     // Puis toutes les minutes
     liveInterval = setInterval(async () => {
       await refreshFromDrive();
-    }, 60000);
+    }, 5000);
   }
 });
 
@@ -1711,6 +1711,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
