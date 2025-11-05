@@ -457,6 +457,48 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 }
 
 
+/* === Correction arborescence dossiers === */
+
+/* 🔥 Flamme fixe à gauche sans décaler le nom */
+.folder-name {
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+  user-select: none;
+  font-weight: 500;
+}
+
+.flame-folder {
+  position: absolute;
+  left: -16px;               /* proche du texte, sans le pousser */
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  text-shadow:
+    0 0 3px rgba(255, 140, 0, 0.8),
+    0 0 6px rgba(255, 80, 0, 0.7);
+  animation: flicker 1s infinite alternate;
+  pointer-events: none;      /* clics restent sur le dossier */
+}
+
+/* 🟧 Cadre du dossier sélectionné plus précis */
+.active-folder {
+  background: var(--accent-muted);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-weight: 600;
+  color: var(--accent-darker);
+  display: inline-block;
+  box-shadow: 0 0 4px rgba(0,0,0,0.1);
+}
+
+/* 📂 Sous-dossiers plus décalés visuellement */
+#folderTree ul ul {
+  margin-left: 48px;
+  border-left: 2px solid var(--accent-muted);
+  padding-left: 16px;
+}
 
   
 
@@ -686,7 +728,8 @@ if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
 }
 
 span.innerHTML = `<span class="icon">${icon}</span> ${f.name}`;
-li.onclick = () => loadFolderFilesOnClick(li);
+li.onclick = (e) => loadFolderFilesOnClick(li, e);
+
 
 li.appendChild(span);
 rootUL.appendChild(li);
@@ -708,13 +751,16 @@ rootUL.appendChild(li);
   }, 1000);
 }
 
-async function toggleFolder(li) {
-  // Plus de toggle : gestion simple du dépliage
+async function toggleFolder(li, event) {
+  // ✅ Ne replie plus le dossier quand on clique sur un sous-dossier
   if (li.dataset.loaded === 'true') {
     const ul = li.querySelector('ul');
-    if (ul) ul.style.display = ul.style.display === 'none' ? 'block' : 'none';
+    if (!ul) return;
+    if (event && event.target && !event.target.classList.contains('folder-name')) return;
+    ul.style.display = ul.style.display === 'none' ? 'block' : 'none';
     return;
   }
+
 
   const files = await fetchFolderContents(li.dataset.id);
   const ul = document.createElement('ul');
@@ -743,7 +789,8 @@ async function toggleFolder(li) {
     }
 
     span.innerHTML = `<span class="icon">${icon}</span> ${f.name}`;
-    childLi.onclick = () => loadFolderFilesOnClick(childLi);
+    childLi.onclick = (e) => loadFolderFilesOnClick(childLi, e);
+
 
     childLi.appendChild(span);
     ul.appendChild(childLi);
@@ -785,8 +832,9 @@ async function fetchChildren(folderId){
   return files.filter(f => f.mimeType === 'application/vnd.google-apps.folder');
 }
 
-async function loadFolderFilesOnClick(li){
-  await toggleFolder(li);
+async function loadFolderFilesOnClick(li, event){
+  await toggleFolder(li, event);
+
 
 // 🔄 Réinitialiser la sélection visuelle
 document.querySelectorAll('#folderTree li span.folder-name').forEach(s => s.classList.remove('active-folder'));
@@ -1952,6 +2000,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
