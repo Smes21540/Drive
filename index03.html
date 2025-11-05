@@ -166,11 +166,16 @@ body{
   font-size: 18px;
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
+  outline: none;          /* ✅ empêche le contour par défaut */
+  box-shadow: none;       /* ✅ supprime l'effet "relief" gris des boutons */
+  appearance: none;       /* ✅ supprime le style natif du bouton selon le navigateur */
 }
-#timeBar button:hover {
-  background: var(--accent-darker);
-  transform: scale(1.05);
+
+#timeBar button:focus {
+  outline: none;          /* ✅ même chose si tabulation */
+  box-shadow: none;
 }
+
 #timeBar button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -1555,6 +1560,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
