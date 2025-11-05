@@ -1071,26 +1071,28 @@ function decodeSmart(arrayBuffer) {
   } 
   // 2️⃣ Sinon, on le télécharge depuis le proxy Netlify (comme avant)
   else if (file && file.id) {
-    const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name || "")}`;
-    try {
-const res = await fetch(url);
-if (!res.ok) throw new Error("Erreur proxy Drive");
+  const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name || "")}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Erreur proxy Drive");
 
+    // ✅ Lecture et décodage du contenu
+    const buf = await res.arrayBuffer();
+    text = decodeSmart(buf);
+    console.log("🧾 Taille du fichier Drive :", text.length, "caractères");
 
+    console.log("🌐 CSV téléchargé depuis Drive :", file.name);
 
-
-      
-      console.log("🌐 CSV téléchargé depuis Drive :", file.name);
-
-      // On le sauvegarde dans le localStorage pour la prochaine fois
-      const updated = list.map(f => f.id === file.id ? { ...f, content: text } : f);
-      localStorage.setItem("csvFilesList", JSON.stringify(updated));
-    } catch (err) {
-      console.error("❌ Erreur chargement CSV :", err);
-      document.getElementById("gridTop").innerHTML = `<b style='color:red'>❌ Impossible de charger le CSV</b>`;
-      return;
-    }
-  } else {
+    // ✅ Sauvegarde pour usage futur
+    const updated = list.map(f => f.id === file.id ? { ...f, content: text } : f);
+    localStorage.setItem("csvFilesList", JSON.stringify(updated));
+  } catch (err) {
+    console.error("❌ Erreur chargement CSV :", err);
+    document.getElementById("gridTop").innerHTML = `<b style='color:red'>❌ Impossible de charger le CSV</b>`;
+    return;
+  }
+}
+ else {
     console.error("⚠️ Aucun fichier CSV valide trouvé.");
     document.getElementById("gridTop").innerHTML = `<b style='color:red'>❌ Aucun CSV valide trouvé</b>`;
     return;
@@ -1717,6 +1719,7 @@ console.log("🧾 Taille du fichier Drive :", text.length, "caractères");
 </script>
 </body>
 </html>
+
 
 
 
