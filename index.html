@@ -66,10 +66,40 @@ body{
   color:var(--accent);font-size:18px;font-weight:bold;text-transform:uppercase;
   margin:0 0 12px 0;padding-left:5px;display:flex;align-items:center;gap:6px;
 }
-#folderTree ul{list-style:none;padding-left:20px;margin:0;}
-#folderTree li{cursor:pointer;margin:5px 0;}
-.folder-toggle{font-weight:bold;margin-right:5px;cursor:pointer;color:var(--accent);}
-.folder-name{cursor:pointer;}
+/* --- Arborescence épurée --- */
+#folderTree ul {
+  list-style: none;
+  padding-left: 16px;   /* indentation douce des sous-dossiers */
+  margin: 0;
+}
+#folderTree li {
+  cursor: pointer;
+  margin: 6px 0;
+}
+.folder-toggle {
+  font-weight: bold;
+  margin-right: 6px;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 16px;      /* taille du + / – plus lisible */
+  user-select: none;
+}
+.folder-name {
+  cursor: pointer;
+  font-size: 15px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* Surlignage clair du dossier sélectionné */
+.active-folder {
+  background: var(--accent-muted);
+  border-left: 3px solid var(--accent);
+  color: var(--accent-darker);
+  font-weight: 600;
+}
+
 .active-folder {
   background: var(--accent-muted);
   border-left: 2px solid var(--accent);
@@ -623,15 +653,19 @@ const span = document.createElement('span');
 span.className = 'folder-name';
 
 const lowerName = f.name.toLowerCase();
+const lowerName = f.name.toLowerCase();
 if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
   span.innerHTML = `📈 ${f.name}`;
 } else if (lowerName.includes("echantillonnage")) {
-  span.innerHTML = `📊 ${f.name}`;
+  span.innerHTML = `📋 ${f.name}`;
 } else if (lowerName.includes("historique")) {
   span.innerHTML = `🗂️ ${f.name}`;
+} else if (lowerName.includes("consommation")) {
+  span.innerHTML = `⛽ ${f.name}`;   // ✅ icône gaz
 } else {
-  span.textContent = f.name; // pas d’icône
+  span.textContent = f.name;
 }
+
 
 
 span.onclick = () => loadFolderFilesOnClick(li);
@@ -1900,6 +1934,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
