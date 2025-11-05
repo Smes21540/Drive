@@ -66,58 +66,10 @@ body{
   color:var(--accent);font-size:18px;font-weight:bold;text-transform:uppercase;
   margin:0 0 12px 0;padding-left:5px;display:flex;align-items:center;gap:6px;
 }
-/* --- Arborescence claire, sans puces, sans symboles --- */
-#folderTree, #folderTree ul {
-  list-style: none;
-  padding-left: 12px;
-  margin: 0;
-}
-
-/* --- Indentation progressive pour les sous-dossiers --- */
-#folderTree li {
-  position: relative;
-  margin: 4px 0;
-}
-
-/* décalage visuel pour les sous-niveaux */
-#folderTree ul ul {
-  margin-left: 35px;                   /* décalage horizontal plus visible mais pas excessif */
-  border-left: 2px solid var(--accent-muted);
-  padding-left: 18px;                  /* espace avant les noms de dossier */
-}
-
-
-/* fine ligne de repère verticale */
-#folderTree li::before {
-  content: "";
-  position: absolute;
-  left: -10px;
-  top: 0;
-  bottom: 0;
-  border-left: 1px dashed var(--accent-muted);
-  opacity: 0.4;
-}
-
-
-.folder-name {
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  user-select: none;
-  font-weight: 500;
-}
-
-.folder-name:hover {
-  color: var(--accent-darker);
-}
-
-.icon {
-  display: inline-block;
-  width: 20px;
-  text-align: center;
-}
-
+#folderTree ul{list-style:none;padding-left:20px;margin:0;}
+#folderTree li{cursor:pointer;margin:5px 0;}
+.folder-toggle{font-weight:bold;margin-right:5px;cursor:pointer;color:var(--accent);}
+.folder-name{cursor:pointer;}
 .active-folder {
   background: var(--accent-muted);
   border-left: 2px solid var(--accent);
@@ -336,24 +288,17 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 
 /* Petite flamme pour les dossiers dans l’arborescence */
 .flame-folder {
-  display: inline-flex;                /* 🔹 reste dans le flux (pas de décalage du texte) */
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  margin-right: 4px;                   /* 🔹 petit espace fixe avant le nom */
-  transform: translateY(1px);
-  text-shadow:
+  display: inline;               
+  font-size: 14px;               
+  margin-right: 1px;             
+  line-height: 1;                
+  vertical-align: middle;
+  text-shadow: 
     0 0 3px rgba(255, 140, 0, 0.8),
     0 0 6px rgba(255, 80, 0, 0.7);
   animation: flicker 1s infinite alternate;
 }
 
-
-.folder-name {
-  position: relative;             /* 🔹 pour que la flamme se positionne par rapport au dossier */
-}
-
-  
 .note {
   display: inline-flex;
   justify-content: center;
@@ -457,20 +402,20 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 }
 
 
-/* === Correction arborescence dossiers === */
+/* === STRUCTURE DE L'ARBORESCENCE === */
 
-/* 🔥 Flamme fixe à gauche sans décaler le nom */
+/* 🔥 Flamme ou icône à gauche, sans décaler le nom */
 .folder-name {
   position: relative;
-  cursor: pointer;
   display: inline-block;
+  cursor: pointer;
   user-select: none;
   font-weight: 500;
 }
 
 .flame-folder {
   position: absolute;
-  left: -16px;               /* proche du texte, sans le pousser */
+  left: -18px;
   top: 50%;
   transform: translateY(-50%);
   font-size: 14px;
@@ -478,10 +423,10 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
     0 0 3px rgba(255, 140, 0, 0.8),
     0 0 6px rgba(255, 80, 0, 0.7);
   animation: flicker 1s infinite alternate;
-  pointer-events: none;      /* clics restent sur le dossier */
+  pointer-events: none;
 }
 
-/* 🟧 Cadre du dossier sélectionné plus précis */
+/* 🟧 Cadre visuel du dossier actif */
 .active-folder {
   background: var(--accent-muted);
   border-left: 3px solid var(--accent);
@@ -493,11 +438,26 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   box-shadow: 0 0 4px rgba(0,0,0,0.1);
 }
 
-/* 📂 Sous-dossiers plus décalés visuellement */
+/* 📂 Hiérarchie : indentation et ligne verticale */
 #folderTree ul ul {
-  margin-left: 48px;
+  margin-left: 46px;
   border-left: 2px solid var(--accent-muted);
-  padding-left: 16px;
+  padding-left: 14px;
+}
+
+#folderTree li {
+  position: relative;
+  margin: 3px 0;
+}
+
+#folderTree li::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed var(--accent-muted);
+  opacity: 0.4;
 }
 
   
@@ -521,7 +481,7 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 
 <!-- Sidebar dossiers -->
 <div id="sidebar">
-  <h2><span>🌽</span>Sites / Séchoirs</h2>
+  <h2><span>📁</span>Dossiers</h2>
   <ul id="folderTree"></ul>
 </div>
 
@@ -711,29 +671,39 @@ document.querySelector(".controls").style.display = "none";
     const li = document.createElement('li'); 
     li.dataset.id = f.id;
 
+    const toggle = document.createElement('span'); 
+    toggle.className = 'folder-toggle'; 
+    toggle.textContent = '';
+    toggle.onclick = () => toggleFolder(li);
+
 const span = document.createElement('span');
 span.className = 'folder-name';
 
 const lowerName = f.name.toLowerCase();
-let icon = "";
 
-if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
-  icon = "📈";
+if (lowerName.includes("consommation")) {
+  span.innerHTML = `⛽ ${f.name}`;
 } else if (lowerName.includes("echantillonnage")) {
-  icon = "📋";
+  span.innerHTML = `📊 ${f.name}`;
 } else if (lowerName.includes("historique")) {
-  icon = "🗂️";
-} else if (lowerName.includes("consommation") || lowerName.includes("gaz")) {
-  icon = "⛽";
+  span.innerHTML = `🗂️ ${f.name}`;
+} else if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
+  span.innerHTML = `📈 ${f.name}`;
+} else {
+  span.textContent = f.name; // aucun symbole sinon
 }
 
-span.innerHTML = `<span class="icon">${icon}</span> ${f.name}`;
-li.onclick = (e) => loadFolderFilesOnClick(li, e);
 
 
-li.appendChild(span);
-rootUL.appendChild(li);
+span.onclick = (e) => loadFolderFilesOnClick(li, e);
 
+
+
+
+
+    li.appendChild(toggle); 
+    li.appendChild(span); 
+    rootUL.appendChild(li);
   });
 
   // 🔥 Vérifier automatiquement deux crans plus bas sans ouvrir visuellement
@@ -751,79 +721,81 @@ rootUL.appendChild(li);
   }, 1000);
 }
 
-async function toggleFolder(li, event) {
-  // ✅ Ne replie plus le dossier quand on clique sur un sous-dossier
-  if (li.dataset.loaded === 'true') {
-    const ul = li.querySelector('ul');
-    if (!ul) return;
-    if (event && event.target && !event.target.classList.contains('folder-name')) return;
-    ul.style.display = ul.style.display === 'none' ? 'block' : 'none';
-    return;
-  }
+async function toggleFolder(li){
+  const toggle=li.querySelector('.folder-toggle');
+if(li.dataset.loaded==='true'){
+  const ul = li.querySelector('ul');
+  // ✅ Ne replie pas le parent si on clique un sous-dossier
+  if (!ul) return;
+  if (event && event.target && !event.target.classList.contains('folder-name')) return;
+  ul.style.display = ul.style.display === 'none' ? 'block' : 'none';
+  return;
+}
 
-
-  const files = await fetchFolderContents(li.dataset.id);
-  const ul = document.createElement('ul');
+  toggle.textContent='…';
+  const files=await fetchFolderContents(li.dataset.id);
+  const ul=document.createElement('ul');
   const folders = files
-    .filter(f => f.mimeType === 'application/vnd.google-apps.folder')
-    .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+  .filter(f => f.mimeType === 'application/vnd.google-apps.folder')
+  .sort((a,b) => a.name.localeCompare(b.name, 'fr', { sensitivity:'base' }));
 
-  for (const f of folders) {
-    const childLi = document.createElement('li');
-    childLi.dataset.id = f.id;
+for (const f of folders) {
 
-    const span = document.createElement('span');
-    span.className = 'folder-name';
+    const childLi=document.createElement('li'); 
+    childLi.dataset.id=f.id;
 
-    const lowerName = f.name.toLowerCase();
-    let icon = "";
+    const childToggle=document.createElement('span'); 
+    childToggle.className='folder-toggle'; 
+    childToggle.textContent='+';
+    childToggle.onclick=()=>toggleFolder(childLi);
 
-    if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
-      icon = "📈";
-    } else if (lowerName.includes("echantillonnage")) {
-      icon = "📋"; // tableur
-    } else if (lowerName.includes("historique")) {
-      icon = "🕓"; // historique
-    } else if (lowerName.includes("consommation") || lowerName.includes("gaz")) {
-      icon = "⛽";
-    }
+const span = document.createElement('span');
+span.className = 'folder-name';
 
-    span.innerHTML = `<span class="icon">${icon}</span> ${f.name}`;
-    childLi.onclick = (e) => loadFolderFilesOnClick(childLi, e);
+const lowerName = f.name.toLowerCase();
+
+if (lowerName.includes("consommation")) {
+  span.innerHTML = `⛽ ${f.name}`;
+} else if (lowerName.includes("echantillonnage")) {
+  span.innerHTML = `📊 ${f.name}`;
+} else if (lowerName.includes("historique")) {
+  span.innerHTML = `🗂️ ${f.name}`;
+} else if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
+  span.innerHTML = `📈 ${f.name}`;
+} else {
+  span.textContent = f.name; // aucun symbole sinon
+}
 
 
-    childLi.appendChild(span);
+span.onclick = (e) => loadFolderFilesOnClick(childLi, e);
+
+
+
+    childLi.appendChild(childToggle); 
+    childLi.appendChild(span); 
     ul.appendChild(childLi);
 
     // ✅ Cas spécial : si le dossier est Traça_Temp → précharger Historique
     if (f.name.toLowerCase().includes("traça_temp") || f.name.toLowerCase().includes("traca_temp")) {
       const siblings = await fetchFolderContents(li.dataset.id);
-      const hist = siblings.find(
-        s => s.mimeType === 'application/vnd.google-apps.folder' &&
-             s.name.toLowerCase().includes("historique")
-      );
+      const hist = siblings.find(s => s.mimeType === 'application/vnd.google-apps.folder' && s.name.toLowerCase().includes("historique"));
       if (hist) {
         const histFiles = await fetchFolderContents(hist.id);
-        const z3Files = histFiles.filter(ff =>
-          ff.name.toUpperCase().startsWith("Z3") &&
-          ff.name.toLowerCase().endsWith(".csv")
-        );
-        localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
-        console.log("[Z3] Préchargés depuis Historique:", z3Files.length);
-        showEventAlert();
+        const z3Files = histFiles.filter(ff => ff.name.toUpperCase().startsWith("Z3") && ff.name.toLowerCase().endsWith(".csv"));
+localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
+console.log("[Z3] Préchargés depuis Historique:", z3Files.length);
+showEventAlert();
+
       }
     }
 
     // ✅ Vérif Temp (flamme 🔥)
-    if (f.name.includes("Temp")) {
-      checkTraçaTempToday(li, f.id);
-    }
+    if(f.name.includes("Temp")){ checkTraçaTempToday(li, f.id); }
   }
-
-  li.appendChild(ul);
-  li.dataset.loaded = 'true';  // ✅ fin propre
+  li.appendChild(ul); 
+  li.dataset.loaded='true'; 
+  toggle.textContent='+';
 }
-
 
 
 // Fonction utilitaire pour récupérer les sous-dossiers sans modifier l'affichage
@@ -833,8 +805,8 @@ async function fetchChildren(folderId){
 }
 
 async function loadFolderFilesOnClick(li, event){
-  await toggleFolder(li, event);
 
+  await toggleFolder(li);
 
 // 🔄 Réinitialiser la sélection visuelle
 document.querySelectorAll('#folderTree li span.folder-name').forEach(s => s.classList.remove('active-folder'));
@@ -2000,13 +1972,3 @@ if (last) {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
