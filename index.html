@@ -679,69 +679,75 @@ rootUL.appendChild(li);
   }, 1000);
 }
 
-async function toggleFolder(li){
-// Plus de toggle : gestion simple du dépliage
-if (li.dataset.loaded === 'true') {
-  const ul = li.querySelector('ul');
-  if (ul) ul.style.display = ul.style.display === 'none' ? 'block' : 'none';
-  return;
-}
+async function toggleFolder(li) {
+  // Plus de toggle : gestion simple du dépliage
+  if (li.dataset.loaded === 'true') {
+    const ul = li.querySelector('ul');
+    if (ul) ul.style.display = ul.style.display === 'none' ? 'block' : 'none';
+    return;
+  }
 
-  const files=await fetchFolderContents(li.dataset.id);
-  const ul=document.createElement('ul');
+  const files = await fetchFolderContents(li.dataset.id);
+  const ul = document.createElement('ul');
   const folders = files
-  .filter(f => f.mimeType === 'application/vnd.google-apps.folder')
-  .sort((a,b) => a.name.localeCompare(b.name, 'fr', { sensitivity:'base' }));
+    .filter(f => f.mimeType === 'application/vnd.google-apps.folder')
+    .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
 
-for (const f of folders) {
+  for (const f of folders) {
+    const childLi = document.createElement('li');
+    childLi.dataset.id = f.id;
 
-    const childLi=document.createElement('li'); 
-    childLi.dataset.id=f.id;
+    const span = document.createElement('span');
+    span.className = 'folder-name';
 
-const span = document.createElement('span');
-span.className = 'folder-name';
+    const lowerName = f.name.toLowerCase();
+    let icon = "📁";
 
-const lowerName = f.name.toLowerCase();
-let icon = "📁";
+    if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
+      icon = "📈";
+    } else if (lowerName.includes("echantillonnage")) {
+      icon = "📋"; // tableur
+    } else if (lowerName.includes("historique")) {
+      icon = "🕓"; // historique
+    } else if (lowerName.includes("consommation") || lowerName.includes("gaz")) {
+      icon = "⛽";
+    }
 
-if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
-  icon = "📈";
-} else if (lowerName.includes("echantillonnage")) {
-  icon = "📋";
-} else if (lowerName.includes("historique")) {
-  icon = "🗂️";
-} else if (lowerName.includes("consommation") || lowerName.includes("gaz")) {
-  icon = "⛽";
-}
+    span.innerHTML = `<span class="icon">${icon}</span> ${f.name}`;
+    childLi.onclick = () => loadFolderFilesOnClick(childLi);
 
-span.innerHTML = `<span class="icon">${icon}</span> ${f.name}`;
-childLi.onclick = () => loadFolderFilesOnClick(childLi);
-
-childLi.appendChild(span);
-ul.appendChild(childLi);
-
+    childLi.appendChild(span);
+    ul.appendChild(childLi);
 
     // ✅ Cas spécial : si le dossier est Traça_Temp → précharger Historique
     if (f.name.toLowerCase().includes("traça_temp") || f.name.toLowerCase().includes("traca_temp")) {
       const siblings = await fetchFolderContents(li.dataset.id);
-      const hist = siblings.find(s => s.mimeType === 'application/vnd.google-apps.folder' && s.name.toLowerCase().includes("historique"));
+      const hist = siblings.find(
+        s => s.mimeType === 'application/vnd.google-apps.folder' &&
+             s.name.toLowerCase().includes("historique")
+      );
       if (hist) {
         const histFiles = await fetchFolderContents(hist.id);
-        const z3Files = histFiles.filter(ff => ff.name.toUpperCase().startsWith("Z3") && ff.name.toLowerCase().endsWith(".csv"));
-localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
-console.log("[Z3] Préchargés depuis Historique:", z3Files.length);
-showEventAlert();
-
+        const z3Files = histFiles.filter(ff =>
+          ff.name.toUpperCase().startsWith("Z3") &&
+          ff.name.toLowerCase().endsWith(".csv")
+        );
+        localStorage.setItem("csvZ3Files", JSON.stringify(z3Files));
+        console.log("[Z3] Préchargés depuis Historique:", z3Files.length);
+        showEventAlert();
       }
     }
 
     // ✅ Vérif Temp (flamme 🔥)
-    if(f.name.includes("Temp")){ checkTraçaTempToday(li, f.id); }
+    if (f.name.includes("Temp")) {
+      checkTraçaTempToday(li, f.id);
+    }
   }
-  li.appendChild(ul); 
-  li.dataset.loaded='true'; 
-  toggle.textContent='+';
+
+  li.appendChild(ul);
+  li.dataset.loaded = 'true';  // ✅ fin propre
 }
+
 
 
 // Fonction utilitaire pour récupérer les sous-dossiers sans modifier l'affichage
@@ -1917,4 +1923,5 @@ if (last) {
 </script>
 </body>
 </html>
+
 
