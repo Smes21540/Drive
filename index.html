@@ -72,7 +72,6 @@ body{
 .folder-name{cursor:pointer;}
 .active-folder {
   background: var(--accent-muted);
-  border-left: 2px solid var(--accent);
   border-radius: 3px;
   padding: 1px 4px;
   font-weight: 600;
@@ -1851,7 +1850,7 @@ function markFolderWithFlame(li) {
 
   if (!span.classList.contains("has-flame")) {
     span.classList.add("has-flame");
-    span.innerHTML = `<span class="flame-folder" title="Brûleur(s) actuellement en fonctionnement">🔥</span> ` + span.innerHTML;
+    span.innerHTML = `<span class="flame-folder" title="Brûleur(s) actuellement en fonctionnement">🔥&nbsp;&nbsp;</span> ` + span.innerHTML;
   }
 
   const parent = li.parentElement?.closest("li");
@@ -1978,6 +1977,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
