@@ -81,10 +81,11 @@ body{
 
 /* décalage visuel pour les sous-niveaux */
 #folderTree ul ul {
-  margin-left: 50px;
-  border-left: 4px solid var(--accent-muted);
-  padding-left: 50px;
+  margin-left: 35px;                   /* décalage horizontal plus visible mais pas excessif */
+  border-left: 2px solid var(--accent-muted);
+  padding-left: 18px;                  /* espace avant les noms de dossier */
 }
+
 
 /* fine ligne de repère verticale */
 #folderTree li::before {
@@ -335,15 +336,18 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 
 /* Petite flamme pour les dossiers dans l’arborescence */
 .flame-folder {
-  position: absolute;             /* 🔹 sort la flamme du flux */
-  left: -18px;                    /* 🔹 ancre fixe à gauche du texte */
+  display: inline-flex;                /* 🔹 reste dans le flux (pas de décalage du texte) */
+  align-items: center;
+  justify-content: center;
   font-size: 14px;
-  transform: translateY(2px);
+  margin-right: 4px;                   /* 🔹 petit espace fixe avant le nom */
+  transform: translateY(1px);
   text-shadow:
     0 0 3px rgba(255, 140, 0, 0.8),
     0 0 6px rgba(255, 80, 0, 0.7);
   animation: flicker 1s infinite alternate;
 }
+
 
 .folder-name {
   position: relative;             /* 🔹 pour que la flamme se positionne par rapport au dossier */
@@ -1948,6 +1952,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
