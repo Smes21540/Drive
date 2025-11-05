@@ -1094,7 +1094,7 @@ if (date) {
   const d = new Date(date);
   const jours = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
   const jourNom = jours[d.getDay()];
-  tdDate.textContent = `${date} (${jourNom})`;
+  tdDate.textContent = `${date} ${jourNom}`;
 
   // Week-end → rouge + gras
   if (d.getDay() === 0 || d.getDay() === 6) {
@@ -1977,6 +1977,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
