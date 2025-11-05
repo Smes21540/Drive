@@ -1400,6 +1400,8 @@ playBtn.addEventListener("click", async () => {
 
     // Puis toutes les minutes
     liveInterval = setInterval(async () => {
+        tickCount++;
+  console.log(`⏱️ Tick ${tickCount} — refreshFromDrive()`);
       await refreshFromDrive();
     }, 5000);
   }
@@ -1669,6 +1671,14 @@ async function mergeZ3ForDay(dayStr) {
       if (!res.ok) throw new Error("Erreur proxy Drive");
       const buf = await res.arrayBuffer();
       const text = decodeSmart(buf);
+
+const buf = await res.arrayBuffer();
+const text = decodeSmart(buf);
+
+// 🧾 Debug : taille du fichier récupéré sur Drive
+console.log("🧾 Taille du fichier Drive :", text.length, "caractères");
+
+      
       const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
       const startIndex = lines.findIndex(l => /trigger.?time|horodatage/i.test(l));
       const csvClean = lines.slice(startIndex >= 0 ? startIndex : 0).join("\n");
@@ -1711,6 +1721,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
