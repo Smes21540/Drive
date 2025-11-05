@@ -66,14 +66,34 @@ body{
   color:var(--accent);font-size:18px;font-weight:bold;text-transform:uppercase;
   margin:0 0 12px 0;padding-left:5px;display:flex;align-items:center;gap:6px;
 }
-/* --- Arborescence épurée --- */
+/* --- Arborescence claire, sans puces, sans symboles --- */
+#folderTree, #folderTree ul {
+  list-style: none;
+  padding-left: 12px;
+  margin: 0;
+}
 
-/* Surlignage clair du dossier sélectionné */
-.active-folder {
-  background: var(--accent-muted);
-  border-left: 3px solid var(--accent);
+#folderTree li {
+  margin: 4px 0;
+}
+
+.folder-name {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+  font-weight: 500;
+}
+
+.folder-name:hover {
   color: var(--accent-darker);
-  font-weight: 600;
+}
+
+.icon {
+  display: inline-block;
+  width: 20px;
+  text-align: center;
 }
 
 .active-folder {
@@ -620,37 +640,28 @@ document.querySelector(".controls").style.display = "none";
     const li = document.createElement('li'); 
     li.dataset.id = f.id;
 
-    const toggle = document.createElement('span'); 
-    toggle.className = 'folder-toggle'; 
-    toggle.textContent = '+';
-    toggle.onclick = () => toggleFolder(li);
-
 const span = document.createElement('span');
 span.className = 'folder-name';
 
 const lowerName = f.name.toLowerCase();
+let icon = "📁";
+
 if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
-  span.innerHTML = `📈 ${f.name}`;
+  icon = "📈";
 } else if (lowerName.includes("echantillonnage")) {
-  span.innerHTML = `📋 ${f.name}`;
+  icon = "📋";
 } else if (lowerName.includes("historique")) {
-  span.innerHTML = `🗂️ ${f.name}`;
-} else if (lowerName.includes("consommation")) {
-  span.innerHTML = `⛽ ${f.name}`;   // ✅ icône gaz
-} else {
-  span.textContent = f.name;
+  icon = "🗂️";
+} else if (lowerName.includes("consommation") || lowerName.includes("gaz")) {
+  icon = "⛽";
 }
 
+span.innerHTML = `<span class="icon">${icon}</span> ${f.name}`;
+li.onclick = () => loadFolderFilesOnClick(li);
 
+li.appendChild(span);
+rootUL.appendChild(li);
 
-span.onclick = () => loadFolderFilesOnClick(li);
-
-
-
-
-    li.appendChild(toggle); 
-    li.appendChild(span); 
-    rootUL.appendChild(li);
   });
 
   // 🔥 Vérifier automatiquement deux crans plus bas sans ouvrir visuellement
@@ -687,31 +698,28 @@ for (const f of folders) {
     const childLi=document.createElement('li'); 
     childLi.dataset.id=f.id;
 
-    const childToggle=document.createElement('span'); 
-    childToggle.className='folder-toggle'; 
-    childToggle.textContent='+';
-    childToggle.onclick=()=>toggleFolder(childLi);
-
 const span = document.createElement('span');
 span.className = 'folder-name';
 
 const lowerName = f.name.toLowerCase();
+let icon = "📁";
+
 if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
-  span.innerHTML = `📈 ${f.name}`;
+  icon = "📈";
 } else if (lowerName.includes("echantillonnage")) {
-  span.innerHTML = `📋 ${f.name}`;
+  icon = "📋";
 } else if (lowerName.includes("historique")) {
-  span.innerHTML = `🗂️ ${f.name}`;
-} else {
-  span.textContent = f.name;
+  icon = "🗂️";
+} else if (lowerName.includes("consommation") || lowerName.includes("gaz")) {
+  icon = "⛽";
 }
 
-span.onclick = () => loadFolderFilesOnClick(childLi);
+span.innerHTML = `<span class="icon">${icon}</span> ${f.name}`;
+childLi.onclick = () => loadFolderFilesOnClick(childLi);
 
+childLi.appendChild(span);
+ul.appendChild(childLi);
 
-    childLi.appendChild(childToggle); 
-    childLi.appendChild(span); 
-    ul.appendChild(childLi);
 
     // ✅ Cas spécial : si le dossier est Traça_Temp → précharger Historique
     if (f.name.toLowerCase().includes("traça_temp") || f.name.toLowerCase().includes("traca_temp")) {
@@ -1909,34 +1917,3 @@ if (last) {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
