@@ -408,6 +408,17 @@ body{
   color: var(--text-dark) !important;
 }
 
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 10px var(--accent); }
+  100% { box-shadow: none; }
+}
+#timeBar.pulse {
+  animation: pulse 0.5s ease-out;
+}
+
+
+  
   
 </style>
 </head>
@@ -1394,53 +1405,76 @@ playBtn.addEventListener("click", async () => {
   }
 });
 
-/* 📡 Fonction : recharge le CSV courant directement depuis Drive */
+/* 📡 Mode LIVE intelligent : recharge uniquement les nouvelles lignes */
 async function refreshFromDrive() {
   if (!fileId) return;
   try {
-    console.log("🔄 Récupération du CSV à jour depuis Drive…");
+    console.log("🔄 Vérification du CSV sur Drive...");
     const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${fileId}&name=${encodeURIComponent(fileName || "")}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("Erreur proxy Drive");
     const buf = await res.arrayBuffer();
     const text = decodeSmart(buf);
 
-// ✅ Même logique que loadCSV pour garder les bons noms de colonnes
-const seen = {};
-const parsed = Papa.parse(text, {
-  header: true,
-  skipEmptyLines: true,
-  transformHeader: (h) => {
-    h = (h || "").replace(/"/g, "").trim();
-    if (seen[h]) {
-      seen[h]++;
-      return h + "_" + seen[h];
+    // Même parsing que loadCSV (garde les bons noms de colonnes)
+    const seen = {};
+    const parsed = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (h) => {
+        h = (h || "").replace(/"/g, "").trim();
+        if (seen[h]) {
+          seen[h]++;
+          return h + "_" + seen[h];
+        } else {
+          seen[h] = 1;
+          return h + "_1";
+        }
+      },
+    });
+
+    const newData = parsed.data || [];
+    const newHeaders = parsed.meta.fields || [];
+
+    // Compare ancien / nouveau
+    const oldLen = csvData.length;
+    const newLen = newData.length;
+
+    if (newLen > oldLen) {
+      const added = newLen - oldLen;
+      const newRows = newData.slice(oldLen);
+      csvData.push(...newRows);
+      console.log(`🟢 ${added} nouvelles lignes ajoutées (${newLen} total)`);
+
+      // Met à jour le slider et la ligne count
+      const slider = document.getElementById("slider");
+      slider.max = csvData.length - 1;
+      slider.value = slider.max;
+      document.getElementById("lineCount").textContent = csvData.length + " lignes";
+
+      // Rafraîchit la grille
+      updateGrid(parseInt(slider.value));
+      highlightZ3Near(currentRowMinutes(slider.value));
+
+      // 💡 effet visuel léger sur la barre
+      const bar = document.getElementById("timeBar");
+      bar.classList.add("pulse");
+      setTimeout(() => bar.classList.remove("pulse"), 400);
     } else {
-      seen[h] = 1;
-      return h + "_1";
+      console.log("⏸️ Aucune nouvelle ligne détectée.");
     }
-  },
-});
 
-csvData = parsed.data || [];
-headers = parsed.meta.fields || [];
-
-
-    // Mise à jour de la ligne count et du slider
-    document.getElementById("slider").max = csvData.length - 1;
-    document.getElementById("lineCount").textContent = csvData.length + " lignes";
-
-    // Repositionne à la dernière ligne (valeur max)
-    const slider = document.getElementById("slider");
-    slider.value = slider.max;
-    updateGrid(parseInt(slider.value));
-    highlightZ3Near(currentRowMinutes(slider.value));
-
-    console.log(`✅ Données mises à jour (${csvData.length} lignes)`);
+    // En cas de changement de structure (très rare)
+    if (JSON.stringify(newHeaders) !== JSON.stringify(headers)) {
+      headers = newHeaders;
+      console.warn("⚠️ En-têtes modifiés, mise à jour forcée.");
+      updateGrid(parseInt(document.getElementById("slider").value));
+    }
   } catch (err) {
-    console.error("❌ Erreur de rafraîchissement Drive :", err);
+    console.error("❌ Erreur Live :", err);
   }
 }
+
 
 
   
@@ -1677,6 +1711,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
