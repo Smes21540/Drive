@@ -157,29 +157,56 @@ body{
 }
 #slider{ width:100%; height: calc(var(--tile-size) * 0.35); }
 
+/* 🎯 Boutons ⏮️ et ⏭️ : icônes simples sans contour */
 #timeBar button {
-  background: var(--accent);
-  color: #fff;
+  background: none;
   border: none;
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 18px;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-  outline: none;          /* ✅ empêche le contour par défaut */
-  box-shadow: none;       /* ✅ supprime l'effet "relief" gris des boutons */
-  appearance: none;       /* ✅ supprime le style natif du bouton selon le navigateur */
-}
-
-#timeBar button:focus {
-  outline: none;          /* ✅ même chose si tabulation */
+  outline: none;
   box-shadow: none;
+  color: var(--accent-darker);
+  font-size: 26px;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: transform 0.1s ease, color 0.2s ease;
 }
 
-#timeBar button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+/* Survol : légère mise en avant */
+#timeBar button:hover {
+  transform: scale(1.2);
+  color: var(--accent);
 }
+
+/* Désactivé : gris clair, non cliquable */
+#timeBar button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ▶️ Bouton lecture automatique */
+#btnPlay {
+  background: none;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  color: var(--accent-darker);
+  font-size: 26px;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: transform 0.1s ease, color 0.2s ease;
+}
+
+#btnPlay:hover {
+  transform: scale(1.2);
+  color: var(--accent);
+}
+
+#btnPlay.active {
+  color: var(--accent);
+  transform: scale(1.1);
+}
+
+
 
   
 #scaleBox {
@@ -411,9 +438,11 @@ body{
     <!-- ===== Sidebar temporelle + min/max ===== -->
 <div id="bottomBar">
 <div id="timeBar">
-  <button id="btnPrevDay" title="Charger le jour précédent">⏮️</button>
-  <input type="range" id="slider" min="0" max="0" value="0"/>
-  <button id="btnNextDay" title="Charger le jour suivant">⏭️</button>
+<button id="btnPrevDay" title="Charger le jour précédent">⏮️</button>
+<input type="range" id="slider" min="0" max="0" value="0"/>
+<button id="btnNextDay" title="Charger le jour suivant">⏭️</button>
+<button id="btnPlay" title="Mode lecture automatique">▶️</button>
+
 </div>
 
 <!-- ✅ Indicateur optionnel des jours visibles -->
@@ -1327,6 +1356,36 @@ document.getElementById("btnNextDay").addEventListener("click", async () => {
   refreshLoadedDaysLabel();
 });
 
+/* 🎬 Bouton lecture automatique */
+const playBtn = document.getElementById("btnPlay");
+let autoRefreshInterval = null;
+
+playBtn.addEventListener("click", () => {
+  const slider = document.getElementById("slider");
+
+  // Va à la dernière valeur du slider (la plus récente)
+  slider.value = slider.max;
+  updateGrid(parseInt(slider.value));
+  highlightZ3Near(currentRowMinutes(slider.value));
+
+  // Active ou désactive la lecture automatique
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+    playBtn.classList.remove("active");
+    playBtn.title = "Mode lecture automatique";
+    console.log("⏹️ Lecture automatique arrêtée");
+  } else {
+    autoRefreshInterval = setInterval(() => {
+      location.reload(); // actualise toute la page
+    }, 60000); // toutes les 60 secondes
+    playBtn.classList.add("active");
+    playBtn.title = "Lecture active — actualisation toutes les minutes";
+    console.log("▶️ Lecture automatique activée");
+  }
+});
+
+  
 function refreshLoadedDaysLabel() {
   const sorted = [...mergedDays].sort();
   const label = sorted.map(d => `${d.slice(6,8)}/${d.slice(4,6)}`).join(" — ");
@@ -1560,6 +1619,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
