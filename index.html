@@ -665,7 +665,7 @@ const span = document.createElement('span');
 span.className = 'folder-name';
 
 const lowerName = f.name.toLowerCase();
-let icon = "📁 ";
+let icon = "";
 
 if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
   icon = "📈";
@@ -722,7 +722,7 @@ async function toggleFolder(li) {
     span.className = 'folder-name';
 
     const lowerName = f.name.toLowerCase();
-    let icon = "📁";
+    let icon = "";
 
     if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
       icon = "📈";
@@ -1944,6 +1944,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
