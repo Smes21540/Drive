@@ -746,7 +746,7 @@ for (const f of folders) {
 
     const childToggle=document.createElement('span'); 
     childToggle.className='folder-toggle'; 
-    childToggle.textContent='+';
+    childToggle.textContent='';
     childToggle.onclick=()=>toggleFolder(childLi);
 
 const span = document.createElement('span');
@@ -794,7 +794,7 @@ showEventAlert();
   }
   li.appendChild(ul); 
   li.dataset.loaded='true'; 
-  toggle.textContent='+';
+  toggle.textContent='';
 }
 
 
@@ -1972,3 +1972,4 @@ if (last) {
 </script>
 </body>
 </html>
+
