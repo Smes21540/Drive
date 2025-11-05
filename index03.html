@@ -204,7 +204,9 @@ body{
 #btnPlay.active {
   color: var(--accent);
   transform: scale(1.1);
+  text-shadow: 0 0 6px var(--accent-muted);
 }
+
 
 
 
@@ -1356,34 +1358,73 @@ document.getElementById("btnNextDay").addEventListener("click", async () => {
   refreshLoadedDaysLabel();
 });
 
-/* 🎬 Bouton lecture automatique */
+/* 🎬 Mode LIVE (recharge depuis Google Drive sans F5) */
 const playBtn = document.getElementById("btnPlay");
-let autoRefreshInterval = null;
+let liveInterval = null;
 
-playBtn.addEventListener("click", () => {
+playBtn.addEventListener("click", async () => {
   const slider = document.getElementById("slider");
 
-  // Va à la dernière valeur du slider (la plus récente)
+  // Positionne sur la dernière ligne connue
   slider.value = slider.max;
   updateGrid(parseInt(slider.value));
   highlightZ3Near(currentRowMinutes(slider.value));
 
-  // Active ou désactive la lecture automatique
-  if (autoRefreshInterval) {
-    clearInterval(autoRefreshInterval);
-    autoRefreshInterval = null;
+  // 🔁 Active / désactive le mode Live
+  if (liveInterval) {
+    clearInterval(liveInterval);
+    liveInterval = null;
     playBtn.classList.remove("active");
-    playBtn.title = "Mode lecture automatique";
-    console.log("⏹️ Lecture automatique arrêtée");
+    playBtn.textContent = "▶️";
+    playBtn.title = "Mode lecture automatique (désactivé)";
+    console.log("⏹️ Mode Live désactivé");
   } else {
-    autoRefreshInterval = setInterval(() => {
-      location.reload(); // actualise toute la page
-    }, 60000); // toutes les 60 secondes
     playBtn.classList.add("active");
-    playBtn.title = "Lecture active — actualisation toutes les minutes";
-    console.log("▶️ Lecture automatique activée");
+    playBtn.textContent = "⏸️";
+    playBtn.title = "Lecture en direct — mise à jour Drive toutes les minutes";
+    console.log("▶️ Mode Live activé");
+
+    // Recharge immédiate une fois
+    await refreshFromDrive();
+
+    // Puis toutes les minutes
+    liveInterval = setInterval(async () => {
+      await refreshFromDrive();
+    }, 60000);
   }
 });
+
+/* 📡 Fonction : recharge le CSV courant directement depuis Drive */
+async function refreshFromDrive() {
+  if (!fileId) return;
+  try {
+    console.log("🔄 Récupération du CSV à jour depuis Drive…");
+    const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${fileId}&name=${encodeURIComponent(fileName || "")}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Erreur proxy Drive");
+    const buf = await res.arrayBuffer();
+    const text = decodeSmart(buf);
+
+    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+    csvData = parsed.data || [];
+    headers = parsed.meta.fields || [];
+
+    // Mise à jour de la ligne count et du slider
+    document.getElementById("slider").max = csvData.length - 1;
+    document.getElementById("lineCount").textContent = csvData.length + " lignes";
+
+    // Repositionne à la dernière ligne (valeur max)
+    const slider = document.getElementById("slider");
+    slider.value = slider.max;
+    updateGrid(parseInt(slider.value));
+    highlightZ3Near(currentRowMinutes(slider.value));
+
+    console.log(`✅ Données mises à jour (${csvData.length} lignes)`);
+  } catch (err) {
+    console.error("❌ Erreur de rafraîchissement Drive :", err);
+  }
+}
+
 
   
 function refreshLoadedDaysLabel() {
@@ -1619,6 +1660,7 @@ async function mergeZ3ForDay(dayStr) {
 </script>
 </body>
 </html>
+
 
 
 
