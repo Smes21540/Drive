@@ -182,9 +182,7 @@ let currentIndex = parseInt(localStorage.getItem("csvFileIndex")||"0",10);
 // === Thèmes ===
 function setTheme(theme){
   const r=document.documentElement;
-  const logo=document.getElementById("mainLogo");
-  logo.style.display=(theme==="orange")?"block":"none";
-  localStorage.setItem("selectedTheme",theme);
+  localStorage.setItem("selectedTheme", theme);
 
   if(theme==="orange"){r.style.setProperty("--accent","#ff7043");r.style.setProperty("--accent-darker","#e64a19");r.style.setProperty("--accent-muted","#ffccbc");r.style.setProperty("--bg","#fff5f5");r.style.setProperty("--panel","#ffffff");r.style.setProperty("--sidebar-bg","#ffe5d9");r.style.setProperty("--danger","#d84315");r.style.setProperty("--text","#333");}
   if(theme==="blue"){r.style.setProperty("--accent","#2196f3");r.style.setProperty("--accent-darker","#1976d2");r.style.setProperty("--accent-muted","#bbdefb");r.style.setProperty("--bg","#e3f2fd");r.style.setProperty("--panel","#ffffff");r.style.setProperty("--sidebar-bg","#bbdefb");r.style.setProperty("--danger","#0d47a1");r.style.setProperty("--text","#0d47a1");}
@@ -192,6 +190,7 @@ function setTheme(theme){
   if(theme==="purple"){r.style.setProperty("--accent","#9c27b0");r.style.setProperty("--accent-darker","#6a1b9a");r.style.setProperty("--accent-muted","#e1bee7");r.style.setProperty("--bg","#f3e5f5");r.style.setProperty("--panel","#ffffff");r.style.setProperty("--sidebar-bg","#e1bee7");r.style.setProperty("--danger","#4a148c");r.style.setProperty("--text","#4a148c");}
   if(theme==="bordeaux"){r.style.setProperty("--accent","#800020");r.style.setProperty("--accent-darker","#4b0014");r.style.setProperty("--accent-muted","#d7a1a9");r.style.setProperty("--bg","#fff0f2");r.style.setProperty("--panel","#ffffff");r.style.setProperty("--sidebar-bg","#f3cdd3");r.style.setProperty("--danger","#600018");r.style.setProperty("--text","#4b0014");}
 }
+
 document.getElementById("secretBtn").onclick=()=>{const menu=document.getElementById("themeMenu"); if(menu.style.display==="block"){closeThemeMenu();}else{menu.style.display="block";resetThemeMenuTimer();}};
 function resetThemeMenuTimer(){clearTimeout(themeMenuTimer);themeMenuTimer=setTimeout(closeThemeMenu,10000);}
 function closeThemeMenu(){document.getElementById("themeMenu").style.display="none";clearTimeout(themeMenuTimer);}
@@ -726,6 +725,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
