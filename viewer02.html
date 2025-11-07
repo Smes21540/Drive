@@ -1524,26 +1524,38 @@ const match = csvName.match(/^SA(\d+)_([0-9]{8})/);
 if (match) {
   const num = parseInt(match[1], 10);
   const d = match[2];
-  const folderName = document.getElementById("currentFolderName").textContent.trim() || "SansNom";
-  const numTwoDigits = String(num).padStart(2, '0');
 
-  // 🔹 Titre visible en haut du PDF
-  titleText = num > 0
-    ? `${folderName} – Séchoir ${num} – ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`
-    : `${folderName} – ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
+  // 🔹 Récupération du dossier affiché dans le header
+  const folderRaw = document.getElementById("currentFolderName")?.innerHTML || "";
+  const folderClean = folderRaw
+    .replace(/<[^>]+>/g, "")   // retire toutes les balises HTML (dont les <span>)
+    .replace(/🔥/g, "")        // supprime explicitement les flammes
+    .trim();
 
-  // 🔹 Nom du fichier PDF exporté
+  const dateFR = `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
+  const numTxt = num > 0 ? `Séchoir ${num}` : "";
+
+  // 🔸 Titre visible dans le PDF (sans flammes)
+  titleText = `${folderClean}${numTxt ? " – " + numTxt : ""} – ${dateFR}`;
+
+  // 🔸 Nom de fichier exporté (nettoyé, sans caractères illégaux)
+  const safeFolder = folderClean
+    .replace(/[<>:"/\\|?*]/g, "_")
+    .replace(/\s+/g, "_")
+    .trim();
+
   pdfFileName = num > 0
-    ? `${folderName}_Séchoir${numTwoDigits}_${d}.pdf`
-    : `${folderName}_${d}.pdf`;
+    ? `${safeFolder}_S${String(num).padStart(2, "0")}_${d}.pdf`
+    : `${safeFolder}_${d}.pdf`;
 
-  // 🔹 Métadonnées PDF
+  // 🔸 Métadonnées PDF
   pdf.setProperties({
-    title: `Courbes – ${folderName} – Séchoir ${num} – ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`,
+    title: `Courbes – ${folderClean}${numTxt ? " – " + numTxt : ""} – ${dateFR}`,
     subject: 'Export graphique CSV Séchoir',
     author: 'SMES Explorer'
   });
 }
+
 
     }
 
@@ -2074,6 +2086,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
