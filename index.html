@@ -1319,28 +1319,26 @@ if (diffKwh > 400000) {
 }
 
       
-      // ⚡ KWH
-      if (btnKwh) {
-        btnKwh.textContent = `🔥 ${roundedKwh} kWh`;
+// ⚡ KWH (transition douce, sans étirement)
+if (btnKwh) {
+  btnKwh.textContent = `🔥 ${roundedKwh} kWh`;
+  btnKwh.style.transition = "background 0.8s ease-out, color 0.8s ease-out";
 
-const minScaleX = 1.0, maxScaleX = 1.6;
-const normalized = Math.min(Math.max(diffKwh / 200000, 0), 1);
-const scaleX = minScaleX + (maxScaleX - minScaleX) * normalized;
-btnKwh.style.transform = `scaleX(${scaleX.toFixed(2)})`;
-btnKwh.style.transition = "transform 0.6s ease-out";
+  if (diffKwh > 150000) {
+    btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)"; // rouge
+    btnKwh.style.color = "#fff";
+  } else if (diffKwh > 100000) {
+    btnKwh.style.background = "linear-gradient(180deg, #ffe082, #ffb300)"; // orange
+    btnKwh.style.color = "#4e342e";
+  } else if (diffKwh > 50000) {
+    btnKwh.style.background = "linear-gradient(180deg, #dcedc8, #9ccc65)"; // vert clair
+    btnKwh.style.color = "#33691e";
+  } else {
+    btnKwh.style.background = "linear-gradient(180deg, #c8e6c9, #66bb6a)"; // vert vif
+    btnKwh.style.color = "#1b5e20";
+  }
+}
 
-
-        if (diffKwh > 100000) {
-          btnKwh.style.background = "linear-gradient(180deg, #ffcc80, #f57c00)";
-          btnKwh.style.color = "#3e2723";
-        } else if (diffKwh > 50000) {
-          btnKwh.style.background = "linear-gradient(180deg, #ffe082, #ffb300)";
-          btnKwh.style.color = "#4e342e";
-        } else {
-          btnKwh.style.background = "linear-gradient(180deg, #fff176, #ffd54f)";
-          btnKwh.style.color = "#5d4037";
-        }
-      }
 
       // ⏱ HEURES (format HH:MM)
       if (btnHeures) {
@@ -2032,6 +2030,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
