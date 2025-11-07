@@ -529,28 +529,40 @@ async function loadCSVFromDrive(){
   document.getElementById('exportPDF').style.display = "inline-block";
   document.getElementById('resetZoom').style.display = "inline-block";
 
-// 💾 Détermination du dossier courant uniquement
+// 💾 Détermination du dossier courant (comme index03)
 try {
   const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
   const f = list.find(x => x.id === baseFileId);
 
   if (f && Array.isArray(f.parents) && f.parents.length > 0) {
-    currentFolderId = f.parents[0]; // dossier exact du CSV
+    currentFolderId = f.parents[0];
     console.log("📁 Dossier courant (exact):", currentFolderId);
   } else {
-    console.warn("⚠️ Aucun dossier trouvé pour ce fichier, currentFolderId = null");
-    currentFolderId = null;
+    currentFolderId = localStorage.getItem("lastFolderId") || null;
+    console.warn("⚠️ Aucun parent trouvé, fallback sur lastFolderId:", currentFolderId);
   }
 
-// affiche le nom du dossier courant et mémorise le "chemin" texte
-const folder = list.find(x => x.id === currentFolderId);
-const folderName = folder ? folder.name : "(Dossier inconnu)";
-document.getElementById("currentFolderName").textContent = folderName;
+  // 🔹 Recherche du nom de dossier dans la liste ou depuis folderPath
+  let folderName = "";
+  const folderObj = list.find(x => x.id === currentFolderId);
+  if (folderObj) {
+    folderName = folderObj.name;
+  } else {
+    folderName = getParam("folderPath") || localStorage.getItem("currentFolderPath") || "(Dossier inconnu)";
+  }
 
-// 🔹 Met à jour le titre de la page avec le nom du dossier
-if (folderName) {
+  // 🔹 Mise à jour du texte et du titre
+  document.getElementById("currentFolderName").textContent = folderName;
   document.title = `Courbes – ${folderName}`;
+
+  // 🔹 Mémorisation globale du chemin texte
+  currentFolderPath = folderName;
+  localStorage.setItem("currentFolderPath", folderName);
+  localStorage.setItem("lastFolderId", currentFolderId || "");
+} catch (e) {
+  console.warn("⚠️ Erreur récupération dossier courant", e);
 }
+
 
 
 // 🧭 on conserve au moins le nom du dossier comme chemin texte
@@ -2050,6 +2062,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
