@@ -529,45 +529,50 @@ async function loadCSVFromDrive(){
   document.getElementById('exportPDF').style.display = "inline-block";
   document.getElementById('resetZoom').style.display = "inline-block";
 
-// 💾 Détermination du dossier courant (comme index03)
+// 💾 Détermination du dossier courant + chemin complet (identique à index03)
 try {
   const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
   const f = list.find(x => x.id === baseFileId);
 
+  // 🔹 Trouver l'ID du dossier parent
   if (f && Array.isArray(f.parents) && f.parents.length > 0) {
     currentFolderId = f.parents[0];
-    console.log("📁 Dossier courant (exact):", currentFolderId);
   } else {
     currentFolderId = localStorage.getItem("lastFolderId") || null;
-    console.warn("⚠️ Aucun parent trouvé, fallback sur lastFolderId:", currentFolderId);
   }
 
-  // 🔹 Recherche du nom du dossier
-  let folderName = "";
+  // 🔹 Retrouver le dossier parent pour le nom
   const folderObj = list.find(x => x.id === currentFolderId);
-  if (folderObj) {
-    folderName = folderObj.name;
-  } else {
-    folderName = getParam("folderPath") || localStorage.getItem("currentFolderPath") || "(Dossier inconnu)";
-  }
+  let folderName = folderObj ? folderObj.name : "(Dossier inconnu)";
 
-  // 🔹 Mise à jour de l’en-tête et du titre
+  // 🔹 Récupérer chemin complet du dossier
+  let folderPath =
+    getParam("folderPath") ||
+    localStorage.getItem("currentFolderPath") ||
+    folderName;
+
+  // 🔹 On anime les flammes 🔥
+  const flameTitle = folderPath.replace(
+    /🔥/g,
+    '<span class="flame" title="Brûleur(s) en fonctionnement">🔥</span>'
+  );
+
   const el = document.getElementById("currentFolderName");
-  if (el) {
-    const flameTitle = folderName.replace(/🔥/g, '<span class="flame" title="Brûleur(s) en fonctionnement">🔥</span>');
-    el.innerHTML = flameTitle;
-  }
+  if (el) el.innerHTML = flameTitle;
+
+  // 🔹 Maj du titre
   document.title = `Courbes – ${folderName}`;
 
   // 🔹 Mémorisation globale
-  currentFolderPath = folderName;
-  localStorage.setItem("currentFolderPath", folderName);
+  currentFolderPath = folderPath;
+  localStorage.setItem("currentFolderPath", folderPath);
   localStorage.setItem("lastFolderId", currentFolderId || "");
 
-  console.log("[Viewer02] Dossier affiché :", folderName);
+  console.log("[Viewer02] Dossier affiché :", folderPath);
 } catch (e) {
   console.warn("⚠️ Erreur récupération dossier courant :", e);
 }
+
 
 
 
@@ -2069,6 +2074,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
