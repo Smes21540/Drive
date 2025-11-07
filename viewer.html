@@ -231,6 +231,10 @@ try {
   const folderNameEl = document.getElementById("folderName");
   if (folderNameEl) folderNameEl.textContent = folderPath || "";
 
+// 🔹 Met à jour le titre de l’onglet navigateur
+document.title = `Tableau – ${folderPath || fileName || "CSV"}`;
+
+  
 } catch (e) {
   console.warn("Impossible de déterminer le dossier :", e);
 }
@@ -728,6 +732,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
