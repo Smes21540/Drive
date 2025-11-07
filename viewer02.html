@@ -1502,7 +1502,11 @@ async function autoLoadDays(chart){
         const d = match[2];
         titleText = num>0 ? `Séchoir ${num} - ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}` : `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
         const numTwoDigits = String(num).padStart(2,'0');
-        pdfFileName = num>0 ? `Séchoir-${numTwoDigits}_${d}.pdf` : `${d}.pdf`;
+        const folderName = document.getElementById("currentFolderName").textContent.trim() || "SansNom";
+pdfFileName = num>0
+  ? `${folderName}_Séchoir${numTwoDigits}_${d}.pdf`
+  : `${folderName}_${d}.pdf`;
+
       }
     }
 
@@ -2033,6 +2037,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
