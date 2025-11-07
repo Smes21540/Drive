@@ -1319,25 +1319,37 @@ if (diffKwh > 400000) {
 }
 
       
-// ⚡ KWH (transition douce, sans étirement)
+// ⚡ KWH (couleur douce selon consommation)
 if (btnKwh) {
   btnKwh.textContent = `🔥 ${roundedKwh} kWh`;
   btnKwh.style.transition = "background 0.8s ease-out, color 0.8s ease-out";
 
-  if (diffKwh > 150000) {
-    btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)"; // rouge
-    btnKwh.style.color = "#fff";
-  } else if (diffKwh > 100000) {
-    btnKwh.style.background = "linear-gradient(180deg, #ffe082, #ffb300)"; // orange
-    btnKwh.style.color = "#4e342e";
-  } else if (diffKwh > 50000) {
-    btnKwh.style.background = "linear-gradient(180deg, #dcedc8, #9ccc65)"; // vert clair
-    btnKwh.style.color = "#33691e";
+  // Limiter la valeur pour éviter les extrêmes
+  const v = Math.min(Math.max(diffKwh, 0), 200000);
+
+  let bg = "";
+  let textColor = "#1b5e20"; // vert foncé par défaut
+
+  if (v <= 10000) {
+    // vert clair → jaune
+    const ratio = v / 10000;
+    const g = Math.round(230 - 60 * ratio);
+    const r = Math.round(200 + 55 * ratio);
+    bg = `linear-gradient(180deg, rgb(${r},${g},100), rgb(${r + 20},${g + 20},120))`;
+    textColor = "#2e7d32";
   } else {
-    btnKwh.style.background = "linear-gradient(180deg, #c8e6c9, #66bb6a)"; // vert vif
-    btnKwh.style.color = "#1b5e20";
+    // jaune → rouge
+    const ratio = (v - 10000) / 190000;
+    const r = Math.round(255);
+    const g = Math.round(235 - 155 * ratio);
+    bg = `linear-gradient(180deg, rgb(${r},${g},80), rgb(${r - 20},${g - 30},60))`;
+    textColor = "#3e2723";
   }
+
+  btnKwh.style.background = bg;
+  btnKwh.style.color = textColor;
 }
+
 
 
       // ⏱ HEURES (format HH:MM)
@@ -2030,6 +2042,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
