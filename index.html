@@ -690,13 +690,18 @@ if (lowerName.includes("consommation")) {
   span.innerHTML = `⛽ ${f.name}`;
 } else if (lowerName.includes("echantillonnage")) {
   span.innerHTML = `📊 ${f.name}`;
+} else if (lowerName.includes("capture")) {
+  span.innerHTML = `🖼️ ${f.name}`;
+} else if (lowerName.includes("rapport")) {
+  span.innerHTML = `📄 ${f.name}`;
 } else if (lowerName.includes("historique")) {
   span.innerHTML = `🗂️ ${f.name}`;
 } else if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
   span.innerHTML = `📈 ${f.name}`;
 } else {
-  span.textContent = f.name; // aucun symbole sinon
+  span.textContent = f.name;
 }
+
 
 
 
@@ -763,13 +768,18 @@ if (lowerName.includes("consommation")) {
   span.innerHTML = `⛽ ${f.name}`;
 } else if (lowerName.includes("echantillonnage")) {
   span.innerHTML = `📊 ${f.name}`;
+} else if (lowerName.includes("capture")) {
+  span.innerHTML = `🖼️ ${f.name}`;
+} else if (lowerName.includes("rapport")) {
+  span.innerHTML = `📄 ${f.name}`;
 } else if (lowerName.includes("historique")) {
   span.innerHTML = `🗂️ ${f.name}`;
 } else if (lowerName.includes("traça_temp") || lowerName.includes("traca_temp")) {
   span.innerHTML = `📈 ${f.name}`;
 } else {
-  span.textContent = f.name; // aucun symbole sinon
+  span.textContent = f.name;
 }
+
 
 
 span.onclick = (e) => loadFolderFilesOnClick(childLi, e);
@@ -2002,6 +2012,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
