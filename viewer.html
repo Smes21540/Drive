@@ -31,6 +31,20 @@ body{
 /* Header */
 .header{position:relative; display:flex; align-items:center; justify-content:center; margin:0 0 10px 0;}
 .header .logo{height:60px; width:auto;}
+  #folderName {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: clamp(14px, 2vw, 26px);
+  font-weight: bold;
+  color: var(--accent);
+  padding: 5px 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 45vw;
+}
+
 #fileNameContainer{position:absolute; right:0; top:0; text-align:right;}
 #fileName,#lineCount{color:var(--danger);}
 #fileName{font-size:24px; font-weight:bold; white-space:nowrap; max-width:300px; overflow:hidden; text-overflow:ellipsis; display:none;}
@@ -111,6 +125,7 @@ thead th.sorted-desc::after{content:" ▼"; font-size:10px;}
 <body>
 
 <div class="header">
+  <div id="folderName"></div>
   <img src="img/logo.png" alt="Logo SMES France" class="logo" id="mainLogo"/>
   <div id="fileNameContainer">
     <div id="fileName"></div>
@@ -198,6 +213,15 @@ function hideLoading(){ document.getElementById('loadingOverlay').style.display=
 async function loadCSV(){
   const fileId = new URLSearchParams(window.location.search).get('fileId');
   const fileName = new URLSearchParams(window.location.search).get('fileName');
+  // Extraire le nom de dossier parent
+const folderParts = (fileName || "").split(/[\\/]/);
+if (folderParts.length > 1) {
+  const folderName = folderParts[folderParts.length - 2]; // dossier juste au-dessus du fichier
+  document.getElementById("folderName").textContent = folderName;
+} else {
+  document.getElementById("folderName").textContent = "Racine";
+}
+
   const fileNameDiv = document.getElementById('fileName');
   const lineCountDiv = document.getElementById('lineCount');
   const container = document.getElementById('tableContainer');
@@ -674,6 +698,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
