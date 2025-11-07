@@ -896,7 +896,8 @@ const filtered = files.filter(f =>
   f.name.toLowerCase().endsWith('.csv') || 
   f.name.toLowerCase().endsWith('.jpg') || 
   f.name.toLowerCase().endsWith('.jpeg') ||
-  f.name.toLowerCase().endsWith('.json')
+  f.name.toLowerCase().endsWith('.json') ||
+  f.name.toLowerCase().endsWith('.pdf')
 );
 
 
@@ -1339,6 +1340,18 @@ html += `
       html+=`<img src="https://drive.google.com/thumbnail?id=${f.id}" onclick="openModal('${f.id}')" alt="aperçu">`;
       html+=`<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank"><button class="action-btn">Télécharger</button></a>`;
     }
+
+// === PDF ===
+if (f.name.toLowerCase().endsWith(".pdf")) {
+  html += `
+    <a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank">
+      <button class="action-btn">Télécharger</button>
+    </a>
+    <button class="action-btn" onclick="openModal('${f.id}', 'pdf')">Ouvrir</button>
+  `;
+}
+
+  
     tdAction.innerHTML=html;
 
 
@@ -1467,13 +1480,25 @@ function clearFilter(){
 }
 
 /* ----------- Modale images + navigation clavier ----------- */
-function openModal(id){
-  const modal=document.getElementById('imageModal');
-  modal.style.display='block';
-  document.getElementById('modalFrame').src=`https://drive.google.com/file/d/${id}/preview`;
-  currentImageIndex=imageFiles.findIndex(f=>f.id===id);
-  document.getElementById('downloadBtn').onclick=()=>window.open(`https://drive.google.com/uc?export=download&id=${id}`,'_blank');
+function openModal(id, type = "image") {
+  const modal = document.getElementById('imageModal');
+  modal.style.display = 'block';
+  const frame = document.getElementById('modalFrame');
+
+  // 🔍 Détermine le mode d'affichage selon le type
+  if (type === "pdf") {
+    frame.src = `https://drive.google.com/file/d/${id}/preview#toolbar=0`; // ouvre le PDF dans l'iframe
+  } else {
+    frame.src = `https://drive.google.com/file/d/${id}/preview`;
+  }
+
+  currentImageIndex = imageFiles.findIndex(f => f.id === id);
+
+  // 🔽 Bouton de téléchargement
+  document.getElementById('downloadBtn').onclick = () =>
+    window.open(`https://drive.google.com/uc?export=download&id=${id}`, '_blank');
 }
+
 function closeModal(){document.getElementById('imageModal').style.display='none';}
 
 document.getElementById('prevBtn').onclick=()=>{if(currentImageIndex>0) openModal(imageFiles[--currentImageIndex].id);};
@@ -1977,6 +2002,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
