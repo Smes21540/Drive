@@ -1525,24 +1525,25 @@ if (match) {
   const num = parseInt(match[1], 10);
   const d = match[2];
 
-  // 🔹 Récupération du dossier affiché dans le header
-  const folderRaw = document.getElementById("currentFolderName")?.innerHTML || "";
-  const folderClean = folderRaw
-    .replace(/<[^>]+>/g, "")   // retire toutes les balises HTML (dont les <span>)
-    .replace(/🔥/g, "")        // supprime explicitement les flammes
-    .trim();
+  // 🔹 Récupération du nom du dossier principal (comme avant)
+  const folderEl = document.getElementById("currentFolderName");
+  let folderName = folderEl ? folderEl.textContent.trim() : "SansNom";
+
+  // 🔹 Suppression des flammes du titre PDF
+  folderName = folderName.replace(/🔥/g, "").trim();
 
   const dateFR = `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
   const numTxt = num > 0 ? `Séchoir ${num}` : "";
 
-  // 🔸 Titre visible dans le PDF (sans flammes)
-  titleText = `${folderClean}${numTxt ? " – " + numTxt : ""} – ${dateFR}`;
+  // 🔸 Titre affiché dans le PDF (propre, sans flammes)
+  titleText = num > 0
+    ? `${folderName} – ${numTxt} – ${dateFR}`
+    : `${folderName} – ${dateFR}`;
 
-  // 🔸 Nom de fichier exporté (nettoyé, sans caractères illégaux)
-  const safeFolder = folderClean
+  // 🔸 Nom de fichier PDF exporté (sécurisé)
+  const safeFolder = folderName
     .replace(/[<>:"/\\|?*]/g, "_")
-    .replace(/\s+/g, "_")
-    .trim();
+    .replace(/\s+/g, "_");
 
   pdfFileName = num > 0
     ? `${safeFolder}_S${String(num).padStart(2, "0")}_${d}.pdf`
@@ -1550,11 +1551,12 @@ if (match) {
 
   // 🔸 Métadonnées PDF
   pdf.setProperties({
-    title: `Courbes – ${folderClean}${numTxt ? " – " + numTxt : ""} – ${dateFR}`,
+    title: `Courbes – ${folderName}${numTxt ? " – " + numTxt : ""} – ${dateFR}`,
     subject: 'Export graphique CSV Séchoir',
     author: 'SMES Explorer'
   });
 }
+
 
 
     }
@@ -2086,6 +2088,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
