@@ -1888,7 +1888,7 @@ function markFolderWithFlame(li) {
 
   if (!span.classList.contains("has-flame")) {
     span.classList.add("has-flame");
-    span.innerHTML = `<span class="flame-folder" title="Brûleur(s) actuellement en fonctionnement">🔥&nbsp;&nbsp;</span> ` + span.innerHTML;
+    span.innerHTML = `<span class="flame-folder" title="Brûleur(s) actuellement en fonctionnement">🔥</span> ` + span.innerHTML;
   }
 
   const parent = li.parentElement?.closest("li");
@@ -2015,6 +2015,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
