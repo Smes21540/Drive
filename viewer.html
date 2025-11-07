@@ -213,14 +213,26 @@ function hideLoading(){ document.getElementById('loadingOverlay').style.display=
 async function loadCSV(){
   const fileId = new URLSearchParams(window.location.search).get('fileId');
   const fileName = new URLSearchParams(window.location.search).get('fileName');
-  // Extraire le nom de dossier parent
-const folderParts = (fileName || "").split(/[\\/]/);
-if (folderParts.length > 1) {
-  const folderName = folderParts[folderParts.length - 2]; // dossier juste au-dessus du fichier
-  document.getElementById("folderName").textContent = folderName;
-} else {
-  document.getElementById("folderName").textContent = "Racine";
+// 🔹 Déterminer le dossier parent comme dans viewer02 / index03
+try {
+  const list = JSON.parse(localStorage.getItem("csvFilesList") || "[]");
+  const fileEntry = list.find(f => f.id === fileId);
+
+  // Plusieurs sources possibles pour le chemin du dossier
+  let folderPath =
+    new URLSearchParams(window.location.search).get("folderPath") || // si transmis dans l’URL
+    (fileEntry && (fileEntry.folder || fileEntry.folderPath)) ||     // si stocké dans csvFilesList
+    localStorage.getItem("currentFolderPath") ||                     // dernier dossier ouvert
+    "";
+
+  // Afficher dans le header
+  const folderNameEl = document.getElementById("folderName");
+  if (folderNameEl) folderNameEl.textContent = folderPath || "";
+
+} catch (e) {
+  console.warn("Impossible de déterminer le dossier :", e);
 }
+
 
   const fileNameDiv = document.getElementById('fileName');
   const lineCountDiv = document.getElementById('lineCount');
@@ -698,6 +710,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
