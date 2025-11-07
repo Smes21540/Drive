@@ -542,7 +542,7 @@ try {
     console.warn("⚠️ Aucun parent trouvé, fallback sur lastFolderId:", currentFolderId);
   }
 
-  // 🔹 Recherche du nom de dossier dans la liste ou depuis folderPath
+  // 🔹 Recherche du nom du dossier
   let folderName = "";
   const folderObj = list.find(x => x.id === currentFolderId);
   if (folderObj) {
@@ -551,20 +551,24 @@ try {
     folderName = getParam("folderPath") || localStorage.getItem("currentFolderPath") || "(Dossier inconnu)";
   }
 
-  // 🔹 Mise à jour du texte et du titre
-  document.getElementById("currentFolderName").textContent = folderName;
+  // 🔹 Mise à jour de l’en-tête et du titre
+  const el = document.getElementById("currentFolderName");
+  if (el) {
+    const flameTitle = folderName.replace(/🔥/g, '<span class="flame" title="Brûleur(s) en fonctionnement">🔥</span>');
+    el.innerHTML = flameTitle;
+  }
   document.title = `Courbes – ${folderName}`;
 
-  // 🔹 Mémorisation globale du chemin texte
+  // 🔹 Mémorisation globale
   currentFolderPath = folderName;
   localStorage.setItem("currentFolderPath", folderName);
   localStorage.setItem("lastFolderId", currentFolderId || "");
 
-  // 🔹 Vérif console
-  console.log("[Viewer02] Dossier affiché en haut :", folderName);
+  console.log("[Viewer02] Dossier affiché :", folderName);
 } catch (e) {
-  console.warn("⚠️ Erreur récupération dossier courant", e);
+  console.warn("⚠️ Erreur récupération dossier courant :", e);
 }
+
 
 
 
@@ -2066,6 +2070,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
