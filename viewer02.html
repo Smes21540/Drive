@@ -6,7 +6,10 @@
   <!-- === PARTIE 1 : DOCTYPE + HEAD (Librairies) === -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Graphique CSV</title>
+  <title>Courbes</title>
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌽</text></svg>">
+
 
   <!-- Librairies -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
@@ -543,6 +546,12 @@ try {
 const folder = list.find(x => x.id === currentFolderId);
 const folderName = folder ? folder.name : "(Dossier inconnu)";
 document.getElementById("currentFolderName").textContent = folderName;
+
+// 🔹 Met à jour le titre de la page avec le nom du dossier
+if (folderName) {
+  document.title = `Courbes – ${folderName}`;
+}
+
 
 // 🧭 on conserve au moins le nom du dossier comme chemin texte
 currentFolderPath = getParam("folderPath") || (folder ? folder.name : "");
@@ -2024,6 +2033,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
