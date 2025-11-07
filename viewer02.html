@@ -1529,13 +1529,15 @@ if (match) {
   const folderEl = document.getElementById("currentFolderName");
   let folderName = folderEl ? folderEl.textContent.trim() : "SansNom";
 
-  // 🔹 Suppression des flammes du titre PDF
-  folderName = folderName.replace(/🔥/g, "").trim();
+// 🔹 Suppression de tout pictogramme type emoji (ex: 📈, 📊, etc.)
+folderName = folderName.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim();
+
 
   const dateFR = `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
   const numTxt = num > 0 ? `Séchoir ${num}` : "";
 
   // 🔸 Titre affiché dans le PDF (propre, sans flammes)
+  titleText = titleText.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim();
   titleText = num > 0
     ? `${folderName} – ${numTxt} – ${dateFR}`
     : `${folderName} – ${dateFR}`;
@@ -2088,6 +2090,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
