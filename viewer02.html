@@ -559,9 +559,13 @@ try {
   currentFolderPath = folderName;
   localStorage.setItem("currentFolderPath", folderName);
   localStorage.setItem("lastFolderId", currentFolderId || "");
+
+  // 🔹 Vérif console
+  console.log("[Viewer02] Dossier affiché en haut :", folderName);
 } catch (e) {
   console.warn("⚠️ Erreur récupération dossier courant", e);
 }
+
 
 
 
@@ -2062,6 +2066,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
