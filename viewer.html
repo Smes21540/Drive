@@ -624,61 +624,46 @@ document.getElementById("exportPDF").addEventListener("click",()=>{
     parents = parts[0];
   }
 
-// 🔹 Construire titre lisible + nom fichier PDF (version corrigée)
-let titleText = csvName.replace(/\.csv$/i,"");
-let pdfFileName = csvName.replace(/\.csv$/i,".pdf");
-
-// Nom du dossier (si disponible à l’écran)
+// 🔹 Construction du titre et du nom de fichier PDF (identique à viewer02)
+let titleText = "";
+let pdfFileName = "";
 let folderName = (document.getElementById("folderName")?.textContent || "").trim();
-folderName = folderName.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim(); // nettoyage des emojis
+folderName = folderName.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim(); // nettoyage emoji & symboles
 
 if (csvName.startsWith("Z")) {
+  // === Fichier type Historique Z ===
   const matchZ = csvName.match(/^Z\d+(\d{2})_(\d{8})/);
   if (matchZ) {
-    const xx = parseInt(matchZ[1],10);
+    const num = parseInt(matchZ[1], 10);
     const d = matchZ[2];
-    titleText = `Historique Séchoir ${xx} – ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
-    pdfFileName = `Z3_S${String(xx).padStart(2,"0")}_${d}.pdf`;
+    const dateFR = `${d.slice(6, 8)}/${d.slice(4, 6)}/${d.slice(0, 4)}`;
+    titleText = `Historique Séchoir ${num} – ${dateFR}`;
+    pdfFileName = `Z3_S${String(num).padStart(2, "0")}_${d}.pdf`;
+  } else {
+    titleText = csvName.replace(/\.csv$/i, "");
+    pdfFileName = csvName.replace(/\.csv$/i, ".pdf");
   }
 } else {
+  // === Fichier type Séchoir SA ===
   const match = csvName.match(/^SA(\d+)_([0-9]{8})/);
   if (match) {
-    const num = parseInt(match[1],10);
+    const num = parseInt(match[1], 10);
     const d = match[2];
-    const dateFR = `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
-    const numTxt = num>0 ? `Séchoir ${num}` : "";
+    const dateFR = `${d.slice(6, 8)}/${d.slice(4, 6)}/${d.slice(0, 4)}`;
+    const numTxt = num > 0 ? `Séchoir ${num}` : "";
     titleText = folderName
       ? `${folderName} – ${numTxt} – ${dateFR}`
       : `${numTxt} – ${dateFR}`;
-
-    const safeFolder = folderName.replace(/[<>:"/\\|?*]/g,"_").replace(/\s+/g,"_");
-    pdfFileName = num>0
-      ? `${safeFolder}_S${String(num).padStart(2,"0")}_${d}.pdf`
+    const safeFolder = folderName.replace(/[<>:"/\\|?*]/g, "_").replace(/\s+/g, "_");
+    pdfFileName = num > 0
+      ? `${safeFolder}_S${String(num).padStart(2, "0")}_${d}.pdf`
       : `${safeFolder}_${d}.pdf`;
+  } else {
+    titleText = csvName.replace(/\.csv$/i, "");
+    pdfFileName = csvName.replace(/\.csv$/i, ".pdf");
   }
 }
 
-
-  if(csvName.startsWith("Z")){
-    const matchZ = csvName.match(/^Z\d+(\d{2})_(\d{8})/);
-    if(matchZ){
-      const xx = parseInt(matchZ[1],10);
-      const d = matchZ[2];
-      const numTwoDigits = String(xx).padStart(2,'0');
-      titleText = `Historique Séchoir ${xx} - ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
-      pdfFileName = `Historique_Séchoir${numTwoDigits}_${d}.pdf`;
-    }
-  } else {
-    const match = csvName.match(/^SA(\d+)_([0-9]{8})/);
-    if(match){
-      const num = parseInt(match[1],10);
-      const d = match[2];
-      titleText = num>0 ? `Séchoir ${num} - ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`
-                        : `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
-      const numTwoDigits = String(num).padStart(2,'0');
-      pdfFileName = num>0 ? `Séchoir-${numTwoDigits}_${d}.pdf` : `${d}.pdf`;
-    }
-  }
 
   // Couleur danger du thème actif
   function getCSSVar(name){
@@ -741,6 +726,7 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
 
 
 
