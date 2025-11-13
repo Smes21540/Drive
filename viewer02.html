@@ -878,6 +878,28 @@ const z3LinesPlugin = {
   }
 };
 
+// 🔒 (dés)active temporairement zoom/pan/drag de chartjs-zoom
+function setZoomSuspended(suspended){
+  if(!chart || !chart.options?.plugins?.zoom) return;
+
+  if (suspended) {
+    // sauvegarder l'état une seule fois
+    if (!chart.$zoomBackup) {
+      chart.$zoomBackup = JSON.parse(JSON.stringify(chart.options.plugins.zoom));
+    }
+    chart.options.plugins.zoom.zoom.wheel.enabled = false;
+    chart.options.plugins.zoom.zoom.pinch.enabled = false;
+    chart.options.plugins.zoom.zoom.drag.enabled  = false;
+    chart.options.plugins.zoom.pan.enabled        = false;
+  } else {
+    if (chart.$zoomBackup) {
+      chart.options.plugins.zoom = JSON.parse(JSON.stringify(chart.$zoomBackup));
+    }
+  }
+  chart.update('none');
+}
+
+    
 const notesPlugin = {
   id: "notesPlugin",
   afterDatasetsDraw(chart) {
@@ -987,11 +1009,16 @@ lines.forEach((l, i) => {
       });
     }
 
-// === DRAG & DROP DES NOTES (AJOUT) ===
+// === DRAG & DROP DES NOTES (AJOUT) — version avec suspension du zoom ===
 if (!chart.$dragHandlersAttached) {
   chart.$dragHandlersAttached = true;
   chart.$draggingNote = null;
   chart.$justDragged = false;
+
+  // 🛑 Bloque la molette si on est en plein drag
+  chart.canvas.addEventListener('wheel', (ev)=>{
+    if (chart.$draggingNote) { ev.preventDefault(); }
+  }, { passive:false });
 
   // mousedown → démarrage drag si sur une note
   canvas.addEventListener("mousedown", (ev) => {
@@ -1001,11 +1028,13 @@ if (!chart.$dragHandlersAttached) {
 
     for (const zone of chart.$noteHitZones) {
       if (mx >= zone.x1 && mx <= zone.x2 && my >= zone.y1 && my <= zone.y2) {
-        chart.$draggingNote = {
-          note: zone.note,
-          startX: mx, startY: my
-        };
+        chart.$draggingNote = { note: zone.note, startX: mx, startY: my };
         chart.$justDragged = false;
+
+        // ⛔ suspendre zoom/pan/drag pendant le déplacement de la note
+        setZoomSuspended(true);
+        canvas.style.cursor = 'grabbing';
+
         ev.preventDefault();
         return;
       }
@@ -1036,6 +1065,10 @@ if (!chart.$dragHandlersAttached) {
     const n = chart.$draggingNote.note;
     chart.$draggingNote = null;
 
+    // ✅ réactiver zoom/pan/drag
+    setZoomSuspended(false);
+    canvas.style.cursor = 'default';
+
     if (!chart.$justDragged) return; // simple clic
     chart.$justDragged = false;
 
@@ -1062,6 +1095,7 @@ if (!chart.$dragHandlersAttached) {
     }
   });
 }
+
 
     
   },
@@ -1251,12 +1285,15 @@ if (!isNaN(dt.getTime())) {
   const canvas = chart.canvas;
 
   // auto-load jours au zoom/dézoom/pan
-  canvas.addEventListener('wheel', async (e)=>{
-    if (e.ctrlKey) {
-      console.log("Détection zoom molette+Ctrl");
-      await autoLoadDays(chart);
-    }
-  });
+canvas.addEventListener('wheel', async (e)=>{
+  // 🔕 pas de zoom/autoLoad pendant drag de note
+  if (chart.$draggingNote) { e.preventDefault(); return; }
+  if (e.ctrlKey) {
+    console.log("Détection zoom molette+Ctrl");
+    await autoLoadDays(chart);
+  }
+}, { passive:false });
+
   canvas.addEventListener('mouseup', async ()=>{
     console.log("Détection fin zoom/pan drag");
     await autoLoadDays(chart);
@@ -2241,6 +2278,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
