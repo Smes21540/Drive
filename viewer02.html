@@ -898,65 +898,45 @@ if (!chart.$noteDragAttached) {
   const xScale = chart.scales.x;
   const yScale = chart.scales.y;
 
-  canvas.addEventListener("mousedown", ev => {
-    if (!chart.$noteHitZones) return;
-    const rect = canvas.getBoundingClientRect();
-    const px = ev.clientX - rect.left;
-    const py = ev.clientY - rect.top;
+canvas.addEventListener("mousedown", ev => {
+  if (!chart.$noteHitZones) return;
+  const rect = canvas.getBoundingClientRect();
+  const px = ev.clientX - rect.left;
+  const py = ev.clientY - rect.top;
 
-    for (const zone of chart.$noteHitZones) {
-      if (px >= zone.x1 && px <= zone.x2 && py >= zone.y1 && py <= zone.y2) {
-draggingNote = zone.note;
-dragOffsetX = px - xScale.getPixelForValue(draggingNote.x);
-dragOffsetY = py - yScale.getPixelForValue(draggingNote.y);
+  for (const zone of chart.$noteHitZones) {
+    if (px >= zone.x1 && px <= zone.x2 && py >= zone.y1 && py <= zone.y2) {
+      draggingNote = zone.note;
+      dragOffsetX = px - xScale.getPixelForValue(draggingNote.x);
+      dragOffsetY = py - yScale.getPixelForValue(draggingNote.y);
 
-// ⛔ Désactiver zoom/pan pendant le drag
-chart.$isDraggingNote = true;
-chart.options.plugins.zoom.zoom.drag.enabled = false;
-chart.options.plugins.zoom.pan.enabled = false;
+      // ✅ Désactiver immédiatement zoom/pan et forcer rafraîchissement
+      chart.$isDraggingNote = true;
+      chart.options.plugins.zoom.zoom.drag.enabled = false;
+      chart.options.plugins.zoom.pan.enabled = false;
+      chart.update('none'); // <<< ajouté
 
-draggingNote.__dragging = true;
-canvas.style.cursor = "grabbing";
-chart.update("none");
-;
-        break;
-      }
+      draggingNote.__dragging = true;
+      canvas.style.cursor = "grabbing";
+      break;
     }
-  });
-
-  canvas.addEventListener("mousemove", ev => {
-    if (!draggingNote) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const px = ev.clientX - rect.left;
-    const py = ev.clientY - rect.top;
-
-    const newXPix = px - dragOffsetX;
-    const newYPix = py - dragOffsetY;
-
-    const newXVal = xScale.getValueForPixel(newXPix);
-    const newYVal = yScale.getValueForPixel(newYPix);
-
-    draggingNote.x = newXVal;
-    draggingNote.y = newYVal;
-
-    chart.update("none");
-  });
+  }
+});
 
 canvas.addEventListener("mouseup", async () => {
   if (!draggingNote) return;
 
   draggingNote.__dragging = false;
 
-  // ✔️ Réactiver zoom/pan
+  // ✅ Réactiver immédiatement zoom/pan et rafraîchir
   chart.$isDraggingNote = false;
   chart.options.plugins.zoom.zoom.drag.enabled = true;
   chart.options.plugins.zoom.pan.enabled = true;
+  chart.update('none'); // <<< ajouté
 
   canvas.style.cursor = "default";
-  chart.update("none");
 
-  // 💾 Sauvegarde de la nouvelle position sur Drive
+  // 💾 Sauvegarde Drive
   try {
     await saveNotePosition(draggingNote);
   } catch (e) {
@@ -965,6 +945,7 @@ canvas.addEventListener("mouseup", async () => {
 
   draggingNote = null;
 });
+
 
 
   canvas.addEventListener("mouseleave", () => {
@@ -2235,6 +2216,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
