@@ -885,81 +885,6 @@ const notesPlugin = {
     // Liste des zones de clic calculées
     chart.$noteHitZones = [];
 
-    
-    // === DRAG & DROP DES NOTES (+ sauvegarde) ===
-if (!chart.$noteDragAttached) {
-  chart.$noteDragAttached = true;
-
-  let draggingNote = null;
-  let dragOffsetX = 0;
-  let dragOffsetY = 0;
-
-  const canvas = chart.canvas;
-  const xScale = chart.scales.x;
-  const yScale = chart.scales.y;
-
-canvas.addEventListener("mousedown", ev => {
-  if (!chart.$noteHitZones) return;
-  const rect = canvas.getBoundingClientRect();
-  const px = ev.clientX - rect.left;
-  const py = ev.clientY - rect.top;
-
-  for (const zone of chart.$noteHitZones) {
-    if (px >= zone.x1 && px <= zone.x2 && py >= zone.y1 && py <= zone.y2) {
-      draggingNote = zone.note;
-      dragOffsetX = px - xScale.getPixelForValue(draggingNote.x);
-      dragOffsetY = py - yScale.getPixelForValue(draggingNote.y);
-
-      // ✅ Désactiver immédiatement zoom/pan et forcer rafraîchissement
-      chart.$isDraggingNote = true;
-      chart.options.plugins.zoom.zoom.drag.enabled = false;
-      chart.options.plugins.zoom.pan.enabled = false;
-      chart.update('none'); // <<< ajouté
-
-      draggingNote.__dragging = true;
-      canvas.style.cursor = "grabbing";
-      break;
-    }
-  }
-});
-
-canvas.addEventListener("mouseup", async () => {
-  if (!draggingNote) return;
-
-  draggingNote.__dragging = false;
-
-  // ✅ Réactiver immédiatement zoom/pan et rafraîchir
-  chart.$isDraggingNote = false;
-  chart.options.plugins.zoom.zoom.drag.enabled = true;
-  chart.options.plugins.zoom.pan.enabled = true;
-  chart.update('none'); // <<< ajouté
-
-  canvas.style.cursor = "default";
-
-  // 💾 Sauvegarde Drive
-  try {
-    await saveNotePosition(draggingNote);
-  } catch (e) {
-    console.error("Erreur sauvegarde position note :", e);
-  }
-
-  draggingNote = null;
-});
-
-
-
-  canvas.addEventListener("mouseleave", () => {
-    if (draggingNote) {
-      draggingNote.__dragging = false;
-      draggingNote = null;
-      chart.update("none");
-    }
-    canvas.style.cursor = "default";
-  });
-}
-
-
-
     notesData.forEach(n => {
       if (n.status !== "active") return;
       const x = xScale.getPixelForValue(n.x);
@@ -988,20 +913,6 @@ canvas.addEventListener("mouseup", async () => {
       const boxWidth = Math.min(maxWidth, Math.max(...lines.map(l => ctx.measureText(l).width)) + paddingX * 2);
       const boxHeight = lines.length * 16 + paddingY * 2;
 
-
-// === Effet visuel si la note est en train d'être déplacée ===
-if (n.__dragging) {
-  ctx.strokeStyle = "#ffcc00";   // contour jaune
-  ctx.lineWidth = 4;
-  ctx.strokeRect(
-    x - boxWidth / 2 - 2,
-    y - boxHeight / 2 - 2,
-    boxWidth + 4,
-    boxHeight + 4
-  );
-}
-
-      
       // 🎨 Fond blanc semi-transparent + léger contour
       const panel = getCSSVar("--panel") || "#fff";
       const accent = getCSSVar("--accent") || "#000";
@@ -2129,43 +2040,6 @@ function showPointEffect(xValue, yValue, color = "rgba(255,112,67,0.6)", duratio
   setTimeout(() => effect.remove(), duration);
 }
 
-// 💾 Mise à jour de la position d'une note sur Drive
-async function saveNotePosition(note) {
-  try {
-    if (!note || !note.id) {
-      console.warn("Impossible de mettre à jour la note : id manquant", note);
-      return;
-    }
-
-    const body = new URLSearchParams({
-      id: note.id,                                      // même id que lors de la création
-      folderId: localStorage.getItem("lastFolderId") || "",
-      csvName: baseFileName || "inconnu.csv",
-      note: note.text || note.note || "",
-      x: note.x,
-      y: note.y,
-      status: note.status || "active",
-      action: "move"                                   // optionnel, pour info côté script
-    });
-
-    const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbz9zcweeyv7GpC4ZCLnw57uVvuHEOWEmfbvnLHVaqZ8Php179viedbf7PX8Vmi8HhTX7Q/exec",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body
-      }
-    );
-
-    const txt = await response.text();
-    console.log("✅ Position de note sauvegardée :", txt);
-    showToast("✅ Position de la note sauvegardée");
-  } catch (e) {
-    console.error("⚠️ Erreur sauvegarde position note :", e);
-    showToast("⚠️ Erreur lors de la sauvegarde de la note");
-  }
-}
-
 
 // === 🪶 Popup de confirmation stylée ===
 function showConfirm(message, onConfirm) {
@@ -2216,9 +2090,6 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
-
-
-
 
 
 
