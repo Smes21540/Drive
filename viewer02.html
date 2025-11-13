@@ -906,15 +906,19 @@ if (!chart.$noteDragAttached) {
 
     for (const zone of chart.$noteHitZones) {
       if (px >= zone.x1 && px <= zone.x2 && py >= zone.y1 && py <= zone.y2) {
-        draggingNote = zone.note;
+draggingNote = zone.note;
+dragOffsetX = px - xScale.getPixelForValue(draggingNote.x);
+dragOffsetY = py - yScale.getPixelForValue(draggingNote.y);
 
-        dragOffsetX = px - xScale.getPixelForValue(draggingNote.x);
-        dragOffsetY = py - yScale.getPixelForValue(draggingNote.y);
+// ⛔ Désactiver zoom/pan pendant le drag
+chart.$isDraggingNote = true;
+chart.options.plugins.zoom.zoom.drag.enabled = false;
+chart.options.plugins.zoom.pan.enabled = false;
 
-        // 🔆 note en mode "drag"
-        draggingNote.__dragging = true;
-        canvas.style.cursor = "grabbing";
-        chart.update("none");
+draggingNote.__dragging = true;
+canvas.style.cursor = "grabbing";
+chart.update("none");
+;
         break;
       }
     }
@@ -939,22 +943,29 @@ if (!chart.$noteDragAttached) {
     chart.update("none");
   });
 
-  canvas.addEventListener("mouseup", async () => {
-    if (!draggingNote) return;
+canvas.addEventListener("mouseup", async () => {
+  if (!draggingNote) return;
 
-    draggingNote.__dragging = false;
-    canvas.style.cursor = "default";
-    chart.update("none");
+  draggingNote.__dragging = false;
 
-    // 💾 Sauvegarde de la nouvelle position sur Drive
-    try {
-      await saveNotePosition(draggingNote);
-    } catch (e) {
-      console.error("Erreur sauvegarde position note :", e);
-    }
+  // ✔️ Réactiver zoom/pan
+  chart.$isDraggingNote = false;
+  chart.options.plugins.zoom.zoom.drag.enabled = true;
+  chart.options.plugins.zoom.pan.enabled = true;
 
-    draggingNote = null;
-  });
+  canvas.style.cursor = "default";
+  chart.update("none");
+
+  // 💾 Sauvegarde de la nouvelle position sur Drive
+  try {
+    await saveNotePosition(draggingNote);
+  } catch (e) {
+    console.error("Erreur sauvegarde position note :", e);
+  }
+
+  draggingNote = null;
+});
+
 
   canvas.addEventListener("mouseleave", () => {
     if (draggingNote) {
@@ -2224,6 +2235,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
