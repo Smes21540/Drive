@@ -1201,7 +1201,7 @@ if (!isNaN(dt.getTime())) {
     type:'line',
     data:{datasets},
     options:{
-      devicePixelRatio: 4,
+      devicePixelRatio: 2, //Résolution canva
       responsive:true,
       maintainAspectRatio:false,
       parsing:false,
@@ -1715,16 +1715,36 @@ folderName = folderName.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/
     const scale = Math.min((pageWidth-20)/canvas.width, (pageHeight-60)/canvas.height);
     const chartX = (pageWidth - canvas.width*scale)/2;
     const chartY = titleY + 8 + lines.length*5;
+
+
+// Canvas HD temporaire (x3)
+const scaleFactor = 3;
+const src = canvas; // canvas original
+
+const hd = document.createElement("canvas");
+hd.width = src.width * scaleFactor;
+hd.height = src.height * scaleFactor;
+
+const hctx = hd.getContext("2d");
+hctx.scale(scaleFactor, scaleFactor);
+hctx.imageSmoothingEnabled = false;
+
+// On copie le graph tel quel mais en HD
+hctx.drawImage(src, 0, 0);
+
+const imgData = hd.toDataURL("image/png");
+
+
+    
 pdf.addImage(
-  canvas.toDataURL('image/png', 1.0),   // PNG non compressé
-  'PNG',
+  imgData,
+  "PNG",
   chartX,
   chartY,
   canvas.width * scale,
-  canvas.height * scale,
-  undefined,
-  'SLOW'   // 🔥 compression minimale / qualité max
+  canvas.height * scale
 );
+
 
 
     const dateLabels = document.getElementById('dateLabels')?.textContent || "";
@@ -2282,6 +2302,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
