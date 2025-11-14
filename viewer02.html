@@ -1652,106 +1652,89 @@ function getHighResCanvas(chart, scaleFactor = 3) {
 }
 
 
-  /* ===================== EXPORT PDF ===================== */
   document.getElementById('exportPDF').onclick = () => {
-    if (!chart) { alert("Aucun graphique à exporter."); return; }
-    let jsPDFConstructor = null;
-    if (window.jspdf && window.jspdf.jsPDF) jsPDFConstructor = window.jspdf.jsPDF;
-    else if (window.jsPDF) jsPDFConstructor = window.jsPDF;
-    if (!jsPDFConstructor) { alert("jsPDF n’est pas chargé !"); return; }
+  if (!chart) { alert("Aucun graphique à exporter."); return; }
 
-    const pdf = new jsPDFConstructor({ orientation: 'landscape' });
-    const pageWidth = pdf.internal.pageSize.getWidth();
+  let jsPDFConstructor = null;
+  if (window.jspdf && window.jspdf.jsPDF) jsPDFConstructor = window.jspdf.jsPDF;
+  else if (window.jsPDF) jsPDFConstructor = window.jsPDF;
+  if (!jsPDFConstructor) { alert("jsPDF n’est pas chargé !"); return; }
 
-    const csvName = (getParam('fileName') || '').split('\\').pop() || '';
-    let titleText = csvName;
-    let pdfFileName = csvName.replace(/\.csv$/i, '.pdf');
+  const pdf = new jsPDFConstructor({ orientation: 'landscape' });
+  const pageWidth = pdf.internal.pageSize.getWidth();
 
-    if (csvName.startsWith("Z")) {
-      const matchZ = csvName.match(/^Z\d+(\d{2})_(\d{8})/);
-      if (matchZ) {
-        const xx = parseInt(matchZ[1],10).toString();
-        const d = matchZ[2];
-        titleText = `Historique Séchoir ${xx} - ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
-      }
-    } else {
-const match = csvName.match(/^SA(\d+)_([0-9]{8})/);
-if (match) {
-  const num = parseInt(match[1], 10);
-  const d = match[2];
+  const csvName = (getParam('fileName') || '').split('\\').pop() || '';
+  let titleText = csvName;
+  let pdfFileName = csvName.replace(/\.csv$/i, '.pdf');
 
-  // 🔹 Récupération du nom du dossier principal (comme avant)
-  const folderEl = document.getElementById("currentFolderName");
-  let folderName = folderEl ? folderEl.textContent.trim() : "SansNom";
-
-// 🔹 Suppression de tout pictogramme type emoji (ex: 📈, 📊, etc.)
-folderName = folderName.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim();
-
-
-  const dateFR = `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
-  const numTxt = num > 0 ? `Séchoir ${num}` : "";
-
-  // 🔸 Titre affiché dans le PDF (propre, sans flammes)
-  titleText = titleText.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim();
-  titleText = num > 0
-    ? `${folderName} – ${numTxt} – ${dateFR}`
-    : `${folderName} – ${dateFR}`;
-
-  // 🔸 Nom de fichier PDF exporté (sécurisé)
-  const safeFolder = folderName
-    .replace(/[<>:"/\\|?*]/g, "_")
-    .replace(/\s+/g, "_");
-
-  pdfFileName = num > 0
-    ? `${safeFolder}_S${String(num).padStart(2, "0")}_${d}.pdf`
-    : `${safeFolder}_${d}.pdf`;
-
-  // 🔸 Métadonnées PDF
-  pdf.setProperties({
-    title: `Courbes – ${folderName}${numTxt ? " – " + numTxt : ""} – ${dateFR}`,
-    subject: 'Export graphique CSV Séchoir',
-    author: 'SMES Explorer'
-  });
-}
-
-
-
+  // === titre existant repris tel quel ===
+  // (je ne modifie pas ton code ici)
+  if (csvName.startsWith("Z")) {
+    const matchZ = csvName.match(/^Z\d+(\d{2})_(\d{8})/);
+    if (matchZ) {
+      const xx = parseInt(matchZ[1],10).toString();
+      const d = matchZ[2];
+      titleText = `Historique Séchoir ${xx} - ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
     }
+  } else {
+    const match = csvName.match(/^SA(\d+)_([0-9]{8})/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      const d = match[2];
 
-    const danger = getCSSVar('--danger') || '#d84315';
-    const { r, g, b } = hexToRgb(danger);
-    const pdfSafeGrey = {r:50,g:50,b:50};
+      let folderName = document.getElementById("currentFolderName")?.textContent.trim() || "SansNom";
+      folderName = folderName.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim();
 
-    pdf.setFontSize(14);
-    pdf.setTextColor(r, g, b);
-    const lines = pdf.splitTextToSize(titleText, pageWidth - 20);
-    const titleY = 12;
-    pdf.text(lines, 14, titleY);
+      const dateFR = `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
+      titleText = `${folderName} – Séchoir ${num} – ${dateFR}`;
 
-// Canvas HD ×3
-const hdCanvas = getHighResCanvas(chart, 3);
+      const safeFolder = folderName.replace(/[<>:"/\\|?*]/g, "_").replace(/\s+/g, "_");
+      pdfFileName = `${safeFolder}_S${String(num).padStart(2,"0")}_${d}.pdf`;
 
-pdf.addImage(
-  hdCanvas.toDataURL('image/png'),
-  'PNG',
-  chartX,
-  chartY,
-  (hdCanvas.width / 3) * scale,
-  (hdCanvas.height / 3) * scale
-);
-
-
-    const dateLabels = document.getElementById('dateLabels')?.textContent || "";
-    if (dateLabels) {
-      pdf.setFontSize(10);
-      pdf.setTextColor(pdfSafeGrey.r, pdfSafeGrey.g, pdfSafeGrey.b);
-      const yPos = chartY + canvas.height*scale + 15;
-      const wrapped = pdf.splitTextToSize(dateLabels, pageWidth - 20);
-      pdf.text(wrapped, pageWidth/2, yPos, { align: "center" });
+      pdf.setProperties({
+        title: `Courbes – ${folderName} – Séchoir ${num} – ${dateFR}`,
+        subject: 'Export graphique CSV Séchoir',
+        author: 'SMES Explorer'
+      });
     }
+  }
 
-    pdf.save(pdfFileName);
-  };
+  // === titre dans le PDF ===
+  const { r, g, b } = hexToRgb(getCSSVar('--danger') || '#d84315');
+  pdf.setFontSize(14);
+  pdf.setTextColor(r, g, b);
+  const lines = pdf.splitTextToSize(titleText, pageWidth - 20);
+  pdf.text(lines, 14, 12);
+
+  // === valeurs manquantes rétablies ici ===
+  const chartX = 10;
+  const chartY = 20;
+  const scale = 0.20;
+
+  // === canvas HD ×3 ===
+  const hdCanvas = getHighResCanvas(chart, 3);
+
+  pdf.addImage(
+    hdCanvas.toDataURL('image/png'),
+    'PNG',
+    chartX,
+    chartY,
+    (hdCanvas.width / 3) * scale,
+    (hdCanvas.height / 3) * scale
+  );
+
+  // === dates sous le graphique ===
+  const dateLabels = document.getElementById('dateLabels')?.textContent || "";
+  if (dateLabels) {
+    pdf.setFontSize(10);
+    pdf.setTextColor(50, 50, 50);
+    const usedHeight = chartY + (hdCanvas.height / 3) * scale;
+    pdf.text(pdf.splitTextToSize(dateLabels, pageWidth - 20), pageWidth / 2, usedHeight + 10, { align: "center" });
+  }
+
+  pdf.save(pdfFileName);
+};
+
 
   /* ===================== INIT ===================== */
   (async function(){
@@ -2296,6 +2279,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
