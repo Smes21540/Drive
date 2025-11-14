@@ -1631,6 +1631,25 @@ async function autoLoadDays(chart){
   }
 }
 
+// === Canvas HD pour export PDF ===
+function getHighResCanvas(chart, scaleFactor = 3) {
+  const origCanvas = chart.canvas;
+  const w = origCanvas.width;
+  const h = origCanvas.height;
+
+  // Crée un canvas temporaire HD
+  const hd = document.createElement("canvas");
+  hd.width = w * scaleFactor;
+  hd.height = h * scaleFactor;
+
+  const ctx = hd.getContext("2d");
+  ctx.scale(scaleFactor, scaleFactor);
+
+  // Redessine le graph directement dans le canvas HD
+  chart.draw(ctx);
+
+  return hd;
+}
 
 
   /* ===================== EXPORT PDF ===================== */
@@ -1709,19 +1728,18 @@ folderName = folderName.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/
     const titleY = 12;
     pdf.text(lines, 14, titleY);
 
-    const canvas = chart.canvas;
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const scale = Math.min((pageWidth-20)/canvas.width, (pageHeight-60)/canvas.height);
-    const chartX = (pageWidth - canvas.width*scale)/2;
-    const chartY = titleY + 8 + lines.length*5;
-    pdf.addImage(
-      canvas.toDataURL('image/png'),
-      'PNG',
-      chartX,
-      chartY,
-      canvas.width*scale,
-      canvas.height*scale
-    );
+// Canvas HD ×3
+const hdCanvas = getHighResCanvas(chart, 3);
+
+pdf.addImage(
+  hdCanvas.toDataURL('image/png'),
+  'PNG',
+  chartX,
+  chartY,
+  (hdCanvas.width / 3) * scale,
+  (hdCanvas.height / 3) * scale
+);
+
 
     const dateLabels = document.getElementById('dateLabels')?.textContent || "";
     if (dateLabels) {
@@ -2278,6 +2296,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
