@@ -1631,39 +1631,42 @@ async function autoLoadDays(chart){
   }
 }
 
-function getHighResCanvas(chart, scaleFactor = 3) {
-  const origCanvas = chart.canvas;
+async function getHighResCanvas(chart, scaleFactor = 3) {
 
-  // Canvas HD
-  const hdCanvas = document.createElement("canvas");
-  hdCanvas.width = origCanvas.width * scaleFactor;
-  hdCanvas.height = origCanvas.height * scaleFactor;
+const origCanvas = chart.canvas;
 
-  // Copie complète de la configuration du chart
-  const configHD = JSON.parse(JSON.stringify(chart.config));
+// Canvas HD
+const hdCanvas = document.createElement("canvas");
+hdCanvas.width = origCanvas.width * scaleFactor;
+hdCanvas.height = origCanvas.height * scaleFactor;
 
-  // Empêche crash si options absentes
-  if (!configHD.options) configHD.options = {};
-  if (!configHD.options.plugins) configHD.options.plugins = {};
+// Copie propre de la config
+const configHD = JSON.parse(JSON.stringify(chart.config));
 
-  // Ajustements indispensables
-  configHD.options.animation = false;
-  configHD.options.responsive = false;
-  configHD.options.devicePixelRatio = scaleFactor;
+// Sécurisation des options (évite l’erreur undefined)
+if (!configHD.options) configHD.options = {};
+if (!configHD.options.plugins) configHD.options.plugins = {};
 
-  // Création du chart HD temporaire
-  const tempChart = new Chart(hdCanvas.getContext("2d"), configHD);
+configHD.options.animation = false;
+configHD.options.responsive = false;
+configHD.options.devicePixelRatio = scaleFactor;
 
-  // Une fois dessiné, on peut le détruire
-  tempChart.destroy();
+// Création du chart HD temporaire
+const tempChart = new Chart(hdCanvas.getContext("2d"), configHD);
 
-  return hdCanvas;
+// ⭐ On attend que Chart.js trace réellement dans le canvas
+await new Promise(r => setTimeout(r, 40));
+
+tempChart.destroy();
+return hdCanvas;
+
 }
 
 
 
 
-  document.getElementById('exportPDF').onclick = () => {
+  document.getElementById('exportPDF').onclick = async () => {
+
   if (!chart) { alert("Aucun graphique à exporter."); return; }
 
   let jsPDFConstructor = null;
@@ -1723,7 +1726,8 @@ function getHighResCanvas(chart, scaleFactor = 3) {
   const scale = 0.20;
 
   // === canvas HD ×3 ===
-  const hdCanvas = getHighResCanvas(chart, 3);
+  const hdCanvas = await getHighResCanvas(chart, 3);
+
 
   pdf.addImage(
     hdCanvas.toDataURL('image/png'),
@@ -2290,6 +2294,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
