@@ -311,6 +311,21 @@
   color: var(--muted-text);
 }
 
+.loader {
+  border: 4px solid #fff;
+  border-top: 4px solid transparent;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  margin-right: 12px;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+    
 
   </style>
 </head>
@@ -1636,6 +1651,7 @@ async function autoLoadDays(chart){
 
   /* ===================== EXPORT PDF ===================== */
   document.getElementById('exportPDF').onclick = () => {
+    document.getElementById("pdfLoadingOverlay").style.display = "flex";
     if (!chart) { alert("Aucun graphique à exporter."); return; }
     let jsPDFConstructor = null;
     if (window.jspdf && window.jspdf.jsPDF) jsPDFConstructor = window.jspdf.jsPDF;
@@ -1755,6 +1771,7 @@ pdf.addImage(
       const wrapped = pdf.splitTextToSize(dateLabels, pageWidth - 20);
       pdf.text(wrapped, pageWidth/2, yPos, { align: "center" });
     }
+document.getElementById("pdfLoadingOverlay").style.display = "none";
 
     pdf.save(pdfFileName);
   };
@@ -2299,9 +2316,29 @@ function showConfirm(message, onConfirm) {
   
 </script>
 
+<div id="pdfLoadingOverlay" style="
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.35);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  backdrop-filter: blur(2px);
+">
+  <div class="loader"></div>
+  Génération du PDF…
+</div>
+
+  
   
 </body>
 </html>
+
 
 
 
