@@ -1710,7 +1710,8 @@ document.getElementById('exportPDF').onclick = () => {
 
     /* -------- Canvas HD (x4) -------- */
     const canvas = chart.canvas;
-    const hdCanvas = makeUltraHDCanvas(canvas, 4);  // <--- HD puissant
+    const hdCanvas = makeHDCanvas(canvas, 4);
+
 
     /* -------- Placement dans PDF (pas de flou !) -------- */
     const pxToMm = 0.264583333;
@@ -2291,6 +2292,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
