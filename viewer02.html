@@ -111,10 +111,29 @@
       border:1px solid var(--accent); border-radius:6px; padding:6px 10px; font-size:12px;
       color:var(--accent-darker); font-weight:bold; z-index:10; pointer-events:none;
     }
-    #spinner{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-      width:50px;height:50px;border:6px solid #f3f3f3;border-top:6px solid var(--accent);
-      border-radius:50%;animation:spin 1s linear infinite;z-index:2000;}
-    @keyframes spin{0%{transform:translate(-50%,-50%) rotate(0deg);}100%{transform:translate(-50%,-50%) rotate(360deg);}}
+#spinner {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2000;
+}
+
+.spin-inner {
+  width: 50px;
+  height: 50px;
+  border: 6px solid #ccc;
+  border-top: 6px solid var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
     #errorBox{
       display:none;position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);
       background:var(--accent-muted);padding:20px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.2);
@@ -381,7 +400,10 @@
 
   <!-- === PARTIE 7 : Aides/états === -->
   <div id="zoomInfo">🔍 Sélectionner une zone (drag) pour zoomer, molette+Ctrl pour zoom, Ctrl+clic sur la courbe pour changer sa couleur</div>
-  <div id="spinner"></div>
+ <div id="spinner">
+  <div class="spin-inner"></div>
+</div>
+
   <div id="errorBox">
     ⚠️ Impossible de charger le fichier.<br>Vérifiez la connexion ou réessayez plus tard.<br><br>
     <button onclick="window.location.reload()">Réessayer</button>
@@ -2338,6 +2360,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
