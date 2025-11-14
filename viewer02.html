@@ -1795,10 +1795,14 @@ pdf.addImage(
       const wrapped = pdf.splitTextToSize(dateLabels, pageWidth - 20);
       pdf.text(wrapped, pageWidth/2, yPos, { align: "center" });
     }
-document.getElementById("pdfLoadingOverlay").style.display = "none";
-hideSpinner();
+pdf.save(pdfFileName);
 
-    pdf.save(pdfFileName);
+// Attendre que le navigateur ait fini d'écrire le fichier
+setTimeout(() => {
+    document.getElementById("pdfLoadingOverlay").style.display = "none";
+    hideSpinner();
+}, 800);
+
   };
 
   /* ===================== INIT ===================== */
@@ -2363,6 +2367,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
