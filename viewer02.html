@@ -1673,6 +1673,8 @@ async function autoLoadDays(chart){
 
   /* ===================== EXPORT PDF ===================== */
   document.getElementById('exportPDF').onclick = () => {
+    showSpinner();
+
     document.getElementById("pdfLoadingOverlay").style.display = "flex";
     if (!chart) { alert("Aucun graphique à exporter."); return; }
     let jsPDFConstructor = null;
@@ -1794,6 +1796,7 @@ pdf.addImage(
       pdf.text(wrapped, pageWidth/2, yPos, { align: "center" });
     }
 document.getElementById("pdfLoadingOverlay").style.display = "none";
+hideSpinner();
 
     pdf.save(pdfFileName);
   };
@@ -2360,6 +2363,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
