@@ -1642,6 +1642,10 @@ function getHighResCanvas(chart, scaleFactor = 3) {
   // Copie complète de la configuration du chart
   const configHD = JSON.parse(JSON.stringify(chart.config));
 
+  // Empêche crash si options absentes
+  if (!configHD.options) configHD.options = {};
+  if (!configHD.options.plugins) configHD.options.plugins = {};
+
   // Ajustements indispensables
   configHD.options.animation = false;
   configHD.options.responsive = false;
@@ -1655,6 +1659,7 @@ function getHighResCanvas(chart, scaleFactor = 3) {
 
   return hdCanvas;
 }
+
 
 
 
@@ -2285,6 +2290,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
