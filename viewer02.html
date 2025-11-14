@@ -1631,25 +1631,31 @@ async function autoLoadDays(chart){
   }
 }
 
-// === Canvas HD pour export PDF ===
 function getHighResCanvas(chart, scaleFactor = 3) {
   const origCanvas = chart.canvas;
-  const w = origCanvas.width;
-  const h = origCanvas.height;
 
-  // Crée un canvas temporaire HD
-  const hd = document.createElement("canvas");
-  hd.width = w * scaleFactor;
-  hd.height = h * scaleFactor;
+  // Canvas HD
+  const hdCanvas = document.createElement("canvas");
+  hdCanvas.width = origCanvas.width * scaleFactor;
+  hdCanvas.height = origCanvas.height * scaleFactor;
 
-  const ctx = hd.getContext("2d");
-  ctx.scale(scaleFactor, scaleFactor);
+  // Copie complète de la configuration du chart
+  const configHD = JSON.parse(JSON.stringify(chart.config));
 
-  // Redessine le graph directement dans le canvas HD
-  chart.draw(ctx);
+  // Ajustements indispensables
+  configHD.options.animation = false;
+  configHD.options.responsive = false;
+  configHD.options.devicePixelRatio = scaleFactor;
 
-  return hd;
+  // Création du chart HD temporaire
+  const tempChart = new Chart(hdCanvas.getContext("2d"), configHD);
+
+  // Une fois dessiné, on peut le détruire
+  tempChart.destroy();
+
+  return hdCanvas;
 }
+
 
 
   document.getElementById('exportPDF').onclick = () => {
@@ -2279,6 +2285,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
