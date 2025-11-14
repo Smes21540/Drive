@@ -1646,71 +1646,58 @@ function makeHDCanvas(canvas, scale = 3) {
 
 
   /* ===================== EXPORT PDF ===================== */
-  document.getElementById('exportPDF').onclick = () => {
+document.getElementById('exportPDF').onclick = () => {
     if (!chart) { alert("Aucun graphique à exporter."); return; }
+
     let jsPDFConstructor = null;
-    if (window.jspdf && window.jspdf.jsPDF) jsPDFConstructor = window.jspdf.jsPDF;
+    if (window.jspdf?.jsPDF) jsPDFConstructor = window.jspdf.jsPDF;
     else if (window.jsPDF) jsPDFConstructor = window.jsPDF;
     if (!jsPDFConstructor) { alert("jsPDF n’est pas chargé !"); return; }
 
     const pdf = new jsPDFConstructor({ orientation: 'landscape' });
     const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
 
+    /* -------- Récupération nom fichier + titre -------- */
     const csvName = (getParam('fileName') || '').split('\\').pop() || '';
     let titleText = csvName;
     let pdfFileName = csvName.replace(/\.csv$/i, '.pdf');
 
     if (csvName.startsWith("Z")) {
-      const matchZ = csvName.match(/^Z\d+(\d{2})_(\d{8})/);
-      if (matchZ) {
-        const xx = parseInt(matchZ[1],10).toString();
-        const d = matchZ[2];
-        titleText = `Historique Séchoir ${xx} - ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
-      }
+        const matchZ = csvName.match(/^Z\d+(\d{2})_(\d{8})/);
+        if (matchZ) {
+            const xx = parseInt(matchZ[1],10).toString();
+            const d = matchZ[2];
+            titleText = `Historique Séchoir ${xx} - ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
+        }
     } else {
-const match = csvName.match(/^SA(\d+)_([0-9]{8})/);
-if (match) {
-  const num = parseInt(match[1], 10);
-  const d = match[2];
+        const match = csvName.match(/^SA(\d+)_([0-9]{8})/);
+        if (match) {
+            const num = parseInt(match[1], 10);
+            const d = match[2];
 
-  // 🔹 Récupération du nom du dossier principal (comme avant)
-  const folderEl = document.getElementById("currentFolderName");
-  let folderName = folderEl ? folderEl.textContent.trim() : "SansNom";
+            let folderName = document.getElementById("currentFolderName")?.textContent.trim() || "SansNom";
+            folderName = folderName.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim();
 
-// 🔹 Suppression de tout pictogramme type emoji (ex: 📈, 📊, etc.)
-folderName = folderName.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim();
+            const dateFR = `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
+            const numTxt = num > 0 ? `Séchoir ${num}` : "";
 
+            titleText = `${folderName} – ${numTxt} – ${dateFR}`;
 
-  const dateFR = `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
-  const numTxt = num > 0 ? `Séchoir ${num}` : "";
+            const safeFolder = folderName.replace(/[<>:"/\\|?*]/g, "_").replace(/\s+/g, "_");
+            pdfFileName = num > 0
+                ? `${safeFolder}_S${String(num).padStart(2, "0")}_${d}.pdf`
+                : `${safeFolder}_${d}.pdf`;
 
-  // 🔸 Titre affiché dans le PDF (propre, sans flammes)
-  titleText = titleText.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim();
-  titleText = num > 0
-    ? `${folderName} – ${numTxt} – ${dateFR}`
-    : `${folderName} – ${dateFR}`;
-
-  // 🔸 Nom de fichier PDF exporté (sécurisé)
-  const safeFolder = folderName
-    .replace(/[<>:"/\\|?*]/g, "_")
-    .replace(/\s+/g, "_");
-
-  pdfFileName = num > 0
-    ? `${safeFolder}_S${String(num).padStart(2, "0")}_${d}.pdf`
-    : `${safeFolder}_${d}.pdf`;
-
-  // 🔸 Métadonnées PDF
-  pdf.setProperties({
-    title: `Courbes – ${folderName}${numTxt ? " – " + numTxt : ""} – ${dateFR}`,
-    subject: 'Export graphique CSV Séchoir',
-    author: 'SMES Explorer'
-  });
-}
-
-
-
+            pdf.setProperties({
+                title: `Courbes – ${folderName}${numTxt ? " – " + numTxt : ""} – ${dateFR}`,
+                subject: 'Export graphique CSV Séchoir',
+                author: 'SMES Explorer'
+            });
+        }
     }
 
+    /* -------- Titre PDF -------- */
     const danger = getCSSVar('--danger') || '#d84315';
     const { r, g, b } = hexToRgb(danger);
     const pdfSafeGrey = {r:50,g:50,b:50};
@@ -1721,34 +1708,45 @@ folderName = folderName.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/
     const titleY = 12;
     pdf.text(lines, 14, titleY);
 
+    /* -------- Canvas HD (x4) -------- */
     const canvas = chart.canvas;
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const scale = Math.min((pageWidth-20)/canvas.width, (pageHeight-60)/canvas.height);
-    const chartX = (pageWidth - canvas.width*scale)/2;
-    const chartY = titleY + 8 + lines.length*5;
-const hdCanvas = makeHDCanvas(canvas, 3);
+    const hdCanvas = makeUltraHDCanvas(canvas, 4);  // <--- HD puissant
 
-pdf.addImage(
-  hdCanvas.toDataURL("image/png"),
-  "PNG",
-  chartX,
-  chartY,
-  canvas.width * scale,
-  canvas.height * scale
-);
+    /* -------- Placement dans PDF (pas de flou !) -------- */
+    const pxToMm = 0.264583333;
 
+    const imgWmm = hdCanvas.width * pxToMm;
+    const imgHmm = hdCanvas.height * pxToMm;
 
+    // Marges et position
+    const chartX = 10;
+    const chartY = titleY + 8 + lines.length * 5;
+
+    pdf.addImage(
+        hdCanvas.toDataURL("image/png"),
+        "PNG",
+        chartX,
+        chartY,
+        imgWmm,
+        imgHmm
+    );
+
+    /* -------- Labels en bas -------- */
     const dateLabels = document.getElementById('dateLabels')?.textContent || "";
     if (dateLabels) {
-      pdf.setFontSize(10);
-      pdf.setTextColor(pdfSafeGrey.r, pdfSafeGrey.g, pdfSafeGrey.b);
-      const yPos = chartY + canvas.height*scale + 15;
-      const wrapped = pdf.splitTextToSize(dateLabels, pageWidth - 20);
-      pdf.text(wrapped, pageWidth/2, yPos, { align: "center" });
+        pdf.setFontSize(10);
+        pdf.setTextColor(pdfSafeGrey.r, pdfSafeGrey.g, pdfSafeGrey.b);
+
+        const yPos = chartY + imgHmm + 10;
+        const wrapped = pdf.splitTextToSize(dateLabels, pageWidth - 20);
+
+        pdf.text(wrapped, pageWidth/2, yPos, { align: "center" });
     }
 
+    /* -------- Export final -------- */
     pdf.save(pdfFileName);
-  };
+};
+
 
   /* ===================== INIT ===================== */
   (async function(){
@@ -2293,6 +2291,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
