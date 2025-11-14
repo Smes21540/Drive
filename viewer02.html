@@ -1675,46 +1675,58 @@ async function autoLoadDays(chart){
 document.getElementById('exportPDF').onclick = () => {
     showSpinner();
 
-    setTimeout(() => {   // <---- OUVERTURE
+    setTimeout(() => {
 
-        if (!chart) { alert("Aucun graphique à exporter."); return; }
+        // 🔹 Nettoyage des emojis uniquement
+        function stripEmojis(str) {
+            return str.replace(/[\p{Extended_Pictographic}]/gu, "");
+        }
+
+        if (!chart) { alert("Aucun graphique à exporter."); hideSpinner(); return; }
+
         let jsPDFConstructor = null;
         if (window.jspdf && window.jspdf.jsPDF) jsPDFConstructor = window.jspdf.jsPDF;
         else if (window.jsPDF) jsPDFConstructor = window.jsPDF;
-        if (!jsPDFConstructor) { alert("jsPDF n’est pas chargé !"); return; }
+
+        if (!jsPDFConstructor) { alert("jsPDF n’est pas chargé !"); hideSpinner(); return; }
 
         const pdf = new jsPDFConstructor({ orientation: 'landscape' });
         const pageWidth = pdf.internal.pageSize.getWidth();
 
+        // 🔸 Nom CSV brut
         const csvName = (getParam('fileName') || '').split('\\').pop() || '';
-        let titleText = csvName;
+
+        // 🔸 Titre initial nettoyé
+        let titleText = stripEmojis(csvName).trim();
         let pdfFileName = csvName.replace(/\.csv$/i, '.pdf');
 
+        /* ============ BRANCHE Z ============ */
         if (csvName.startsWith("Z")) {
             const matchZ = csvName.match(/^Z\d+(\d{2})_(\d{8})/);
             if (matchZ) {
-                const xx = parseInt(matchZ[1],10).toString();
+                const xx = parseInt(matchZ[1], 10).toString();
                 const d = matchZ[2];
-                titleText = `Historique Séchoir ${xx} - ${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
+                titleText = `Historique Séchoir ${xx} - ${d.slice(6, 8)}/${d.slice(4, 6)}/${d.slice(0, 4)}`;
             }
-        } else {
+        }
+
+        /* ============ BRANCHE SA ============ */
+        else {
             const match = csvName.match(/^SA(\d+)_([0-9]{8})/);
             if (match) {
                 const num = parseInt(match[1], 10);
                 const d = match[2];
 
-                const folderEl = document.getElementById("currentFolderName");
-                let folderName = folderEl ? folderEl.textContent.trim() : "SansNom";
-                folderName = folderName.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim();
+                let folderEl = document.getElementById("currentFolderName");
+                let folderName = folderEl ? stripEmojis(folderEl.textContent.trim()) : "SansNom";
 
-                const dateFR = `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}`;
+                const dateFR = `${d.slice(6, 8)}/${d.slice(4, 6)}/${d.slice(0, 4)}`;
                 const numTxt = num > 0 ? `Séchoir ${num}` : "";
 
-                titleText = titleText.replace(/[📈📊📉🔥🗒️🚨✨⬅️📄🔄]/g, "").trim();
-                titleText = num > 0
-                    ? `${folderName} – ${numTxt} – ${dateFR}`
-                    : `${folderName} – ${dateFR}`;
+                // 🔸 Titre final
+                titleText = `${folderName} – ${numTxt} – ${dateFR}`.trim();
 
+                // 🔸 Nom PDF safe
                 const safeFolder = folderName
                     .replace(/[<>:"/\\|?*]/g, "_")
                     .replace(/\s+/g, "_");
@@ -1723,6 +1735,7 @@ document.getElementById('exportPDF').onclick = () => {
                     ? `${safeFolder}_S${String(num).padStart(2, "0")}_${d}.pdf`
                     : `${safeFolder}_${d}.pdf`;
 
+                // 🔸 Métadonnées
                 pdf.setProperties({
                     title: `Courbes – ${folderName}${numTxt ? " – " + numTxt : ""} – ${dateFR}`,
                     subject: 'Export graphique CSV Séchoir',
@@ -1731,33 +1744,38 @@ document.getElementById('exportPDF').onclick = () => {
             }
         }
 
+        /* ============ TITRE + STYLE ============ */
         const danger = getCSSVar('--danger') || '#d84315';
         const { r, g, b } = hexToRgb(danger);
-        const pdfSafeGrey = {r:50,g:50,b:50};
+        const pdfSafeGrey = { r: 50, g: 50, b: 50 };
 
         pdf.setFontSize(14);
         pdf.setTextColor(r, g, b);
+
         const lines = pdf.splitTextToSize(titleText, pageWidth - 20);
         const titleY = 12;
         pdf.text(lines, 14, titleY);
 
+        /* ============ GRAPHIQUE HD x3 ============ */
         const canvas = chart.canvas;
         const pageHeight = pdf.internal.pageSize.getHeight();
-        const scale = Math.min((pageWidth-20)/canvas.width, (pageHeight-60)/canvas.height);
-        const chartX = (pageWidth - canvas.width*scale)/2;
-        const chartY = titleY + 8 + lines.length*5;
+        const scale = Math.min(
+            (pageWidth - 20) / canvas.width,
+            (pageHeight - 60) / canvas.height
+        );
 
-        const scaleFactor = 3;
-        const src = canvas;
+        const chartX = (pageWidth - canvas.width * scale) / 2;
+        const chartY = titleY + 8 + lines.length * 5;
 
+        // Canvas HD
         const hd = document.createElement("canvas");
-        hd.width = src.width * scaleFactor;
-        hd.height = src.height * scaleFactor;
+        hd.width = canvas.width * 3;
+        hd.height = canvas.height * 3;
 
         const hctx = hd.getContext("2d");
-        hctx.scale(scaleFactor, scaleFactor);
+        hctx.scale(3, 3);
         hctx.imageSmoothingEnabled = false;
-        hctx.drawImage(src, 0, 0);
+        hctx.drawImage(canvas, 0, 0);
 
         const imgData = hd.toDataURL("image/png");
 
@@ -1770,24 +1788,29 @@ document.getElementById('exportPDF').onclick = () => {
             canvas.height * scale
         );
 
+        /* ============ LABELS DE DATE ============ */
         const dateLabels = document.getElementById('dateLabels')?.textContent || "";
         if (dateLabels) {
             pdf.setFontSize(10);
             pdf.setTextColor(pdfSafeGrey.r, pdfSafeGrey.g, pdfSafeGrey.b);
-            const yPos = chartY + canvas.height*scale + 15;
+
             const wrapped = pdf.splitTextToSize(dateLabels, pageWidth - 20);
-            pdf.text(wrapped, pageWidth/2, yPos, { align: "center" });
+            pdf.text(
+                wrapped,
+                pageWidth / 2,
+                chartY + canvas.height * scale + 15,
+                { align: "center" }
+            );
         }
 
+        /* ============ SAUVEGARDE PDF ============ */
         pdf.save(pdfFileName);
 
-        setTimeout(() => {
-            hideSpinner();
-        }, 800);
+        /* ============ FIN ============ */
+        hideSpinner();
 
-    }, 30);  // <---- FERMETURE DU setTimeout PRINCIPAL
-};        // <---- FERMETURE DU onclick
-
+    }, 20); // spinner visible immédiatement
+};
 
   /* ===================== INIT ===================== */
   (async function(){
@@ -2335,6 +2358,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
