@@ -211,20 +211,13 @@ document.getElementById("backBtn").onclick=()=>window.close();
 function showLoading(){ document.getElementById('loadingOverlay').style.display='block'; }
 function hideLoading(){ document.getElementById('loadingOverlay').style.display='none'; }
 
-// === Nettoyage universel des pictogrammes et caractères spéciaux ===
 function cleanText(str = "") {
-  try {
-    // Décode les séquences %F0... d'URL si présentes
-    const decoded = decodeURIComponent(str);
-    // Supprime tous les emojis, pictogrammes et variantes Unicode FE0F
-    const emojiRegex = /[\p{Emoji_Presentation}\p{Emoji}\uFE0F]/gu;
-    return decoded.replace(emojiRegex, "").trim();
-  } catch {
-    // Si erreur dans decodeURIComponent (texte déjà décodé)
-    const emojiRegex = /[\p{Emoji_Presentation}\p{Emoji}\uFE0F]/gu;
-    return str.replace(emojiRegex, "").trim();
-  }
+  // Supprime uniquement les emojis et FE0F
+  // → ne touche jamais aux chiffres, lettres, accents
+  const emojiRegex = /[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F]/gu;
+  return str.replace(emojiRegex, "").trim();
 }
+
 
   
 // === Charger CSV ===
@@ -245,7 +238,7 @@ try {
 
   // Afficher dans le header
   const folderNameEl = document.getElementById("folderName");
-if (folderNameEl) folderNameEl.textContent = cleanText(folderPath || "");
+if (folderNameEl) folderNameEl.textContent = folderPath || "";
 document.title = `Tableau – ${cleanText(folderPath || fileName || "CSV")}`;
 
 
@@ -650,7 +643,9 @@ document.getElementById("exportPDF").addEventListener("click",()=>{
 let titleText = "";
 let pdfFileName = "";
 let folderName = (document.getElementById("folderName")?.textContent || "").trim();
-folderName = cleanText(folderName);
+// ne pas nettoyer : on veut garder le chiffre intact
+let folderNamePDF = cleanText(folderName);  // on enlève uniquement emojis/FE0F
+
 
 
 if (csvName.startsWith("Z")) {
@@ -674,10 +669,12 @@ if (csvName.startsWith("Z")) {
     const d = match[2];
     const dateFR = `${d.slice(6, 8)}/${d.slice(4, 6)}/${d.slice(0, 4)}`;
     const numTxt = num > 0 ? `Séchoir ${num}` : "";
-    titleText = folderName
-      ? `${folderName} – ${numTxt} – ${dateFR}`
-      : `${numTxt} – ${dateFR}`;
-    const safeFolder = folderName.replace(/[<>:"/\\|?*]/g, "_").replace(/\s+/g, "_");
+titleText = folderNamePDF
+  ? `${folderNamePDF} – ${numTxt} – ${dateFR}`
+  : `${numTxt} – ${dateFR}`;
+
+const safeFolder = folderNamePDF.replace(/[<>:"/\\|?*]/g, "_").replace(/\s+/g, "_");
+
     pdfFileName = num > 0
       ? `${safeFolder}_S${String(num).padStart(2, "0")}_${d}.pdf`
       : `${safeFolder}_${d}.pdf`;
@@ -710,7 +707,8 @@ if (csvName.startsWith("Z")) {
     finalTitle = parents + " / " + titleText;
   }
 
-doc.setProperties({ title: cleanText(finalTitle) });
+doc.setProperties({ title: finalTitle });
+
 
   
   const lines = doc.splitTextToSize(finalTitle, pageWidth - 40);
@@ -740,8 +738,9 @@ doc.setProperties({ title: cleanText(finalTitle) });
     headStyles:{fillColor:[r,g,b]}  // couleur thème
   });
 
-titleText = cleanText(titleText);
-pdfFileName = cleanText(pdfFileName);
+
+// pdfFileName reste tel quel
+
 
   
   doc.save(pdfFileName);
@@ -756,6 +755,9 @@ window.onload=()=>{
 </script>
 </body>
 </html>
+
+
+
 
 
 
