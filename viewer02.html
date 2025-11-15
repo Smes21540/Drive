@@ -1777,16 +1777,17 @@ document.getElementById('exportPDF').onclick = () => {
         hctx.imageSmoothingEnabled = false;
         hctx.drawImage(canvas, 0, 0);
 
-        const imgData = hd.toDataURL("image/png");
+        const imgData = hd.toDataURL("image/jpeg", 0.92); 
 
-        pdf.addImage(
-            imgData,
-            "PNG",
-            chartX,
-            chartY,
-            canvas.width * scale,
-            canvas.height * scale
-        );
+
+pdf.addImage(
+    imgData,
+    "JPEG",
+    chartX,
+    chartY,
+    canvas.width * scale,
+    canvas.height * scale
+);
 
         /* ============ LABELS DE DATE ============ */
         const dateLabels = document.getElementById('dateLabels')?.textContent || "";
@@ -2358,6 +2359,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
