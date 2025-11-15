@@ -1767,17 +1767,25 @@ document.getElementById('exportPDF').onclick = () => {
         const chartX = (pageWidth - canvas.width * scale) / 2;
         const chartY = titleY + 8 + lines.length * 5;
 
-        // Canvas HD
-        const hd = document.createElement("canvas");
-        hd.width = canvas.width * 3;
-        hd.height = canvas.height * 3;
+// Canvas HD
+const hd = document.createElement("canvas");
+hd.width = canvas.width * 3;
+hd.height = canvas.height * 3;
 
-        const hctx = hd.getContext("2d");
-        hctx.scale(3, 3);
-        hctx.imageSmoothingEnabled = false;
-        hctx.drawImage(canvas, 0, 0);
+const hctx = hd.getContext("2d");
 
-        const imgData = hd.toDataURL("image/jpeg", 0.92); 
+// 🔹 Ajout obligatoire : fond blanc
+hctx.fillStyle = "#ffffff";
+hctx.fillRect(0, 0, hd.width, hd.height);
+
+hctx.scale(3, 3);
+hctx.imageSmoothingEnabled = false;
+
+// copie du graphe
+hctx.drawImage(canvas, 0, 0);
+
+const imgData = hd.toDataURL("image/jpeg", 0.92);
+ 
 
 
 pdf.addImage(
@@ -2359,6 +2367,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
