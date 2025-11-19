@@ -365,10 +365,15 @@
     <button id="backBtn">⬅️ Retour</button>
     <button id="exportPDF" style="display:none;">📄 Exporter PDF</button>
     <button id="resetZoom" style="display:none;">🔄 Réinitialiser zoom</button>
-    <button id="smoothBtn" style="display:none;">✨ Lissage OFF</button>
-    <button id="toggleZ3" style="display:none;">🚨 Événements Z3 OFF</button>
-    <button id="toggleNotes" style="display:none;">🗒️ Notes ON</button>
-    <button id="filterParasites" style="display:none;">🧹 Parasites OFF</button>
+    <button id="smoothBtn" style="display:none;" title="Active un lissage visuel de la courbe">✨ Lissage OFF</button>
+    <button id="toggleZ3" style="display:none;"
+        title="Affiche ou masque les événements détectés">🚨 Événements Z3 OFF</button>
+
+    <button id="toggleNotes" style="display:none;"
+        title="Affiche les notes associées à cette journée">🗒️ Notes ON</button>
+
+    <button id="filterParasites" style="display:none;" title="Active ou désactive le filtre des valeurs parasites">🧹 Parasites OFF</button>
+
 
 
   </div>
@@ -2447,6 +2452,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
