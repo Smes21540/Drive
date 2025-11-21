@@ -1300,10 +1300,12 @@ let diffM3  = m3Last - m3First;
       const M = String(diffMinutes % 60).padStart(2,"0");
       const dureeFormatee = `${H}:${M}`;
 
-      const btns = tdAction.querySelectorAll(".gaz-btn");
-      const btnKwh    = btns[0];
-      const btnHeures = btns[1];
-      const btnAvg    = btns[2];
+const btns = tdAction.querySelectorAll(".gaz-btn");
+const btnKwh    = btns[0];
+const btnM3     = btns[1];
+const btnHeures = btns[2];
+const btnAvg    = btns[3];
+
 
       /* ===========================
          🎨 FORMATAGE, COULEURS & AFFICHAGE
@@ -1365,6 +1367,21 @@ let diffM3  = m3Last - m3First;
       btnKwh.style.color = textColor;
       btnKwh.style.minWidth = "120px";
 
+// === Bouton m³ (même style que kWh) ===
+if (!isFinite(diffM3) || diffM3 < 0) {
+    btnM3.textContent = "ERREUR";
+    btnM3.style.background = "linear-gradient(180deg,#ffccbc,#d32f2f)";
+    btnM3.style.color = "#fff";
+} else if (diffM3 === 0) {
+    btnM3.style.display = "none";
+} else {
+    btnM3.textContent = `${diffM3} m³`;
+    btnM3.style.background = bg;      // même fond que kWh
+    btnM3.style.color = textColor;    // même texte que kWh
+    btnM3.style.minWidth = "120px";
+}
+
+      
       btnHeures.textContent = `⏱ ${dureeFormatee}`;
       btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
       btnHeures.style.color = "#0d47a1";
@@ -2079,4 +2096,5 @@ if (last) {
 </script>
 </body>
 </html>
+
 
