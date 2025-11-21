@@ -1281,20 +1281,25 @@ if (
       const text = await res.text();
       const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
 
-      let diffMinutes = 0;
-      let diffKwh = 0;
+let diffMinutes = 0;
+let diffKwh = 0;
+let diffM3 = 0;  // <<< déclaration indispensable
 
-      if (lines.length > 2) {
+if (lines.length > 2) {
 
-        const firstCols = lines[1].split(",");
-        const lastCols  = lines[lines.length - 1].split(",");
+    const firstCols = lines[1].split(",");
+    const lastCols  = lines[lines.length - 1].split(",");
 
-        const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
-        const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
-        // m³ = colonne 3 comme dans ton fichier exemple
-const m3First = parseFloat(firstCols[3].replace(/"/g,""));
-const m3Last  = parseFloat(lastCols[3].replace(/"/g,""));
-let diffM3 = isFinite(m3First) && isFinite(m3Last) ? (m3Last - m3First) : 0;
+    const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
+    const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
+
+    const m3First = parseFloat(firstCols[3].replace(/"/g,""));
+    const m3Last  = parseFloat(lastCols[3].replace(/"/g,""));
+
+    if (isFinite(m3First) && isFinite(m3Last)) {
+        diffM3 = m3Last - m3First;
+    }
+
 
 
         if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
@@ -2208,5 +2213,6 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
