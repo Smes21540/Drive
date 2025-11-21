@@ -1244,13 +1244,15 @@ if (
   f.name.toLowerCase().endsWith(".csv")
 ) {
 
-  html += `
-    <div class="gaz-group">
-      <button class="gaz-btn" disabled>⏳ kWh...</button>
-      <button class="gaz-btn" disabled>⏱ Temps...</button>
-      <button class="gaz-btn gaz-small" disabled>--</button>
-    </div>
-  `;
+html += `
+  <div class="gaz-group">
+    <button class="gaz-btn" disabled>⏳ kWh...</button>
+    <button class="gaz-btn" disabled>m³...</button>
+    <button class="gaz-btn" disabled>⏱ Temps...</button>
+    <button class="gaz-btn gaz-small" disabled>--</button>
+  </div>
+`;
+
 
   (async () => {
     try {
@@ -1273,6 +1275,13 @@ if (
         const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
 
         if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
+
+        // === Consommation en m³ ===
+// colonne index 4 = "Cpt Gaz Tota (m3 2b)" OU "Cpt Gaz Lot (m3 2b)" selon ton CSV
+let m3First = parseFloat(firstCols[4].replace(/"/g,""));
+let m3Last  = parseFloat(lastCols[4].replace(/"/g,""));
+let diffM3  = m3Last - m3First;
+
 
         let active = 0;
         for (let i = 1; i < lines.length; i++) {
@@ -2070,3 +2079,4 @@ if (last) {
 </script>
 </body>
 </html>
+
