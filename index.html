@@ -1253,7 +1253,7 @@ if(f.name.toLowerCase().endsWith('.csv')){
   }
 }
 
-CONSOMMATION GAZ : calcul kWh + dur
+
 
 
 
@@ -1891,12 +1891,11 @@ function recolorHotDays(instance) {
 }
 
 
-/* ----------- EXPORT CSV GAZ ----------- */
+/* ----------- EXPORT CSV GAZ (corrigé col3=kWh / col4=m3) ----------- */
 document.getElementById("exportGazBtn").onclick = async () => {
 
     const folderPath = (localStorage.getItem("lastFolderPath") || "").toLowerCase();
 
-    // Vérification dossier gaz fiable
     if (!(folderPath.includes("consommation") && folderPath.includes("gaz"))) {
         alert("Ce dossier ne contient pas de fichiers de consommation gaz.");
         return;
@@ -1926,21 +1925,22 @@ document.getElementById("exportGazBtn").onclick = async () => {
             const first = lines[1].split(",").map(s => s.replace(/"/g, "").trim());
             const last  = lines[lines.length - 1].split(",").map(s => s.replace(/"/g, "").trim());
 
-            const kFirst = parseFloat(first[2]);
-            const kLast  = parseFloat(last[2]);
+            // === kWh = colonne 3 ===
+            const kFirst = parseFloat(first[3]);
+            const kLast  = parseFloat(last[3]);
+            const diffKwh = isFinite(kFirst) && isFinite(kLast) ? kLast - kFirst : 0;
 
-            const m3First = parseFloat(first[3]);
-            const m3Last  = parseFloat(last[3]);
+            // === m³ = colonne 4 ===
+            const m3First = parseFloat(first[4]);
+            const m3Last  = parseFloat(last[4]);
+            const diffM3  = isFinite(m3First) && isFinite(m3Last) ? m3Last - m3First : 0;
 
-            const diffKwh = (isFinite(kFirst) && isFinite(kLast)) ? (kLast - kFirst) : 0;
-            const diffM3  = (isFinite(m3First) && isFinite(m3Last)) ? (m3Last - m3First) : 0;
-
-            // Durée active
+            // Durée : progression kWh → colonne 2
             let minutes = 0;
             for (let i = 1; i < lines.length; i++) {
                 const prev = parseFloat(lines[i - 1].split(",")[2]);
                 const curr = parseFloat(lines[i].split(",")[2]);
-                if (curr > prev) minutes++;
+                if (isFinite(prev) && isFinite(curr) && curr > prev) minutes++;
             }
 
             const H = String(Math.floor(minutes / 60)).padStart(2,"0");
@@ -1949,7 +1949,6 @@ document.getElementById("exportGazBtn").onclick = async () => {
 
             const avg = minutes > 0 ? diffKwh / (minutes / 60) : 0;
 
-            // Date AAAAMMJJ
             const dateMatch = f.name.match(/(\d{8})/);
             const date = dateMatch ? dateMatch[1] : "";
 
@@ -1988,6 +1987,7 @@ document.getElementById("exportGazBtn").onclick = async () => {
 
 
 
+
 /* ----------- Init ----------- */
 window.onload=()=>{
   updateNetworkStatus();
@@ -2016,6 +2016,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
