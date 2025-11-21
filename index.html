@@ -627,31 +627,60 @@ async function getTonnageForDate(siteRoot, dateStr) {
 
         const lines = text.trim().split(/\r?\n/);
 
-        const parseCSV = line =>
-            line.match(/("([^"]*)"|[^,]+)/g).map(x => x.replace(/"/g,"").trim());
+// --- Parseur CSV propre ---
+function parseCSV(line) {
+    const result = [];
+    let current = "";
+    let insideQuotes = false;
 
-        const header = parseCSV(lines[0]);
-        const idx = header.indexOf("Cumul (tonnes)");
+    for (let i = 0; i < line.length; i++) {
+        const c = line[i];
 
-        if (idx === -1) return 0;
+        // "" → guillemet échappé
+        if (c === '"' && line[i + 1] === '"') {
+            current += '"';
+            i++;
+        }
+        else if (c === '"') {
+            insideQuotes = !insideQuotes;
+        }
+        else if (c === "," && !insideQuotes) {
+            result.push(current);
+            current = "";
+        }
+        else {
+            current += c;
+        }
+    }
 
-        const firstLine = parseCSV(lines[1]);
-        const lastLine  = parseCSV(lines[lines.length - 1]);
+    result.push(current);
+    return result;
+}
 
-        const first = parseFloat(firstLine[idx].replace(",", "."));
-        const last  = parseFloat(lastLine[idx].replace(",", "."));
 
-        if (!isFinite(first) || !isFinite(last)) return 0;
+// --- Extraction du tonnage ---
+const header = parseCSV(lines[0]);
+const idx = header.indexOf("Cumul (tonnes)");
 
-        return last - first;
-    } 
+if (idx === -1) return 0;
+
+// 1ère et dernière ligne utiles
+const firstLine = parseCSV(lines[1]);
+const lastLine  = parseCSV(lines[lines.length - 1]);
+
+// Remplacement virgule → point pour float JS
+const first = parseFloat(firstLine[idx].replace(",", "."));
+const last  = parseFloat(lastLine[idx].replace(",", "."));
+
+if (!isFinite(first) || !isFinite(last)) return 0;
+
+return last - first;
+
+          }
     catch (e) {
         return 0;
     }
 }
-
-
-
 
   
 
@@ -2244,6 +2273,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
