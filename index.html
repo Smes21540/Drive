@@ -1357,13 +1357,15 @@ const btnM3     = btns[3];
         return;
       }
 
-      // 🫥 Masqué si 0
-      if (rounded === 0) {
-        btnKwh.style.display = "none";
-        btnHeures.style.display = "none";
-        btnAvg.style.display = "none";
-        return;
-      }
+// 🫥 Masqué si kWh = 0
+if (rounded === 0) {
+    btnKwh.style.display   = "none";
+    btnHeures.style.display = "none";
+    btnAvg.style.display    = "none";
+    btnM3.style.display     = "none";   // <<< ajouté
+    return;
+}
+
 
       // --- Valeur normale ---
       const padded = String(rounded).padStart(7, " ");
@@ -1397,12 +1399,12 @@ const btnM3     = btns[3];
       btnHeures.style.minWidth = "120px";
 
 /* ===========================
-   🔵 m³ (même logique que kWh)
+   🔵 m³ (même dégradé que kWh)
    =========================== */
 
 const roundedM3 = Math.round(diffM3);
 
-// Erreur négative ou trop haute
+// ERREURS
 if (roundedM3 < 0 || roundedM3 > 400000) {
     btnM3.textContent = "ERREUR";
     btnM3.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
@@ -1410,19 +1412,36 @@ if (roundedM3 < 0 || roundedM3 > 400000) {
     return;
 }
 
-// Pas d'activité
+// Zéro → masque
 if (roundedM3 === 0) {
     btnM3.style.display = "none";
     return;
 }
 
-// Valeur normale → même logique que kWh mais couleurs gaz
+// Couleur identique au kWh
+let v3 = Math.min(Math.max(roundedM3, 0), 200000);
+let bg3 = "";
+let text3 = "#1b5e20";
+
+if (v3 <= 10000) {
+    const ratio = v3 / 10000;
+    const g = Math.round(230 - 60 * ratio);
+    const r = Math.round(200 + 55 * ratio);
+    bg3 = `linear-gradient(180deg, rgb(${r},${g},100), rgb(${r+20},${g+20},120))`;
+    text3 = "#2e7d32";
+} else {
+    const ratio = (v3 - 10000) / 190000;
+    const r = 255;
+    const g = Math.round(235 - 155 * ratio);
+    bg3 = `linear-gradient(180deg, rgb(${r},${g},80), rgb(${r-20},${g-30},60))`;
+    text3 = "#3e2723";
+}
+
 btnM3.textContent = `${roundedM3} m³`;
-btnM3.style.background = "linear-gradient(180deg, #ffe082, #ffca28)";
-btnM3.style.color = "#4e342e";
+btnM3.style.background = bg3;
+btnM3.style.color = text3;
 btnM3.style.minWidth = "120px";
 btnM3.style.fontSize = "13px";
-
 
 
       /* ===========================
@@ -2226,6 +2245,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
