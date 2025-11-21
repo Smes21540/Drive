@@ -1279,28 +1279,27 @@ html += `
       const text = await res.text();
       const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
 
+// ===== Déclarations uniques =====
 let diffMinutes = 0;
 let diffKwh = 0;
-let diffM3 = 0;  // <<< déclaration indispensable
+let diffM3 = 0;
 
-if (lines.length > 2) {
-
-    const firstCols = lines[1].split(",");
-    const lastCols  = lines[lines.length - 1].split(",");
-
-// === kWh (colonne 3) ===
+// ===== kWh (colonne 3) =====
 const kFirst = parseFloat(firstCols[3].replace(/"/g,""));
 const kLast  = parseFloat(lastCols[3].replace(/"/g,""));
-const diffKwh = isFinite(kFirst) && isFinite(kLast) ? (kLast - kFirst) : 0;
 
-// === m³ (colonne 4 : "Cpt Gaz Tota (m3 2b)") ===
+if (isFinite(kFirst) && isFinite(kLast)) {
+    diffKwh = kLast - kFirst;
+}
+
+// ===== m³ (colonne 4) =====
 const m3First = parseFloat(firstCols[4].replace(/"/g,""));
 const m3Last  = parseFloat(lastCols[4].replace(/"/g,""));
-const diffM3  = isFinite(m3First) && isFinite(m3Last) ? (m3Last - m3First) : 0;
 
+if (isFinite(m3First) && isFinite(m3Last)) {
+    diffM3 = m3Last - m3First;
+}
 
-    if (isFinite(m3First) && isFinite(m3Last)) {
-        diffM3 = m3Last - m3First;
     }
 
 
@@ -2248,6 +2247,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
