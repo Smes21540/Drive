@@ -2098,19 +2098,14 @@ function recolorHotDays(instance) {
 
 /* ----------- EXPORT CSV GAZ ----------- */
 document.getElementById("exportGazBtn").onclick = async () => {
-    const active = document.querySelector("#folderTree .active-folder");
-    if (!active) {
-        alert("Sélectionnez un dossier contenant les fichiers GAZ.");
+
+    const folderPath = (localStorage.getItem("lastFolderPath") || "").toLowerCase();
+
+    // Vérification dossier gaz fiable
+    if (!(folderPath.includes("consommation") && folderPath.includes("gaz"))) {
+        alert("Ce dossier ne contient pas de fichiers de consommation gaz.");
         return;
     }
-
-const folderName = active.textContent.replace(/[^\w\s]/g, "").trim().toLowerCase();
-
-if (!(folderName.includes("consommation") && folderName.includes("gaz"))) {
-    alert("Ce dossier ne contient pas de fichiers de consommation gaz.");
-    return;
-}
-
 
     const folderId = localStorage.getItem("lastFolderId");
     const files = await fetchFolderContents(folderId);
@@ -2122,7 +2117,7 @@ if (!(folderName.includes("consommation") && folderName.includes("gaz"))) {
     }
 
     let exportRows = [];
-    
+
     for (const f of csvFiles) {
         try {
             const res = await fetch(
@@ -2138,17 +2133,19 @@ if (!(folderName.includes("consommation") && folderName.includes("gaz"))) {
 
             const kFirst = parseFloat(first[2]);
             const kLast  = parseFloat(last[2]);
+
             const m3First = parseFloat(first[3]);
             const m3Last  = parseFloat(last[3]);
 
             const diffKwh = (isFinite(kFirst) && isFinite(kLast)) ? (kLast - kFirst) : 0;
             const diffM3  = (isFinite(m3First) && isFinite(m3Last)) ? (m3Last - m3First) : 0;
 
+            // Durée active
             let minutes = 0;
             for (let i = 1; i < lines.length; i++) {
-                const p = lines[i - 1].split(",").map(s => s.replace(/"/g, "").trim());
-                const c = lines[i].split(",").map(s => s.replace(/"/g, "").trim());
-                if (parseFloat(c[2]) > parseFloat(p[2])) minutes++;
+                const prev = parseFloat(lines[i - 1].split(",")[2]);
+                const curr = parseFloat(lines[i].split(",")[2]);
+                if (curr > prev) minutes++;
             }
 
             const H = String(Math.floor(minutes / 60)).padStart(2,"0");
@@ -2157,6 +2154,7 @@ if (!(folderName.includes("consommation") && folderName.includes("gaz"))) {
 
             const avg = minutes > 0 ? diffKwh / (minutes / 60) : 0;
 
+            // Date AAAAMMJJ
             const dateMatch = f.name.match(/(\d{8})/);
             const date = dateMatch ? dateMatch[1] : "";
 
@@ -2194,6 +2192,7 @@ if (!(folderName.includes("consommation") && folderName.includes("gaz"))) {
 
 
 
+
 /* ----------- Init ----------- */
 window.onload=()=>{
   updateNetworkStatus();
@@ -2222,6 +2221,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
