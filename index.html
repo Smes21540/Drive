@@ -1288,11 +1288,16 @@ if (lines.length > 2) {
     const firstCols = lines[1].split(",");
     const lastCols  = lines[lines.length - 1].split(",");
 
-    const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
-    const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
+// === kWh (colonne 3) ===
+const kFirst = parseFloat(firstCols[3].replace(/"/g,""));
+const kLast  = parseFloat(lastCols[3].replace(/"/g,""));
+const diffKwh = isFinite(kFirst) && isFinite(kLast) ? (kLast - kFirst) : 0;
 
-    const m3First = parseFloat(firstCols[3].replace(/"/g,""));
-    const m3Last  = parseFloat(lastCols[3].replace(/"/g,""));
+// === m³ (colonne 4 : "Cpt Gaz Tota (m3 2b)") ===
+const m3First = parseFloat(firstCols[4].replace(/"/g,""));
+const m3Last  = parseFloat(lastCols[4].replace(/"/g,""));
+const diffM3  = isFinite(m3First) && isFinite(m3Last) ? (m3Last - m3First) : 0;
+
 
     if (isFinite(m3First) && isFinite(m3Last)) {
         diffM3 = m3Last - m3First;
@@ -2221,6 +2226,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
