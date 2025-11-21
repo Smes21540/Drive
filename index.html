@@ -597,9 +597,52 @@ let cancelScan = false; // 🛑 permet d’arrêter le scan si on clique ailleur
 
 async function getTonnageForDate(siteRoot, dateStr) {
     try {
-        const fileName = `${siteRoot}/Traça_Temp/SA00094_${dateStr.replace(/-/g,"")}.csv`;
+        // Exemple : siteRoot = "Valbonne"
+        const csvName = `SA00094_${dateStr.replace(/-/g,"")}.csv`;
 
-        const resp = await fetch(fileName);
+        // 1️⃣ Chercher l’ID du fichier dans Traça_Temp
+        const folders = await fetchFolderContents(localStorage.getItem("lastFolderId"));
+        const tracatemp = folders.find(f =>
+            f.mimeType === "application/vnd.google-apps.folder" &&
+            f.name.toLowerCase().includes("traça_temp")
+        );
+        if (!tracatemp) return 0;
+
+        const files = await fetchFolderContents(tracatemp.id);
+        const file = files.find(f =>
+            f.name.toLowerCase() === csvName.toLowerCase()
+        );
+
+        if (!file) return 0;
+
+        // 2️⃣ Télécharger le fichier via le proxy Netlify
+        const resp = await fetch(
+            `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name)}&site=Smes_Acces`
+        );
+        if (!resp.ok) return 0;
+
+        const text = await resp.text();
+        const lines = text.trim().split(/\r?\n/);
+
+        const parseCSV = line =>
+            line.match(/("([^"]*)"|[^,]+)/g).map(x => x.replace(/"/g,"").trim());
+
+        const header = parseCSV(lines[0]);
+        const idx = header.indexOf("Cumul (tonnes)");
+        if (idx === -1) return 0;
+
+        const firstLine = parseCSV(lines[1]);
+        const lastLine = parseCSV(lines[lines.length - 1]);
+
+        const first = parseFloat(firstLine[idx].replace(",", "."));
+        const last  = parseFloat(lastLine[idx].replace(",", "."));
+
+        return (isFinite(first) && isFinite(last)) ? last - first : 0;
+    } catch (e) {
+        return 0;
+    }
+}
+
         if (!resp.ok) return 0;
 
         const text = await resp.text();
@@ -2223,6 +2266,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
