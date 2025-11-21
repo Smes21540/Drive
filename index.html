@@ -1247,11 +1247,13 @@ if (
 ) {
 
   html += `
-    <div class="gaz-group">
-      <button class="gaz-btn" disabled>⏳ kWh...</button>
-      <button class="gaz-btn" disabled>⏱ Temps...</button>
-      <button class="gaz-btn gaz-small" disabled>--</button>
-    </div>
+<div class="gaz-group">
+  <button class="gaz-btn" disabled>⏳ kWh...</button>
+  <button class="gaz-btn" disabled>⏱ Temps...</button>
+  <button class="gaz-btn gaz-small" disabled>--</button>
+  <button class="gaz-btn gaz-small" disabled>m³...</button>
+</div>
+
   `;
 
   (async () => {
@@ -1273,6 +1275,11 @@ if (
 
         const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
         const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
+        // m³ = colonne 3 comme dans ton fichier exemple
+const m3First = parseFloat(firstCols[3].replace(/"/g,""));
+const m3Last  = parseFloat(lastCols[3].replace(/"/g,""));
+let diffM3 = isFinite(m3First) && isFinite(m3Last) ? (m3Last - m3First) : 0;
+
 
         if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
 
@@ -1293,10 +1300,12 @@ if (
       const M = String(diffMinutes % 60).padStart(2,"0");
       const dureeFormatee = `${H}:${M}`;
 
-      const btns = tdAction.querySelectorAll(".gaz-btn");
-      const btnKwh    = btns[0];
-      const btnHeures = btns[1];
-      const btnAvg    = btns[2];
+const btns = tdAction.querySelectorAll(".gaz-btn");
+const btnKwh    = btns[0];
+const btnHeures = btns[1];
+const btnAvg    = btns[2];
+const btnM3     = btns[3];
+
 
       /* ===========================
          🎨 FORMATAGE, COULEURS & AFFICHAGE
@@ -1362,6 +1371,24 @@ if (
       btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
       btnHeures.style.color = "#0d47a1";
       btnHeures.style.minWidth = "120px";
+
+      /* ===========================
+   🔵 Bouton m³
+   =========================== */
+if (diffM3 < 0 || diffM3 > 400000) {
+    btnM3.textContent = "ERREUR";
+    btnM3.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
+    btnM3.style.color = "#fff";
+} else if (diffM3 === 0) {
+    btnM3.style.display = "none";
+} else {
+    btnM3.textContent = `${diffM3.toFixed(1)} m³`;
+    btnM3.style.background = "linear-gradient(180deg, #ffe082, #ffca28)";
+    btnM3.style.color = "#5d4037";
+    btnM3.style.fontSize = "12px";
+    btnM3.style.minWidth = "90px";
+}
+
 
       /* ===========================
          📊 Conso moyenne / heure
@@ -2163,3 +2190,4 @@ if (last) {
 </script>
 </body>
 </html>
+
