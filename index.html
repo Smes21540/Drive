@@ -601,33 +601,39 @@ async function getTonnageForDate(dateStr) {
     try {
         const clean = dateStr.replace(/-/g, "");
 
+        // 👉 Charger Traça_Temp du site courant
         const tracaFolder = await loader.loadFolder("Traça_Temp");
+        if (!tracaFolder) return 0;
+
         const match = tracaFolder.files.find(f => f.name.includes(clean));
         if (!match) return 0;
 
-        const fileContent = await loader.loadFile(match.id);
-        if (!fileContent) return 0;
+        // 👉 Télécharger le fichier
+        const content = await loader.loadFile(match.id);
+        if (!content) return 0;
 
-        const lines = fileContent.trim().split("\n");
+        const lines = content.trim().split("\n");
         if (lines.length < 3) return 0;
 
-        const header = lines[0].split(",");
-        const idx = header.findIndex(h => h.trim() === "Cumul (tonnes)");
+        // 👉 Séparateur = VIRGULE
+        const header = lines[0].split(",").map(h => h.replace(/"/g,"").trim());
 
+        const idx = header.findIndex(h => h === "Cumul (tonnes)");
         if (idx === -1) return 0;
 
-        const first = parseFloat(lines[1].split(",")[idx].replace(",", "."));
-        const last = parseFloat(lines[lines.length - 1].split(",")[idx].replace(",", "."));
+        const first = parseFloat(lines[1].split(",")[idx].replace(/"/g,"").trim());
+        const last  = parseFloat(lines[lines.length - 1].split(",")[idx].replace(/"/g,"").trim());
 
         if (!isFinite(first) || !isFinite(last)) return 0;
 
         return last - first;
 
-    } catch (err) {
-        console.error("Erreur tonnage :", err);
+    } catch(e) {
+        console.error("Erreur tonnage :", e);
         return 0;
     }
 }
+
 
 
   
@@ -2196,6 +2202,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
