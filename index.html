@@ -1299,65 +1299,72 @@ if (
       const btnHeures = btns[1];
 
 /* ===========================
-   🎨 FORMATAGE & COULEURS
+   🎨 FORMATAGE, COULEURS & AFFICHAGE
    =========================== */
 
-// arrondi propre
+// arrondi correct
 const rounded = Math.round(diffKwh);
 
-// --- Si valeur anormale (> 400 000) ---
+// sélection boutons
+const btnKwh    = tdAction.querySelectorAll(".gaz-btn")[0];
+const btnHeures = tdAction.querySelectorAll(".gaz-btn")[1];
+
+// --- Si valeur anormale (> 400000) ---
 if (rounded > 400000) {
   btnKwh.textContent = "ERREUR";
   btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
   btnKwh.style.color = "#fff";
-  btnKwh.style.minWidth = "110px";  // largeur stable
+  btnKwh.style.minWidth = "120px";
+
   btnHeures.textContent = `⏱ ${dureeFormatee}`;
+  btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
+  btnHeures.style.color = "#0d47a1";
+  btnHeures.style.minWidth = "120px";
+
   return;
 }
 
-// --- Si = 0 → n'affiche rien ---
+// --- Si consommation = 0 → on masque complètement les boutons ---
 if (rounded === 0) {
-  btnKwh.textContent = "";
-  btnKwh.style.background = "#ddd";
-  btnKwh.style.color = "#aaa";
-  btnKwh.style.minWidth = "110px";
-} else {
-  // Garde une largeur fixe (6 caractères)
-  const padded = String(rounded).padStart(6, " ");
-
-  // Dégradé couleur selon intensité
-  const v = Math.min(Math.max(rounded, 0), 200000);
-
-  let bg = "";
-  let textColor = "#1b5e20";
-
-  if (v <= 10000) {
-    // Vert → jaune léger
-    const ratio = v / 10000;
-    const g = Math.round(230 - 60 * ratio);
-    const r = Math.round(200 + 55 * ratio);
-    bg = `linear-gradient(180deg, rgb(${r},${g},100), rgb(${r+20},${g+20},120))`;
-    textColor = "#2e7d32";
-  } else {
-    // Jaune → rouge
-    const ratio = (v - 10000) / 190000;
-    const r = 255;
-    const g = Math.round(235 - 155 * ratio);
-    bg = `linear-gradient(180deg, rgb(${r},${g},80), rgb(${r-20},${g-30},60))`;
-    textColor = "#3e2723";
-  }
-
-  btnKwh.textContent = `${padded} kWh`;
-  btnKwh.style.background = bg;
-  btnKwh.style.color = textColor;
-  btnKwh.style.minWidth = "110px";
+  btnKwh.style.display = "none";
+  btnHeures.style.display = "none";
+  return;
 }
 
-// --- Durée (toujours affichée) ---
+// --- Sinon, valeur normale : affichage complet ----
+
+// largeur fixe 7 chiffres
+const padded = String(rounded).padStart(7, " ");
+
+// Couleurs dépendantes de l’intensité
+const v = Math.min(Math.max(rounded, 0), 200000);
+let bg = "";
+let textColor = "#1b5e20";
+
+if (v <= 10000) {
+  const ratio = v / 10000;
+  const g = Math.round(230 - 60 * ratio);
+  const r = Math.round(200 + 55 * ratio);
+  bg = `linear-gradient(180deg, rgb(${r},${g},100), rgb(${r+20},${g+20},120))`;
+  textColor = "#2e7d32";
+} else {
+  const ratio = (v - 10000) / 190000;
+  const r = 255;
+  const g = Math.round(235 - 155 * ratio);
+  bg = `linear-gradient(180deg, rgb(${r},${g},80), rgb(${r-20},${g-30},60))`;
+  textColor = "#3e2723";
+}
+
+btnKwh.textContent = `${padded} kWh`;
+btnKwh.style.background = bg;
+btnKwh.style.color = textColor;
+btnKwh.style.minWidth = "120px";
+
 btnHeures.textContent = `⏱ ${dureeFormatee}`;
 btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
 btnHeures.style.color = "#0d47a1";
-btnHeures.style.minWidth = "110px";
+btnHeures.style.minWidth = "120px";
+
 
 
     } catch (err) {
@@ -2043,6 +2050,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
