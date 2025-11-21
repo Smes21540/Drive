@@ -468,8 +468,7 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   opacity: 0.4;
 }
 
-
- 
+  
 
 </style>
 
@@ -512,8 +511,6 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
     <button onclick="applyFilter()">Filtrer</button>
     <button onclick="clearFilter()">Tout afficher</button>
     <button id="downloadFolderBtn">Télécharger le dossier</button>
-    <button id="exportGazBtn" style="background:#6a1b9a;">Export CSV GAZ</button>
-
   </div>
 
   <div id="tableWrapper">
@@ -998,19 +995,6 @@ async function displayFiles(files, folderName){
   // ✅ Afficher les filtres uniquement dans un dossier final (contenant des fichiers)
 document.querySelector(".controls").style.display = "flex";
 
-  // --- Bouton Export CSV GAZ : visible uniquement dans Consommation Gaz ---
-const exportGazBtn = document.getElementById("exportGazBtn");
-
-// Nettoyage du nom (supprime emoji, espaces, symboles)
-const cleaned = folderName.replace(/[^\w\s]/g, "").trim().toLowerCase();
-
-if (cleaned.includes("consommation") && cleaned.includes("gaz")) {
-    exportGazBtn.style.display = "inline-block";
-} else {
-    exportGazBtn.style.display = "none";
-}
-
-
 
   if(files.length===0){
     tbody.innerHTML='<tr><td colspan="5" style="text-align:center;">Aucun fichier</td></tr>';
@@ -1247,25 +1231,173 @@ if(f.name.toLowerCase().endsWith('.csv')){
     html+=`<button class="action-btn" onclick="openViewer('viewer02.html','${f.id}','${f.name}')">Courbes</button>`;
   }
 
-if(f.name.toLowerCase().endsWith('.csv')){
-  html+=`<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank"><button class="action-btn">Télécharger</button></a>`;
-  html+=`<button class="action-btn" onclick="openViewer('viewer.html','${f.id}','${f.name}')">Tableau</button>`;
-
-  if (!folderName.toLowerCase().includes("historique")) {
-    html+=`<button class="action-btn" onclick="openViewer('viewer02.html','${f.id}','${f.name}')">Courbes</button>`;
-  }
-
-  if (folderName.toLowerCase().includes("traça_temp") || folderName.toLowerCase().includes("traca_temp")) {
-    html+=`<button class="action-btn" onclick="openViewer('index03.html','${f.id}','${f.name}')">Sondes</button>`;
-  }
-}
-
-  
   // 👇 bouton Sondes uniquement si on est dans Traça_Temp
   if (folderName.toLowerCase().includes("traça_temp") || folderName.toLowerCase().includes("traca_temp")) {
     html+=`<button class="action-btn" onclick="openViewer('index03.html','${f.id}','${f.name}')">Sondes</button>`;
   }
 }
+
+// === CONSOMMATION GAZ : calcul kWh + durée réelle ===
+if (
+  ENABLE_GAZ_CALC &&
+  folderName.toLowerCase().includes("consommation gaz") &&
+  f.name.toLowerCase().endsWith(".csv")
+) {
+
+  html += `
+    <div class="gaz-group">
+      <button class="gaz-btn" disabled>⏳ kWh...</button>
+      <button class="gaz-btn" disabled>⏱ Temps...</button>
+      <button class="gaz-btn gaz-small" disabled>--</button>
+    </div>
+  `;
+
+  (async () => {
+    try {
+      const res = await fetch(
+        `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`
+      );
+
+      const text = await res.text();
+      const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+
+      let diffMinutes = 0;
+      let diffKwh = 0;
+
+      if (lines.length > 2) {
+
+        const firstCols = lines[1].split(",");
+        const lastCols  = lines[lines.length - 1].split(",");
+
+        const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
+        const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
+
+        if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
+
+        let active = 0;
+        for (let i = 1; i < lines.length; i++) {
+          const prev = lines[i - 1].split(",");
+          const curr = lines[i].split(",");
+
+          const kPrev = parseFloat(prev[2].replace(/"/g,""));
+          const kCurr = parseFloat(curr[2].replace(/"/g,""));
+
+          if (isFinite(kPrev) && isFinite(kCurr) && kCurr > kPrev) active++;
+        }
+        diffMinutes = active;
+      }
+
+      const H = String(Math.floor(diffMinutes / 60)).padStart(2,"0");
+      const M = String(diffMinutes % 60).padStart(2,"0");
+      const dureeFormatee = `${H}:${M}`;
+
+      const btns = tdAction.querySelectorAll(".gaz-btn");
+      const btnKwh    = btns[0];
+      const btnHeures = btns[1];
+      const btnAvg    = btns[2];
+
+      /* ===========================
+         🎨 FORMATAGE, COULEURS & AFFICHAGE
+         =========================== */
+
+      const rounded = Math.round(diffKwh);
+
+      // 🔥 ERREUR si négatif
+      if (rounded < 0) {
+        btnKwh.textContent = "ERREUR";
+        btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
+        btnKwh.style.color = "#fff";
+        btnHeures.textContent = `⏱ ${dureeFormatee}`;
+        btnAvg.textContent = "ERREUR";
+        return;
+      }
+
+      // 🔥 ERREUR si > 400000
+      if (rounded > 400000) {
+        btnKwh.textContent = "ERREUR";
+        btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
+        btnKwh.style.color = "#fff";
+        btnHeures.textContent = `⏱ ${dureeFormatee}`;
+        btnAvg.textContent = "ERREUR";
+        return;
+      }
+
+      // 🫥 Masqué si 0
+      if (rounded === 0) {
+        btnKwh.style.display = "none";
+        btnHeures.style.display = "none";
+        btnAvg.style.display = "none";
+        return;
+      }
+
+      // --- Valeur normale ---
+      const padded = String(rounded).padStart(7, " ");
+
+      let v = Math.min(Math.max(rounded, 0), 200000);
+      let bg = "";
+      let textColor = "#1b5e20";
+
+      if (v <= 10000) {
+        const ratio = v / 10000;
+        const g = Math.round(230 - 60 * ratio);
+        const r = Math.round(200 + 55 * ratio);
+        bg = `linear-gradient(180deg, rgb(${r},${g},100), rgb(${r+20},${g+20},120))`;
+        textColor = "#2e7d32";
+      } else {
+        const ratio = (v - 10000) / 190000;
+        const r = 255;
+        const g = Math.round(235 - 155 * ratio);
+        bg = `linear-gradient(180deg, rgb(${r},${g},80), rgb(${r-20},${g-30},60))`;
+        textColor = "#3e2723";
+      }
+
+      btnKwh.textContent = `${padded} kWh`;
+      btnKwh.style.background = bg;
+      btnKwh.style.color = textColor;
+      btnKwh.style.minWidth = "120px";
+
+      btnHeures.textContent = `⏱ ${dureeFormatee}`;
+      btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
+      btnHeures.style.color = "#0d47a1";
+      btnHeures.style.minWidth = "120px";
+
+      /* ===========================
+         📊 Conso moyenne / heure
+         =========================== */
+
+      const hours = diffMinutes / 60;
+
+      if (hours === 0) {
+        btnAvg.style.display = "none";
+        return;
+      }
+
+      const avg = rounded / hours;
+
+      // 🚨 ERREUR si < 1000 kWh/h
+      if (avg < 1000) {
+        btnAvg.textContent = "ERREUR";
+        btnAvg.style.background = "#ff8a80";
+        btnAvg.style.color = "#b71c1c";
+        return;
+      }
+
+      btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
+      btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
+      btnAvg.style.color = "#01579b";
+      btnAvg.style.minWidth = "90px";
+      btnAvg.style.fontSize = "12px";
+
+    } catch (err) {
+      console.warn("Erreur GAZ:", err);
+    }
+  })();
+}
+
+
+
+
+
 
 
 
@@ -1905,98 +2037,6 @@ function recolorHotDays(instance) {
 }
 
 
-/* ----------- EXPORT CSV GAZ (corrigé col3=kWh / col4=m3) ----------- */
-document.getElementById("exportGazBtn").onclick = async () => {
-
-    const folderPath = (localStorage.getItem("lastFolderPath") || "").toLowerCase();
-
-    if (!(folderPath.includes("consommation") && folderPath.includes("gaz"))) {
-        alert("Ce dossier ne contient pas de fichiers de consommation gaz.");
-        return;
-    }
-
-    const folderId = localStorage.getItem("lastFolderId");
-    const files = await fetchFolderContents(folderId);
-    const csvFiles = files.filter(f => f.name.toLowerCase().endsWith(".csv"));
-
-    if (csvFiles.length === 0) {
-        alert("Aucun CSV gaz trouvé dans ce dossier.");
-        return;
-    }
-
-    let exportRows = [];
-
-    for (const f of csvFiles) {
-        try {
-            const res = await fetch(
-                `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`
-            );
-            const text = await res.text();
-            const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
-
-            if (lines.length < 3) continue;
-
-            const first = lines[1].split(",").map(s => s.replace(/"/g, "").trim());
-            const last  = lines[lines.length - 1].split(",").map(s => s.replace(/"/g, "").trim());
-
-            // === kWh = colonne 3 ===
-            const kFirst = parseFloat(first[3]);
-            const kLast  = parseFloat(last[3]);
-            const diffKwh = isFinite(kFirst) && isFinite(kLast) ? kLast - kFirst : 0;
-
-            // === m³ = colonne 4 ===
-            const m3First = parseFloat(first[4]);
-            const m3Last  = parseFloat(last[4]);
-            const diffM3  = isFinite(m3First) && isFinite(m3Last) ? m3Last - m3First : 0;
-
-            // Durée : progression kWh → colonne 2
-            let minutes = 0;
-            for (let i = 1; i < lines.length; i++) {
-                const prev = parseFloat(lines[i - 1].split(",")[2]);
-                const curr = parseFloat(lines[i].split(",")[2]);
-                if (isFinite(prev) && isFinite(curr) && curr > prev) minutes++;
-            }
-
-            const H = String(Math.floor(minutes / 60)).padStart(2,"0");
-            const M = String(minutes % 60).padStart(2,"0");
-            const HHMM = `${H}:${M}`;
-
-            const avg = minutes > 0 ? diffKwh / (minutes / 60) : 0;
-
-            const dateMatch = f.name.match(/(\d{8})/);
-            const date = dateMatch ? dateMatch[1] : "";
-
-            exportRows.push([
-                date,
-                f.name,
-                diffKwh.toFixed(0),
-                minutes,
-                HHMM,
-                avg.toFixed(1),
-                diffM3.toFixed(1)
-            ]);
-
-        } catch (e) {
-            console.warn("Erreur export:", f.name, e);
-        }
-    }
-
-    const header = "Date,Nom fichier,kWh,Minutes,HH:MM,kWh/h,m3\n";
-    let csv = header + exportRows.map(r => r.join(",")).join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const dateNow = new Date().toISOString().slice(0,10);
-    const filename = `gaz_export_${dateNow}.csv`;
-
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-
-    URL.revokeObjectURL(a.href);
-};
-
-
 
 
 
@@ -2030,17 +2070,3 @@ if (last) {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
