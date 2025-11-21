@@ -1260,15 +1260,15 @@ if (
   f.name.toLowerCase().endsWith(".csv")
 ) {
 
-  html += `
+html += `
 <div class="gaz-group">
   <button class="gaz-btn" disabled>⏳ kWh...</button>
+  <button class="gaz-btn gaz-small" disabled>m³...</button>
   <button class="gaz-btn" disabled>⏱ Temps...</button>
   <button class="gaz-btn gaz-small" disabled>--</button>
-  <button class="gaz-btn gaz-small" disabled>m³...</button>
 </div>
+`;
 
-  `;
 
   (async () => {
     try {
@@ -1325,10 +1325,13 @@ const diffM3  = isFinite(m3First) && isFinite(m3Last) ? (m3Last - m3First) : 0;
       const dureeFormatee = `${H}:${M}`;
 
 const btns = tdAction.querySelectorAll(".gaz-btn");
-const btnKwh    = btns[0];
-const btnHeures = btns[1];
-const btnAvg    = btns[2];
-const btnM3     = btns[3];
+
+// NOUVEL ORDRE :
+const btnKwh   = btns[0]; // kWh
+const btnM3    = btns[1]; // m³ juste après kWh
+const btnHeures = btns[2]; // Durée
+const btnAvg    = btns[3]; // Moyenne
+
 
 
       /* ===========================
@@ -2245,6 +2248,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
