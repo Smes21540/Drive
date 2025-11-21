@@ -2069,7 +2069,6 @@ function recolorHotDays(instance) {
 /* ----------- Export CSV (Gaz) ----------- */
 document.getElementById("exportCsvBtn").addEventListener("click", function () {
 
-    // Toutes les lignes visibles
     const rows = Array.from(document.querySelectorAll("#csvTable tbody tr"))
         .filter(r => r.style.display !== "none");
 
@@ -2078,31 +2077,49 @@ document.getElementById("exportCsvBtn").addEventListener("click", function () {
         return;
     }
 
+    // En-tête
     let csv = "Date,ConsokWh,ConsoM3,Duree,Moyenne(kWh/h),Tonnage\n";
 
     rows.forEach(row => {
 
-        const date = row.querySelector("td:nth-child(1)")?.textContent.split(" ")[0] || "";
+        // --- DATE ---
+        let date = row.querySelector("td:nth-child(1)")?.textContent.split(" ")[0] || "";
+        if (!date) date = "0";
 
         const btns = row.querySelectorAll(".gaz-group .gaz-btn");
-        if (btns.length === 4) {
 
-            const kwh = btns[0].textContent.replace(" kWh", "").trim();
-            const m3  = btns[1].textContent.replace(" m³", "").trim();
-            const duree = btns[2].textContent.replace("⏱", "").trim();
-            const avg = btns[3].textContent.trim();
+        // Si pas 4 boutons → ligne non gaz → la skip
+        if (btns.length !== 4) return;
 
-            csv += `${date},${kwh},${m3},${duree},${avg},\n`;
-        }
+        // --- KWH ---
+        let kwh = btns[0].textContent.replace(/[^\d.-]/g, "").trim();
+        if (kwh === "" || isNaN(kwh)) kwh = "0";
+
+        // --- M3 ---
+        let m3 = btns[1].textContent.replace(/[^\d.-]/g, "").trim();
+        if (m3 === "" || isNaN(m3)) m3 = "0";
+
+        // --- DUREE (HH:MM) ---
+        let duree = btns[2].textContent.replace(/[^0-9:]/g, "").trim();
+        if (!duree.includes(":")) duree = "0";
+
+        // --- MOYENNE KWH/H ---
+        let avg = btns[3].textContent.replace(/[^\d.-]/g, "").trim();
+        if (avg === "" || isNaN(avg)) avg = "0";
+
+        // --- TONNAGE (en attente) ---
+        let tonnage = "";
+
+        csv += `${date},${kwh},${m3},${duree},${avg},${tonnage}\n`;
     });
 
-    // téléchargement
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = "export_gaz.csv";
     link.click();
 });
+
 
 
 
@@ -2136,6 +2153,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
