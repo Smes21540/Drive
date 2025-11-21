@@ -1308,7 +1308,7 @@ if (
         btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
         btnKwh.style.color = "#fff";
         btnHeures.textContent = `⏱ ${dureeFormatee}`;
-        btnAvg.textContent = "ERR";
+        btnAvg.textContent = "ERREUR";
         return;
       }
 
@@ -1318,7 +1318,7 @@ if (
         btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
         btnKwh.style.color = "#fff";
         btnHeures.textContent = `⏱ ${dureeFormatee}`;
-        btnAvg.textContent = "ERR";
+        btnAvg.textContent = "ERREUR";
         return;
       }
 
@@ -1376,7 +1376,7 @@ if (
 
       // 🚨 ERREUR si < 1000 kWh/h
       if (avg < 1000) {
-        btnAvg.textContent = "ERR";
+        btnAvg.textContent = "ERREUR";
         btnAvg.style.background = "#ff8a80";
         btnAvg.style.color = "#b71c1c";
         return;
@@ -2070,6 +2070,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
