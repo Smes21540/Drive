@@ -468,7 +468,10 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   opacity: 0.4;
 }
 
-  
+ #exportGazBtn {
+    display: none !important;
+}
+ 
 
 </style>
 
@@ -996,6 +999,19 @@ async function displayFiles(files, folderName){
 
   // ✅ Afficher les filtres uniquement dans un dossier final (contenant des fichiers)
 document.querySelector(".controls").style.display = "flex";
+
+  // --- Bouton Export CSV GAZ : visible uniquement dans Consommation Gaz ---
+const exportGazBtn = document.getElementById("exportGazBtn");
+
+// Nettoyage du nom (supprime emoji, espaces, symboles)
+const cleaned = folderName.replace(/[^\w\s]/g, "").trim().toLowerCase();
+
+if (cleaned.includes("consommation") && cleaned.includes("gaz")) {
+    exportGazBtn.style.display = "inline-block";
+} else {
+    exportGazBtn.style.display = "none";
+}
+
 
 
   if(files.length===0){
@@ -2074,11 +2090,13 @@ document.getElementById("exportGazBtn").onclick = async () => {
         return;
     }
 
-    const folderName = active.textContent.trim().toLowerCase();
-    if (!folderName.includes("gaz")) {
-        alert("Ce dossier ne contient pas de fichiers de consommation gaz.");
-        return;
-    }
+const folderName = active.textContent.replace(/[^\w\s]/g, "").trim().toLowerCase();
+
+if (!(folderName.includes("consommation") && folderName.includes("gaz"))) {
+    alert("Ce dossier ne contient pas de fichiers de consommation gaz.");
+    return;
+}
+
 
     const folderId = localStorage.getItem("lastFolderId");
     const files = await fetchFolderContents(folderId);
@@ -2190,4 +2208,5 @@ if (last) {
 </script>
 </body>
 </html>
+
 
