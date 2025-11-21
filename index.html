@@ -1265,13 +1265,15 @@ if (
   f.name.toLowerCase().endsWith(".csv")
 ) {
 
-  html += `
-    <div class="gaz-group">
-      <button class="gaz-btn" disabled>⏳ kWh...</button>
-      <button class="gaz-btn" disabled>⏱ Temps...</button>
-      <button class="gaz-btn gaz-small" disabled>--</button>
-    </div>
-  `;
+html += `
+  <div class="gaz-group">
+    <button class="gaz-btn" disabled>⏳ kWh...</button>
+    <button class="gaz-btn" disabled>⏱ Temps...</button>
+    <button class="gaz-btn" disabled>m³...</button>
+    <button class="gaz-btn gaz-small" disabled>--</button>
+  </div>
+`;
+
 
   (async () => {
     try {
@@ -1293,6 +1295,34 @@ if (
         const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
         const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
 
+        // 🔧 Calcul consommation m³
+const m3First = parseFloat(firstCols[4].replace(/"/g,""));
+const m3Last  = parseFloat(lastCols[4].replace(/"/g,""));
+let diffM3 = 0;
+
+if (isFinite(m3First) && isFinite(m3Last)) {
+  diffM3 = m3Last - m3First;
+}
+
+/* ===========================
+   🌬️ AFFICHAGE M³
+   =========================== */
+
+if (diffM3 < 0) {
+  btnM3.textContent = "ERREUR";
+  btnM3.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
+  btnM3.style.color = "#fff";
+} else if (diffM3 === 0) {
+  btnM3.style.display = "none";
+} else {
+  btnM3.textContent = `${diffM3.toFixed(1)} m³`;
+  btnM3.style.background = "linear-gradient(180deg, #ffe082, #ffca28)";
+  btnM3.style.color = "#5d4037";
+  btnM3.style.minWidth = "110px";
+}
+
+
+
         if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
 
         let active = 0;
@@ -1312,10 +1342,12 @@ if (
       const M = String(diffMinutes % 60).padStart(2,"0");
       const dureeFormatee = `${H}:${M}`;
 
-      const btns = tdAction.querySelectorAll(".gaz-btn");
-      const btnKwh    = btns[0];
-      const btnHeures = btns[1];
-      const btnAvg    = btns[2];
+const btns = tdAction.querySelectorAll(".gaz-btn");
+const btnKwh    = btns[0];
+const btnHeures = btns[1];
+const btnM3     = btns[2];   // ← NOUVEAU
+const btnAvg    = btns[3];
+
 
       /* ===========================
          🎨 FORMATAGE, COULEURS & AFFICHAGE
@@ -1410,10 +1442,12 @@ gazStats.push({
   file_date: date,
   file_name: f.name,
   daily_kwh: rounded,
+  daily_m3: diffM3,        // ← AJOUT
   active_minutes: diffMinutes,
   active_hhmm: dureeFormatee,
   average_kwh_h: avg.toFixed(1)
 });
+
 
       
       btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
@@ -2081,10 +2115,12 @@ function exportGazCSV() {
   const today = new Date().toISOString().slice(0,10);
   const filename = `gaz_export_${today}.csv`;
 
-  let csv = "file_date,file_name,daily_kwh,active_minutes,active_hhmm,average_kwh_h\n";
+let csv = "file_date,file_name,daily_kwh,daily_m3,active_minutes,active_hhmm,average_kwh_h\n";
+
 
   gazStats.forEach(r => {
-    csv += `${r.file_date},${r.file_name},${r.daily_kwh},${r.active_minutes},${r.active_hhmm},${r.average_kwh_h}\n`;
+    csv += `${r.file_date},${r.file_name},${r.daily_kwh},${r.daily_m3},${r.active_minutes},${r.active_hhmm},${r.average_kwh_h}\n`;
+
   });
 
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -2125,6 +2161,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
