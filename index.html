@@ -11,7 +11,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Explorateur données séchoirs</title>
+<title>Séchoirs Oxyane</title>
 
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌽</text></svg>">
 
@@ -599,31 +599,24 @@ let cancelScan = false; // 🛑 permet d’arrêter le scan si on clique ailleur
 async function getTonnageForDate(dateStr) {
 
     try {
-        // format "2025-11-20" -> "20251120"
         const clean = dateStr.replace(/-/g, "");
 
-        // 1) Charger la liste des fichiers du dossier Traça_Temp
         const tracaFolder = await loader.loadFolder("Traça_Temp");
-
-        // Trouver le fichier SAxxxx_YYYYMMDD.csv correspondant
         const match = tracaFolder.files.find(f => f.name.includes(clean));
         if (!match) return 0;
 
-        // 2) Télécharger ce fichier CSV
         const fileContent = await loader.loadFile(match.id);
         if (!fileContent) return 0;
 
         const lines = fileContent.trim().split("\n");
         if (lines.length < 3) return 0;
 
-        // 3) Lire l'entête pour trouver l'index de "Cumul (tonnes) "
         const header = lines[0].split(",");
         const idx = header.findIndex(h => h.trim() === "Cumul (tonnes)");
+
         if (idx === -1) return 0;
 
-        // 4) Première valeur
         const first = parseFloat(lines[1].split(",")[idx].replace(",", "."));
-        // 5) Dernière valeur
         const last = parseFloat(lines[lines.length - 1].split(",")[idx].replace(",", "."));
 
         if (!isFinite(first) || !isFinite(last)) return 0;
@@ -635,6 +628,7 @@ async function getTonnageForDate(dateStr) {
         return 0;
     }
 }
+
 
   
 
@@ -2123,27 +2117,41 @@ document.getElementById("exportCsvBtn").addEventListener("click", async function
 
     for (const row of rows) {
 
-        const date = row.querySelector("td:nth-child(1)")?.textContent.split(" ")[0] || "0";
-        const btns = row.querySelectorAll(".gaz-group .gaz-btn");
+        // --- DATE ---
+        let date = row.querySelector("td:nth-child(1)")?.textContent.split(" ")[0] || "0";
+        if (!date) date = "0";
 
+        const btns = row.querySelectorAll(".gaz-group .gaz-btn");
         if (btns.length !== 4) continue;
 
-        let kwh = btns[0].textContent.replace(/[^\d.-]/g, "") || "0";
-        let m3  = btns[1].textContent.replace(/[^\d.-]/g, "") || "0";
-        
+        // --- KWH ---
+        let kwh = btns[0].textContent.replace(/[^\d.-]/g, "");
+        if (kwh === "" || isNaN(kwh)) kwh = "0";
+
+        // --- M3 ---
+        let m3 = btns[1].textContent.replace(/[^\d.-]/g, "");
+        if (m3 === "" || isNaN(m3)) m3 = "0";
+
+        // --- DUREE (HH:MM) ---
         let duree = btns[2].textContent.replace(/[^0-9:]/g, "");
         if (!duree.includes(":")) duree = "0";
 
+        // --- DUREE MINUTES ---
         let mins = 0;
         if (duree !== "0") {
             const p = duree.split(":");
-            mins = (parseInt(p[0]) * 60) + parseInt(p[1]);
+            const h = parseInt(p[0], 10);
+            const m = parseInt(p[1], 10);
+            mins = (isNaN(h) || isNaN(m)) ? 0 : (h * 60 + m);
         }
 
-        let avg = btns[3].textContent.replace(/[^\d.-]/g, "") || "0";
+        // --- MOYENNE ---
+        let avg = btns[3].textContent.replace(/[^\d.-]/g, "");
+        if (avg === "" || isNaN(avg)) avg = "0";
 
-        // Tonnage depuis Traça_Temp
-        const tonnage = await getTonnageForDate(date);
+        // --- TONNAGE (depuis Traça_Temp) ---
+        let tonnage = await getTonnageForDate(date);
+        if (!isFinite(tonnage)) tonnage = 0;
 
         csv += `${date},${kwh},${m3},${duree},${mins},${avg},${tonnage}\n`;
     }
@@ -2154,8 +2162,6 @@ document.getElementById("exportCsvBtn").addEventListener("click", async function
     link.download = "export_gaz.csv";
     link.click();
 });
-
-
 
 
 
@@ -2190,6 +2196,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
