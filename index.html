@@ -1289,6 +1289,13 @@ html += `
 
       if (lines.length > 2) {
 
+const btns = tdAction.querySelectorAll(".gaz-btn");
+const btnKwh    = btns[0];
+const btnHeures = btns[1];
+const btnM3     = btns[2];
+const btnAvg    = btns[3];
+
+        
         const firstCols = lines[1].split(",");
         const lastCols  = lines[lines.length - 1].split(",");
 
@@ -1309,11 +1316,7 @@ if (isFinite(m3First) && isFinite(m3Last)) {
   diffM3 = m3Last - m3First;
 }
 
-const btns = tdAction.querySelectorAll(".gaz-btn");
-const btnKwh    = btns[0];
-const btnHeures = btns[1];
-const btnM3     = btns[2];
-const btnAvg    = btns[3];
+
 
 /* ===========================
    🌬️ AFFICHAGE M³
@@ -2167,6 +2170,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
