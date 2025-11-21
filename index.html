@@ -1580,7 +1580,8 @@ let tonnage = await getTonnageForDate(siteRoot, dateStr);
 if (!isFinite(tonnage)) tonnage = 0;
 
 // Stockage pour export CSV
-tr.dataset.tonnage = tonnage;
+tr.dataset.tonnage = Number(tonnage.toFixed(1));
+
 
 
 if (!isFinite(tonnage)) tonnage = 0;
@@ -2332,6 +2333,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
