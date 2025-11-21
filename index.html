@@ -2078,7 +2078,7 @@ document.getElementById("exportCsvBtn").addEventListener("click", function () {
     }
 
     // En-tête
-    let csv = "Date,ConsokWh,ConsoM3,Duree,Moyenne(kWh/h),Tonnage\n";
+    let csv = "Date,ConsokWh,ConsoM3,Duree,DureeMinutes,Moyenne(kWh/h),Tonnage\n";
 
     rows.forEach(row => {
 
@@ -2087,8 +2087,6 @@ document.getElementById("exportCsvBtn").addEventListener("click", function () {
         if (!date) date = "0";
 
         const btns = row.querySelectorAll(".gaz-group .gaz-btn");
-
-        // Si pas 4 boutons → ligne non gaz → la skip
         if (btns.length !== 4) return;
 
         // --- KWH ---
@@ -2103,22 +2101,33 @@ document.getElementById("exportCsvBtn").addEventListener("click", function () {
         let duree = btns[2].textContent.replace(/[^0-9:]/g, "").trim();
         if (!duree.includes(":")) duree = "0";
 
-        // --- MOYENNE KWH/H ---
+        // --- CALCUL DUREE EN MINUTES ---
+        let totalMinutes = 0;
+        if (duree !== "0") {
+            const parts = duree.split(":");
+            const h = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10);
+            totalMinutes = (isNaN(h) || isNaN(m)) ? 0 : (h * 60 + m);
+        }
+
+        // --- MOYENNE ---
         let avg = btns[3].textContent.replace(/[^\d.-]/g, "").trim();
         if (avg === "" || isNaN(avg)) avg = "0";
 
-        // --- TONNAGE (en attente) ---
+        // --- TONNAGE (à remplir plus tard) ---
         let tonnage = "";
 
-        csv += `${date},${kwh},${m3},${duree},${avg},${tonnage}\n`;
+        csv += `${date},${kwh},${m3},${duree},${totalMinutes},${avg},${tonnage}\n`;
     });
 
+    // Téléchargement
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = "export_gaz.csv";
     link.click();
 });
+
 
 
 
@@ -2153,6 +2162,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
