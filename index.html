@@ -1461,7 +1461,18 @@ btnM3.style.minWidth = "120px";
 
 const dateStr = tdDate.textContent.split(" ")[0]; // YYYY-MM-DD
 
-let tonnage = await getTonnageForDate(dateStr);
+// 🔍 Récupère le chemin complet du site
+const fullPath = localStorage.getItem("lastFolderPath") || "";
+const siteRoot = fullPath.split("/")[0];   // ex: "Valbonne"
+
+// 🔧 Appel correct
+let tonnage = await getTonnageForDate(siteRoot, dateStr);
+
+if (!isFinite(tonnage)) tonnage = 0;
+
+// Stockage pour export CSV
+tr.dataset.tonnage = tonnage;
+
 
 if (!isFinite(tonnage)) tonnage = 0;
 
@@ -2212,6 +2223,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
