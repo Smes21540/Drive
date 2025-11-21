@@ -595,41 +595,52 @@ let filterStartDate="", filterEndDate="";
 let themeMenuTimer;
 let cancelScan = false; // 🛑 permet d’arrêter le scan si on clique ailleurs
 
-// --- Récupération du tonnage depuis Traça_Temp ---
 async function getTonnageForDate(dateStr) {
-
     try {
         const clean = dateStr.replace(/-/g, "");
 
-        // 👉 Charger Traça_Temp du site courant
-        const tracaFolder = await loader.loadFolder("Traça_Temp");
-        if (!tracaFolder) return 0;
+        // 🔥 1) Trouver le site courant
+        const siteLi = document.querySelector('#folderTree .active-folder')?.closest('li');
+        if (!siteLi) return 0;
+        const siteId = siteLi.dataset.id;
 
-        const match = tracaFolder.files.find(f => f.name.includes(clean));
+        // 🔥 2) Lister les sous-dossiers du site
+        const subFolders = await fetchFolderContents(siteId);
+        if (!subFolders || subFolders.length === 0) return 0;
+
+        // 🔥 3) Trouver le dossier Traça_Temp réel
+        const traca = subFolders.find(f =>
+            f.mimeType === 'application/vnd.google-apps.folder' &&
+            (f.name.toLowerCase().includes("traça_temp") || f.name.toLowerCase().includes("traca_temp"))
+        );
+        if (!traca) return 0;
+
+        // 🔥 4) Charger la liste des fichiers Traça_Temp
+        const files = await fetchFolderContents(traca.id);
+        const match = files.find(f => f.name.includes(clean) && f.name.endsWith(".csv"));
         if (!match) return 0;
 
-        // 👉 Télécharger le fichier
-        const content = await loader.loadFile(match.id);
-        if (!content) return 0;
+        // 🔥 5) Télécharger le fichier du jour
+        const text = await fetch(
+            `https://smes21540.netlify.app/.netlify/functions/drive?id=${match.id}&name=${encodeURIComponent(match.name)}&site=Smes_Acces`
+        ).then(r => r.text());
 
-        const lines = content.trim().split("\n");
+        const lines = text.trim().split(/\r?\n/);
         if (lines.length < 3) return 0;
 
-        // 👉 Séparateur = VIRGULE
         const header = lines[0].split(",").map(h => h.replace(/"/g,"").trim());
-
-        const idx = header.findIndex(h => h === "Cumul (tonnes)");
+        const idx = header.indexOf("Cumul (tonnes)");
         if (idx === -1) return 0;
 
-        const first = parseFloat(lines[1].split(",")[idx].replace(/"/g,"").trim());
-        const last  = parseFloat(lines[lines.length - 1].split(",")[idx].replace(/"/g,"").trim());
+        const first = parseFloat(lines[1].split(",")[idx]);
+        const last  = parseFloat(lines[lines.length - 1].split(",")[idx]);
 
         if (!isFinite(first) || !isFinite(last)) return 0;
 
         return last - first;
 
-    } catch(e) {
-        console.error("Erreur tonnage :", e);
+    } catch (e) {
+        console.error("Erreur tonnage:", e);
         return 0;
     }
 }
@@ -2202,6 +2213,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
