@@ -1309,6 +1309,31 @@ if (isFinite(m3First) && isFinite(m3Last)) {
   diffM3 = m3Last - m3First;
 }
 
+const btns = tdAction.querySelectorAll(".gaz-btn");
+const btnKwh    = btns[0];
+const btnHeures = btns[1];
+const btnM3     = btns[2];
+const btnAvg    = btns[3];
+
+/* ===========================
+   🌬️ AFFICHAGE M³
+   =========================== */
+if (diffM3 < 0) {
+  btnM3.textContent = "ERREUR";
+  btnM3.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
+  btnM3.style.color = "#fff";
+} else if (diffM3 === 0) {
+  btnM3.style.display = "none";
+} else {
+  btnM3.textContent = `${diffM3.toFixed(1)} m³`;
+  btnM3.style.background = "linear-gradient(180deg, #ffe082, #ffca28)";
+  btnM3.style.color = "#5d4037";
+  btnM3.style.minWidth = "110px";
+}
+
+        
+
+
 
         let active = 0;
         for (let i = 1; i < lines.length; i++) {
@@ -1327,29 +1352,7 @@ if (isFinite(m3First) && isFinite(m3Last)) {
       const M = String(diffMinutes % 60).padStart(2,"0");
       const dureeFormatee = `${H}:${M}`;
 
-const btns = tdAction.querySelectorAll(".gaz-btn");
-const btnKwh    = btns[0];
-const btnHeures = btns[1];
-const btnM3     = btns[2];   // ← NOUVEAU
-const btnAvg    = btns[3];
 
-
-/* ===========================
-   🌬️ AFFICHAGE M³
-   =========================== */
-
-if (diffM3 < 0) {
-  btnM3.textContent = "ERREUR";
-  btnM3.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
-  btnM3.style.color = "#fff";
-} else if (diffM3 === 0) {
-  btnM3.style.display = "none";
-} else {
-  btnM3.textContent = `${diffM3.toFixed(1)} m³`;
-  btnM3.style.background = "linear-gradient(180deg, #ffe082, #ffca28)";
-  btnM3.style.color = "#5d4037";
-  btnM3.style.minWidth = "110px";
-}
 
 
       /* ===========================
@@ -2164,6 +2167,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
