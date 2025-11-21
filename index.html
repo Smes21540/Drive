@@ -596,91 +596,130 @@ let themeMenuTimer;
 let cancelScan = false; // 🛑 permet d’arrêter le scan si on clique ailleurs
 
 async function getTonnageForDate(siteRoot, dateStr) {
-    try {
-        // Exemple : siteRoot = "Valbonne"
-        const csvName = `SA00094_${dateStr.replace(/-/g,"")}.csv`;
 
-        // 1️⃣ Chercher l’ID du fichier dans Traça_Temp
+    console.log("=== TONNAGE DEBUG ===");
+    console.log("Site :", siteRoot);
+    console.log("Date :", dateStr);
+
+    try {
         const folders = await fetchFolderContents(localStorage.getItem("lastFolderId"));
+
         const tracatemp = folders.find(f =>
             f.mimeType === "application/vnd.google-apps.folder" &&
             f.name.toLowerCase().includes("traça_temp")
         );
-        if (!tracatemp) return 0;
+
+        if (!tracatemp) {
+            console.warn("❌ Dossier Traça_Temp introuvable !");
+            return 0;
+        }
+
+        console.log("✔ Dossier Traça_Temp trouvé :", tracatemp.name, tracatemp.id);
 
         const files = await fetchFolderContents(tracatemp.id);
-        const file = files.find(f =>
-            f.name.toLowerCase() === csvName.toLowerCase()
-        );
 
-        if (!file) return 0;
+        const csvName = `SA00094_${dateStr.replace(/-/g, "")}.csv`;
 
-        // 2️⃣ Télécharger le fichier via le proxy Netlify
-        const resp = await fetch(
-            `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name)}&site=Smes_Acces`
-        );
+        console.log("Recherche du fichier :", csvName);
 
+        const file = files.find(f => f.name.toLowerCase() === csvName.toLowerCase());
 
-        if (!resp.ok) return 0;
+        if (!file) {
+            console.warn("❌ Fichier non trouvé dans Traça_Temp :", csvName);
+            return 0;
+        }
+
+        console.log("✔ Fichier trouvé :", file.name, file.id);
+
+        // Téléchargement du CSV
+        const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name)}&site=Smes_Acces`;
+
+        console.log("Téléchargement depuis :", url);
+
+        const resp = await fetch(url);
+
+        if (!resp.ok) {
+            console.error("❌ Erreur téléchargement CSV :", resp.status);
+            return 0;
+        }
 
         const text = await resp.text();
 
+        console.log("✔ CSV téléchargé, longueur :", text.length);
+
         const lines = text.trim().split(/\r?\n/);
 
-// --- Parseur CSV propre ---
-function parseCSV(line) {
-    const result = [];
-    let current = "";
-    let insideQuotes = false;
+        console.log("Nombre de lignes :", lines.length);
 
-    for (let i = 0; i < line.length; i++) {
-        const c = line[i];
+        // === Nouveau parseur fiable ===
+        function parseCSV(line) {
+            const result = [];
+            let current = "";
+            let insideQuotes = false;
 
-        // "" → guillemet échappé
-        if (c === '"' && line[i + 1] === '"') {
-            current += '"';
-            i++;
-        }
-        else if (c === '"') {
-            insideQuotes = !insideQuotes;
-        }
-        else if (c === "," && !insideQuotes) {
+            for (let i = 0; i < line.length; i++) {
+                const c = line[i];
+
+                if (c === '"' && line[i + 1] === '"') {
+                    current += '"';
+                    i++;
+                }
+                else if (c === '"') {
+                    insideQuotes = !insideQuotes;
+                }
+                else if (c === "," && !insideQuotes) {
+                    result.push(current);
+                    current = "";
+                }
+                else {
+                    current += c;
+                }
+            }
             result.push(current);
-            current = "";
+            return result;
         }
-        else {
-            current += c;
+
+        const header = parseCSV(lines[0]);
+
+        console.log("Header :", header);
+
+        const idx = header.indexOf("Cumul (tonnes)");
+
+        console.log("Index 'Cumul (tonnes)' :", idx);
+
+        if (idx === -1) {
+            console.warn("❌ Colonne 'Cumul (tonnes)' introuvable !");
+            return 0;
         }
-    }
 
-    result.push(current);
-    return result;
-}
+        const firstLine = parseCSV(lines[1]);
+        const lastLine  = parseCSV(lines[lines.length - 1]);
 
+        console.log("Première ligne tonnage brute :", firstLine[idx]);
+        console.log("Dernière ligne tonnage brute :", lastLine[idx]);
 
-// --- Extraction du tonnage ---
-const header = parseCSV(lines[0]);
-const idx = header.indexOf("Cumul (tonnes)");
+        const first = parseFloat(firstLine[idx].replace(",", "."));
+        const last  = parseFloat(lastLine[idx].replace(",", "."));
 
-if (idx === -1) return 0;
+        console.log("Parsed first =", first, "last =", last);
 
-// 1ère et dernière ligne utiles
-const firstLine = parseCSV(lines[1]);
-const lastLine  = parseCSV(lines[lines.length - 1]);
+        if (!isFinite(first) || !isFinite(last)) {
+            console.warn("❌ Valeurs tonnage invalides !");
+            return 0;
+        }
 
-// Remplacement virgule → point pour float JS
-const first = parseFloat(firstLine[idx].replace(",", "."));
-const last  = parseFloat(lastLine[idx].replace(",", "."));
+        const diff = last - first;
 
-if (!isFinite(first) || !isFinite(last)) return 0;
+        console.log("✔ Tonnage calculé =", diff);
 
-return last - first;
+        return diff;
 
-          }
-    catch (e) {
+    } catch (e) {
+        console.error("💥 Exception tonnage :", e);
         return 0;
     }
 }
+
 
   
 
@@ -2273,6 +2312,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
