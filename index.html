@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Séchoirs Oxyane</title>
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌽</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧨</text></svg>">
 
   
 <!-- Dépendances -->
@@ -1470,6 +1470,20 @@ btnM3.style.minWidth = "120px";
       btnAvg.style.minWidth = "90px";
       btnAvg.style.fontSize = "12px";
 
+/* ===========================
+   📦 TONNAGE — Pré-calcul automatique
+   =========================== */
+
+const dateStr = tdDate.textContent.split(" ")[0]; // YYYY-MM-DD
+
+let tonnage = await getTonnageForDate(dateStr);
+
+if (!isFinite(tonnage)) tonnage = 0;
+
+// 🔥 Stockage invisible (export CSV le réutilisera)
+tr.dataset.tonnage = tonnage;
+
+
     } catch (err) {
       console.warn("Erreur GAZ:", err);
     }
@@ -2167,8 +2181,8 @@ document.getElementById("exportCsvBtn").addEventListener("click", async function
         if (avg === "" || isNaN(avg)) avg = "0";
 
         // --- TONNAGE (depuis Traça_Temp) ---
-        let tonnage = await getTonnageForDate(date);
-        if (!isFinite(tonnage)) tonnage = 0;
+let tonnage = row.dataset.tonnage || "0";
+
 
         csv += `${date},${kwh},${m3},${duree},${mins},${avg},${tonnage}\n`;
     }
@@ -2213,6 +2227,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
