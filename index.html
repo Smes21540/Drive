@@ -1246,8 +1246,9 @@ if (
 
   html += `
     <div class="gaz-group">
-      <button class="gaz-btn" disabled>⏳ Calcul...</button>
-      <button class="gaz-btn" disabled>⏳ Heures...</button>
+      <button class="gaz-btn" disabled>⏳ kWh...</button>
+      <button class="gaz-btn" disabled>⏱ Temps...</button>
+      <button class="gaz-btn gaz-small" disabled>--</button>
     </div>
   `;
 
@@ -1264,7 +1265,7 @@ if (
       let diffKwh = 0;
 
       if (lines.length > 2) {
-        // consommation = dernier - premier
+
         const firstCols = lines[1].split(",");
         const lastCols  = lines[lines.length - 1].split(",");
 
@@ -1273,7 +1274,6 @@ if (
 
         if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
 
-        // durée = minutes où delta > 0
         let active = 0;
         for (let i = 1; i < lines.length; i++) {
           const prev = lines[i - 1].split(",");
@@ -1282,14 +1282,11 @@ if (
           const kPrev = parseFloat(prev[2].replace(/"/g,""));
           const kCurr = parseFloat(curr[2].replace(/"/g,""));
 
-          if (isFinite(kPrev) && isFinite(kCurr) && kCurr > kPrev) {
-            active++;
-          }
+          if (isFinite(kPrev) && isFinite(kCurr) && kCurr > kPrev) active++;
         }
         diffMinutes = active;
       }
 
-      // conversion HH:MM
       const H = String(Math.floor(diffMinutes / 60)).padStart(2,"0");
       const M = String(diffMinutes % 60).padStart(2,"0");
       const dureeFormatee = `${H}:${M}`;
@@ -1297,82 +1294,94 @@ if (
       const btns = tdAction.querySelectorAll(".gaz-btn");
       const btnKwh    = btns[0];
       const btnHeures = btns[1];
+      const btnAvg    = btns[2];
 
-/* ===========================
-   🎨 FORMATAGE, COULEURS & AFFICHAGE
-   =========================== */
+      /* ===========================
+         🎨 FORMATAGE, COULEURS & AFFICHAGE
+         =========================== */
 
-// arrondi correct
-const rounded = Math.round(diffKwh);
+      const rounded = Math.round(diffKwh);
 
+      // --- ERREUR (>400000) ---
+      if (rounded > 400000) {
+        btnKwh.textContent = "ERREUR";
+        btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
+        btnKwh.style.color = "#fff";
+        btnKwh.style.minWidth = "120px";
 
+        btnHeures.textContent = `⏱ ${dureeFormatee}`;
+        btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
+        btnHeures.style.color = "#0d47a1";
+        btnHeures.style.minWidth = "120px";
 
-// --- Si valeur anormale (> 400000) ---
-if (rounded > 400000) {
-  btnKwh.textContent = "ERREUR";
-  btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
-  btnKwh.style.color = "#fff";
-  btnKwh.style.minWidth = "120px";
+        btnAvg.textContent = "ERR";
+        btnAvg.style.background = "#ff8a80";
+        btnAvg.style.color = "#b71c1c";
+        return;
+      }
 
-  btnHeures.textContent = `⏱ ${dureeFormatee}`;
-  btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
-  btnHeures.style.color = "#0d47a1";
-  btnHeures.style.minWidth = "120px";
+      // --- Si conso = 0 : aucun bouton affiché ---
+      if (rounded === 0) {
+        btnKwh.style.display = "none";
+        btnHeures.style.display = "none";
+        btnAvg.style.display = "none";
+        return;
+      }
 
-  return;
-}
+      // --- Valeur normale ---
+      const padded = String(rounded).padStart(7, " ");
 
-// --- Si consommation = 0 → on masque complètement les boutons ---
-if (rounded === 0) {
-  btnKwh.style.display = "none";
-  btnHeures.style.display = "none";
-  return;
-}
+      let v = Math.min(Math.max(rounded, 0), 200000);
+      let bg = "";
+      let textColor = "#1b5e20";
 
-// --- Sinon, valeur normale : affichage complet ----
+      if (v <= 10000) {
+        const ratio = v / 10000;
+        const g = Math.round(230 - 60 * ratio);
+        const r = Math.round(200 + 55 * ratio);
+        bg = `linear-gradient(180deg, rgb(${r},${g},100), rgb(${r+20},${g+20},120))`;
+        textColor = "#2e7d32";
+      } else {
+        const ratio = (v - 10000) / 190000;
+        const r = 255;
+        const g = Math.round(235 - 155 * ratio);
+        bg = `linear-gradient(180deg, rgb(${r},${g},80), rgb(${r-20},${g-30},60))`;
+        textColor = "#3e2723";
+      }
 
-// largeur fixe 7 chiffres
-const padded = String(rounded).padStart(7, " ");
+      btnKwh.textContent = `${padded} kWh`;
+      btnKwh.style.background = bg;
+      btnKwh.style.color = textColor;
+      btnKwh.style.minWidth = "120px";
 
-// Couleurs dépendantes de l’intensité
-const v = Math.min(Math.max(rounded, 0), 200000);
-let bg = "";
-let textColor = "#1b5e20";
+      btnHeures.textContent = `⏱ ${dureeFormatee}`;
+      btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
+      btnHeures.style.color = "#0d47a1";
+      btnHeures.style.minWidth = "120px";
 
-if (v <= 10000) {
-  const ratio = v / 10000;
-  const g = Math.round(230 - 60 * ratio);
-  const r = Math.round(200 + 55 * ratio);
-  bg = `linear-gradient(180deg, rgb(${r},${g},100), rgb(${r+20},${g+20},120))`;
-  textColor = "#2e7d32";
-} else {
-  const ratio = (v - 10000) / 190000;
-  const r = 255;
-  const g = Math.round(235 - 155 * ratio);
-  bg = `linear-gradient(180deg, rgb(${r},${g},80), rgb(${r-20},${g-30},60))`;
-  textColor = "#3e2723";
-}
+      /* ===========================
+         📊 Conso moyenne / heure
+         =========================== */
 
-btnKwh.textContent = `${padded} kWh`;
-btnKwh.style.background = bg;
-btnKwh.style.color = textColor;
-btnKwh.style.minWidth = "120px";
+      if (diffMinutes === 0) {
+        btnAvg.style.display = "none";
+      } else {
+        const hours = diffMinutes / 60;
+        const avg = rounded / hours;
 
-btnHeures.textContent = `⏱ ${dureeFormatee}`;
-btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
-btnHeures.style.color = "#0d47a1";
-btnHeures.style.minWidth = "120px";
-
-
+        btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
+        btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
+        btnAvg.style.color = "#01579b";
+        btnAvg.style.minWidth = "90px";
+        btnAvg.style.fontSize = "12px";
+      }
 
     } catch (err) {
       console.warn("Erreur GAZ:", err);
-      const btns = tdAction.querySelectorAll(".gaz-btn");
-      if (btns[0]) btns[0].textContent = "⚡ 0 kWh";
-      if (btns[1]) btns[1].textContent = "⏱ 00:00";
     }
   })();
 }
+
 
 
 
@@ -2048,6 +2057,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
