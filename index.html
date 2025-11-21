@@ -1391,22 +1391,33 @@ const btnM3     = btns[3];
       btnHeures.style.color = "#0d47a1";
       btnHeures.style.minWidth = "120px";
 
-      /* ===========================
-   🔵 Bouton m³
+/* ===========================
+   🔵 m³ (même logique que kWh)
    =========================== */
-if (diffM3 < 0 || diffM3 > 400000) {
+
+const roundedM3 = Math.round(diffM3);
+
+// Erreur négative ou trop haute
+if (roundedM3 < 0 || roundedM3 > 400000) {
     btnM3.textContent = "ERREUR";
     btnM3.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
     btnM3.style.color = "#fff";
-} else if (diffM3 === 0) {
-    btnM3.style.display = "none";
-} else {
-    btnM3.textContent = `${diffM3.toFixed(1)} m³`;
-    btnM3.style.background = "linear-gradient(180deg, #ffe082, #ffca28)";
-    btnM3.style.color = "#5d4037";
-    btnM3.style.fontSize = "12px";
-    btnM3.style.minWidth = "90px";
+    return;
 }
+
+// Pas d'activité
+if (roundedM3 === 0) {
+    btnM3.style.display = "none";
+    return;
+}
+
+// Valeur normale → même logique que kWh mais couleurs gaz
+btnM3.textContent = `${roundedM3} m³`;
+btnM3.style.background = "linear-gradient(180deg, #ffe082, #ffca28)";
+btnM3.style.color = "#4e342e";
+btnM3.style.minWidth = "120px";
+btnM3.style.fontSize = "13px";
+
 
 
       /* ===========================
@@ -2211,6 +2222,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
