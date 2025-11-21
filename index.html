@@ -1295,20 +1295,20 @@ html += `
         const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
         const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
 
-        // 🔧 Calcul consommation m³
+
+
+        if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
+
+
+// --- Calcul du volume gaz (m³)
 const m3First = parseFloat(firstCols[4].replace(/"/g,""));
 const m3Last  = parseFloat(lastCols[4].replace(/"/g,""));
-let diffM3 = 0;
 
+let diffM3 = 0;
 if (isFinite(m3First) && isFinite(m3Last)) {
   diffM3 = m3Last - m3First;
 }
 
-
-
-
-
-        if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
 
         let active = 0;
         for (let i = 1; i < lines.length; i++) {
@@ -2164,6 +2164,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
