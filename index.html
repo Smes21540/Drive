@@ -511,6 +511,12 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
     <button onclick="applyFilter()">Filtrer</button>
     <button onclick="clearFilter()">Tout afficher</button>
     <button id="downloadFolderBtn">Télécharger le dossier</button>
+    <!-- 🔧 AJOUT : bouton export CSV gaz -->
+<button id="exportGazBtn" onclick="exportGazCSV()" style="display:none;">
+  Export CSV Gaz
+</button>
+
+    
   </div>
 
   <div id="tableWrapper">
@@ -586,6 +592,11 @@ const ENABLE_GAZ_CALC = true;  // ← passe à false pour désactiver
 /* ----------- Config personnalisée ----------- */
 const FLAME_THRESHOLD = 40.0;   // seuil déclencheur de la flamme 🔥
 
+// 🔧 AJOUT : stockage des valeurs gaz pour export
+let gazStats = [];
+
+
+  
 /* ----------- État ----------- */
 let imageFiles=[], currentImageIndex=0;
 let filterStartDate="", filterEndDate="";
@@ -995,6 +1006,16 @@ async function displayFiles(files, folderName){
   // ✅ Afficher les filtres uniquement dans un dossier final (contenant des fichiers)
 document.querySelector(".controls").style.display = "flex";
 
+// 🔧 AJOUT : Affiche le bouton seulement pour consommation gaz
+const exportBtn = document.getElementById("exportGazBtn");
+if (folderName.toLowerCase().includes("consommation gaz")) {
+  exportBtn.style.display = "inline-block";
+  gazStats = []; // reset
+} else {
+  exportBtn.style.display = "none";
+}
+
+  
 
   if(files.length===0){
     tbody.innerHTML='<tr><td colspan="5" style="text-align:center;">Aucun fichier</td></tr>';
@@ -1383,6 +1404,18 @@ if (
       }
 
       btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
+
+// 🔧 AJOUT : stocker stats pour export CSV
+gazStats.push({
+  file_date: date,
+  file_name: f.name,
+  daily_kwh: rounded,
+  active_minutes: diffMinutes,
+  active_hhmm: dureeFormatee,
+  average_kwh_h: avg.toFixed(1)
+});
+
+      
       btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
       btnAvg.style.color = "#01579b";
       btnAvg.style.minWidth = "90px";
@@ -2038,6 +2071,28 @@ function recolorHotDays(instance) {
 
 
 
+// 🔧 AJOUT : Export CSV Gazette Gaz
+function exportGazCSV() {
+  if (gazStats.length === 0) {
+    alert("Aucune donnée gaz disponible.");
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0,10);
+  const filename = `gaz_export_${today}.csv`;
+
+  let csv = "file_date,file_name,daily_kwh,active_minutes,active_hhmm,average_kwh_h\n";
+
+  gazStats.forEach(r => {
+    csv += `${r.file_date},${r.file_name},${r.daily_kwh},${r.active_minutes},${r.active_hhmm},${r.average_kwh_h}\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
 
 
 
@@ -2070,6 +2125,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
