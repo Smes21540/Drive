@@ -595,55 +595,40 @@ let filterStartDate="", filterEndDate="";
 let themeMenuTimer;
 let cancelScan = false; // 🛑 permet d’arrêter le scan si on clique ailleurs
 
-async function getTonnageForDate(dateStr) {
+async function getTonnageForDate(siteRoot, dateStr) {
     try {
-        const clean = dateStr.replace(/-/g, "");
+        const fileName = `${siteRoot}/Traça_Temp/SA00094_${dateStr.replace(/-/g,"")}.csv`;
 
-        // 🔥 1) Trouver le site courant
-        const siteLi = document.querySelector('#folderTree .active-folder')?.closest('li');
-        if (!siteLi) return 0;
-        const siteId = siteLi.dataset.id;
+        const resp = await fetch(fileName);
+        if (!resp.ok) return 0;
 
-        // 🔥 2) Lister les sous-dossiers du site
-        const subFolders = await fetchFolderContents(siteId);
-        if (!subFolders || subFolders.length === 0) return 0;
-
-        // 🔥 3) Trouver le dossier Traça_Temp réel
-        const traca = subFolders.find(f =>
-            f.mimeType === 'application/vnd.google-apps.folder' &&
-            (f.name.toLowerCase().includes("traça_temp") || f.name.toLowerCase().includes("traca_temp"))
-        );
-        if (!traca) return 0;
-
-        // 🔥 4) Charger la liste des fichiers Traça_Temp
-        const files = await fetchFolderContents(traca.id);
-        const match = files.find(f => f.name.includes(clean) && f.name.endsWith(".csv"));
-        if (!match) return 0;
-
-        // 🔥 5) Télécharger le fichier du jour
-        const text = await fetch(
-            `https://smes21540.netlify.app/.netlify/functions/drive?id=${match.id}&name=${encodeURIComponent(match.name)}&site=Smes_Acces`
-        ).then(r => r.text());
+        const text = await resp.text();
 
         const lines = text.trim().split(/\r?\n/);
-        if (lines.length < 3) return 0;
 
-        const header = lines[0].split(",").map(h => h.replace(/"/g,"").trim());
+        const parseCSV = line =>
+            line.match(/("([^"]*)"|[^,]+)/g).map(x => x.replace(/"/g,"").trim());
+
+        const header = parseCSV(lines[0]);
         const idx = header.indexOf("Cumul (tonnes)");
+
         if (idx === -1) return 0;
 
-        const first = parseFloat(lines[1].split(",")[idx]);
-        const last  = parseFloat(lines[lines.length - 1].split(",")[idx]);
+        const firstLine = parseCSV(lines[1]);
+        const lastLine  = parseCSV(lines[lines.length - 1]);
+
+        const first = parseFloat(firstLine[idx].replace(",", "."));
+        const last  = parseFloat(lastLine[idx].replace(",", "."));
 
         if (!isFinite(first) || !isFinite(last)) return 0;
 
         return last - first;
-
-    } catch (e) {
-        console.error("Erreur tonnage:", e);
+    } 
+    catch (e) {
         return 0;
     }
 }
+
 
 
 
@@ -2227,6 +2212,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
