@@ -602,7 +602,27 @@ async function getTonnageForDate(siteRoot, dateStr) {
     console.log("Date :", dateStr);
 
     try {
-        const folders = await fetchFolderContents(localStorage.getItem("lastFolderId"));
+        // On récupère le chemin complet actuel
+const path = (localStorage.getItem("lastFolderPath") || "").split("/");
+
+// Exemple : ["Valbonne","Consommation Gaz"]
+// On prend la racine du site : "Valbonne"
+const siteName = path[0];
+
+// On liste les dossiers au niveau du site
+const root = await fetchFolderContents(ROOT_ID);  // l’ID Drive de ton dossier principal
+
+// On trouve le dossier du site
+const siteFolder = root.find(f => f.name === siteName);
+
+if (!siteFolder) {
+    console.warn("❌ Impossible de trouver le dossier du site :", siteName);
+    return 0;
+}
+
+// Maintenant on scanne les sous-dossiers du site
+const folders = await fetchFolderContents(siteFolder.id);
+
 
         const tracatemp = folders.find(f =>
             f.mimeType === "application/vnd.google-apps.folder" &&
@@ -2312,6 +2332,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
