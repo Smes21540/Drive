@@ -1265,19 +1265,19 @@ if (
   f.name.toLowerCase().endsWith(".csv")
 ) {
 
-  html += `
-    <div class="gaz-group">
+  // Ajoute le conteneur Gaz SANS écraser l'existant
+  const div = document.createElement("div");
+  div.className = "gaz-group";
+  div.innerHTML = `
       <button class="gaz-btn" disabled>⏳ kWh...</button>
       <button class="gaz-btn" disabled>⏱ Temps...</button>
       <button class="gaz-btn" disabled>m³...</button>
       <button class="gaz-btn gaz-small" disabled>--</button>
-    </div>
   `;
+  tdAction.appendChild(div);
 
-  tdAction.innerHTML = html;
-
-  // === IMPORTANT : récupérer les boutons immédiatement ===
-  const btns = tdAction.querySelectorAll(".gaz-btn");
+  // Récupération des boutons
+  const btns = div.querySelectorAll(".gaz-btn");
   const btnKwh    = btns[0];
   const btnHeures = btns[1];
   const btnM3     = btns[2];
@@ -1285,10 +1285,10 @@ if (
 
   (async () => {
     try {
-
       const res = await fetch(
         `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`
       );
+
       const text = await res.text();
       const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
 
@@ -1299,31 +1299,29 @@ if (
 
       if (lines.length > 2) {
 
+        // Extraction premières / dernières valeurs
         const firstCols = lines[1].split(",");
         const lastCols  = lines[lines.length - 1].split(",");
 
-        // --- kWh ---
-        const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
-        const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
+        // kWh
+        const kFirst = parseFloat(firstCols[2]);
+        const kLast  = parseFloat(lastCols[2]);
         if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
 
-        // --- m3 ---
-        const m3First = parseFloat(firstCols[4].replace(/"/g,""));
-        const m3Last  = parseFloat(lastCols[4].replace(/"/g,""));
+        // m3
+        const m3First = parseFloat(firstCols[4]);
+        const m3Last  = parseFloat(lastCols[4]);
         if (isFinite(m3First) && isFinite(m3Last)) diffM3 = m3Last - m3First;
 
-        // --- minutes actives ---
+        // Minutes actives
         let active = 0;
         for (let i = 1; i < lines.length; i++) {
           const prev = lines[i - 1].split(",");
           const curr = lines[i].split(",");
-
-          const kPrev = parseFloat(prev[2].replace(/"/g,""));
-          const kCurr = parseFloat(curr[2].replace(/"/g,""));
-
-          if (isFinite(kPrev) && isFinite(kCurr) && kCurr > kPrev) active++;
+          const kPrev = parseFloat(prev[2]);
+          const kCurr = parseFloat(curr[2]);
+          if (kCurr > kPrev) active++;
         }
-
         diffMinutes = active;
 
         const H = String(Math.floor(active / 60)).padStart(2,"0");
@@ -1331,87 +1329,49 @@ if (
         dureeFormatee = `${H}:${M}`;
       }
 
-      // ========== AFFICHAGE m3 ==========
+      // === m³ ===
       if (diffM3 < 0) {
         btnM3.textContent = "ERREUR";
-        btnM3.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
+        btnM3.style.background = "linear-gradient(180deg,#ffccbc,#d32f2f)";
         btnM3.style.color = "#fff";
       } else if (diffM3 === 0) {
         btnM3.style.display = "none";
       } else {
         btnM3.textContent = `${diffM3.toFixed(1)} m³`;
-        btnM3.style.background = "linear-gradient(180deg, #ffe082, #ffca28)";
-        btnM3.style.color = "#5d4037";
-        btnM3.style.minWidth = "110px";
       }
 
-      // ========= ERREURS / MASQUAGE =========
+      // === kWh ===
       const rounded = Math.round(diffKwh);
 
-      if (rounded < 0 || rounded > 400000) {
-        btnKwh.textContent = "ERREUR";
-        btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
-        btnKwh.style.color = "#fff";
-
-        btnHeures.textContent = `⏱ ${dureeFormatee}`;
-        btnAvg.textContent = "ERREUR";
-        return;
-      }
-
-      if (rounded === 0) {
+      if (rounded <= 0) {
         btnKwh.style.display = "none";
         btnHeures.style.display = "none";
         btnAvg.style.display = "none";
         return;
       }
 
-      // ========== FORMATAGE KWH ==========
-      const padded = String(rounded).padStart(7, " ");
-      let v = Math.min(Math.max(rounded, 0), 200000);
-      let bg = "";
-      let textColor = "#1b5e20";
+      btnKwh.textContent = `${rounded} kWh`;
 
-      if (v <= 10000) {
-        const ratio = v / 10000;
-        const g = Math.round(230 - 60 * ratio);
-        const r = Math.round(200 + 55 * ratio);
-        bg = `linear-gradient(180deg, rgb(${r},${g},100), rgb(${r+20},${g+20},120))`;
-        textColor = "#2e7d32";
-      } else {
-        const ratio = (v - 10000) / 190000;
-        const r = 255;
-        const g = Math.round(235 - 155 * ratio);
-        bg = `linear-gradient(180deg, rgb(${r},${g},80), rgb(${r-20},${g-30},60))`;
-        textColor = "#3e2723";
-      }
-
-      btnKwh.textContent = `${padded} kWh`;
-      btnKwh.style.background = bg;
-      btnKwh.style.color = textColor;
-
-      // ========== TEMPS ==========
+      // === Temps ===
       btnHeures.textContent = `⏱ ${dureeFormatee}`;
 
-      // ========== MOYENNE ==========
+      // === Moyenne h ===
       const hours = diffMinutes / 60;
+      if (hours > 0) {
+        const avg = rounded / hours;
 
-      if (hours === 0) {
+        if (avg < 1000) {
+          btnAvg.textContent = "ERREUR";
+          btnAvg.style.background = "#ff8a80";
+          btnAvg.style.color = "#b71c1c";
+        } else {
+          btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
+        }
+      } else {
         btnAvg.style.display = "none";
-        return;
       }
 
-      const avg = rounded / hours;
-
-      if (avg < 1000) {
-        btnAvg.textContent = "ERREUR";
-        btnAvg.style.background = "#ff8a80";
-        btnAvg.style.color = "#b71c1c";
-        return;
-      }
-
-      btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
-
-      // ========== AJOUT POUR EXPORT ==========
+      // === Export stats ===
       gazStats.push({
         file_date: date,
         file_name: f.name,
@@ -1419,11 +1379,11 @@ if (
         daily_m3: diffM3,
         active_minutes: diffMinutes,
         active_hhmm: dureeFormatee,
-        average_kwh_h: avg.toFixed(1)
+        average_kwh_h: (rounded / (diffMinutes/60)).toFixed(1)
       });
 
-    } catch (err) {
-      console.warn("Erreur Gaz:", err);
+    } catch(e) {
+      console.error("Erreur Gaz:", e);
     }
   })();
 }
@@ -2113,6 +2073,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
