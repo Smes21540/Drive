@@ -383,11 +383,7 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   min-width: 110px;          /* largeur fixe pour un alignement parfait */
 }
 
-/* Deuxième bouton (heures) : bleu clair */
-.gaz-group .gaz-btn:nth-of-type(2) {
-  background: linear-gradient(180deg, #bbdefb, #64b5f6);
-  color: #0d47a1;
-}
+
 
 /* --- Jours chauds dans le calendrier --- */
 .hot-day {
@@ -1283,6 +1279,7 @@ let m3Last  = parseFloat(lastCols[4].replace(/"/g,""));
 let diffM3  = m3Last - m3First;
 
 
+
         let active = 0;
         for (let i = 1; i < lines.length; i++) {
           const prev = lines[i - 1].split(",");
@@ -1300,7 +1297,7 @@ let diffM3  = m3Last - m3First;
       const M = String(diffMinutes % 60).padStart(2,"0");
       const dureeFormatee = `${H}:${M}`;
 
-const btns = tdAction.querySelectorAll(".gaz-btn");
+const btns = tdAction.getElementsByClassName("gaz-btn");
 const btnKwh    = btns[0];
 const btnM3     = btns[1];
 const btnHeures = btns[2];
@@ -2097,6 +2094,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
