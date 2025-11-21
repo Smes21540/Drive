@@ -610,7 +610,7 @@ const path = (localStorage.getItem("lastFolderPath") || "").split("/");
 const siteName = path[0];
 
 // On liste les dossiers au niveau du site
-const root = await fetchFolderContents(ROOT_ID);  // l’ID Drive de ton dossier principal
+const root = await fetchFolderContents(ROOT_FOLDER_ID);  // l’ID Drive de ton dossier principal
 
 // On trouve le dossier du site
 const siteFolder = root.find(f => f.name === siteName);
@@ -2332,6 +2332,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
