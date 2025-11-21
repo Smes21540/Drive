@@ -1265,7 +1265,7 @@ if (
   f.name.toLowerCase().endsWith(".csv")
 ) {
 
-  // Ajoute le conteneur Gaz SANS écraser l'existant
+  // ——— Ajout des boutons en append (sans écraser le reste) ———
   const div = document.createElement("div");
   div.className = "gaz-group";
   div.innerHTML = `
@@ -1276,7 +1276,6 @@ if (
   `;
   tdAction.appendChild(div);
 
-  // Récupération des boutons
   const btns = div.querySelectorAll(".gaz-btn");
   const btnKwh    = btns[0];
   const btnHeures = btns[1];
@@ -1285,10 +1284,10 @@ if (
 
   (async () => {
     try {
+
       const res = await fetch(
         `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`
       );
-
       const text = await res.text();
       const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
 
@@ -1297,26 +1296,26 @@ if (
       let diffM3 = 0;
       let dureeFormatee = "00:00";
 
+      // ——— Lecture kWh, m³, minutes actives ———
       if (lines.length > 2) {
 
-        // Extraction premières / dernières valeurs
         const firstCols = lines[1].split(",");
         const lastCols  = lines[lines.length - 1].split(",");
 
-        // kWh
+        // --- kWh (colonne 2) ---
         const kFirst = parseFloat(firstCols[2]);
         const kLast  = parseFloat(lastCols[2]);
         if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
 
-        // m3
+        // --- m3 (colonne 4) ---
         const m3First = parseFloat(firstCols[4]);
         const m3Last  = parseFloat(lastCols[4]);
         if (isFinite(m3First) && isFinite(m3Last)) diffM3 = m3Last - m3First;
 
-        // Minutes actives
+        // --- détection minutes actives ---
         let active = 0;
         for (let i = 1; i < lines.length; i++) {
-          const prev = lines[i - 1].split(",");
+          const prev = lines[i-1].split(",");
           const curr = lines[i].split(",");
           const kPrev = parseFloat(prev[2]);
           const kCurr = parseFloat(curr[2]);
@@ -1329,7 +1328,9 @@ if (
         dureeFormatee = `${H}:${M}`;
       }
 
-      // === m³ ===
+      // ——————————————————————————
+      //         AFFICHAGE m3
+      // ——————————————————————————
       if (diffM3 < 0) {
         btnM3.textContent = "ERREUR";
         btnM3.style.background = "linear-gradient(180deg,#ffccbc,#d32f2f)";
@@ -1338,26 +1339,75 @@ if (
         btnM3.style.display = "none";
       } else {
         btnM3.textContent = `${diffM3.toFixed(1)} m³`;
+        btnM3.style.background = "linear-gradient(180deg, #ffe082, #ffca28)";
+        btnM3.style.color = "#5d4037";
       }
 
-      // === kWh ===
+      // ——————————————————————————
+      //          ERREURS KWH
+      // ——————————————————————————
       const rounded = Math.round(diffKwh);
 
-      if (rounded <= 0) {
+      if (rounded < 0 || rounded > 400000) {
+        btnKwh.textContent = "ERREUR";
+        btnKwh.style.background = "linear-gradient(180deg,#ffccbc,#d32f2f)";
+        btnKwh.style.color = "#fff";
+
+        btnHeures.textContent = `⏱ ${dureeFormatee}`;
+
+        btnAvg.textContent = "ERREUR";
+        btnAvg.style.background = "#ff8a80";
+        btnAvg.style.color = "#b71c1c";
+        return;
+      }
+
+      if (rounded === 0) {
         btnKwh.style.display = "none";
         btnHeures.style.display = "none";
         btnAvg.style.display = "none";
         return;
       }
 
-      btnKwh.textContent = `${rounded} kWh`;
+      // ——————————————————————————
+      //          DÉGRADÉ KWH
+      // ——————————————————————————
+      const padded = String(rounded).padStart(7, " ");
 
-      // === Temps ===
+      let v = Math.min(Math.max(rounded, 0), 200000);
+      let bg = "";
+      let textColor = "#1b5e20";
+
+      if (v <= 10000) {
+        const ratio = v / 10000;
+        const g = Math.round(230 - 60 * ratio);
+        const r = Math.round(200 + 55 * ratio);
+        bg = `linear-gradient(180deg, rgb(${r},${g},100), rgb(${r+20},${g+20},120))`;
+        textColor = "#2e7d32";
+      } else {
+        const ratio = (v - 10000) / 190000;
+        const r = 255;
+        const g = Math.round(235 - 155 * ratio);
+        bg = `linear-gradient(180deg, rgb(${r},${g},80), rgb(${r-20},${g-30},60))`;
+        textColor = "#3e2723";
+      }
+
+      btnKwh.textContent = `${padded} kWh`;
+      btnKwh.style.background = bg;
+      btnKwh.style.color = textColor;
+
+      // ——————————————————————————
+      //           TEMPS
+      // ——————————————————————————
       btnHeures.textContent = `⏱ ${dureeFormatee}`;
 
-      // === Moyenne h ===
+      // ——————————————————————————
+      //      MOYENNE kWh/h
+      // ——————————————————————————
       const hours = diffMinutes / 60;
-      if (hours > 0) {
+
+      if (hours === 0) {
+        btnAvg.style.display = "none";
+      } else {
         const avg = rounded / hours;
 
         if (avg < 1000) {
@@ -1367,11 +1417,11 @@ if (
         } else {
           btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
         }
-      } else {
-        btnAvg.style.display = "none";
       }
 
-      // === Export stats ===
+      // ——————————————————————————
+      //         EXPORT CSV
+      // ——————————————————————————
       gazStats.push({
         file_date: date,
         file_name: f.name,
@@ -1387,6 +1437,7 @@ if (
     }
   })();
 }
+
 
 // === PDF ===
 if (f.name.toLowerCase().endsWith(".pdf")) {
@@ -2073,6 +2124,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
