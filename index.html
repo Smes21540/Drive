@@ -383,11 +383,12 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   min-width: 110px;          /* largeur fixe pour un alignement parfait */
 }
 
-/* Deuxième bouton (heures) : bleu clair */
-.gaz-group .gaz-btn:nth-of-type(2) {
+/* 3e bouton = Temps = bleu clair */
+.gaz-group .gaz-btn:nth-of-type(3) {
   background: linear-gradient(180deg, #bbdefb, #64b5f6);
   color: #0d47a1;
 }
+
 
 /* --- Jours chauds dans le calendrier --- */
 .hot-day {
@@ -1247,6 +1248,7 @@ if (
   html += `
     <div class="gaz-group">
       <button class="gaz-btn" disabled>⏳ kWh...</button>
+      <button class="gaz-btn" disabled>m³...</button>
       <button class="gaz-btn" disabled>⏱ Temps...</button>
       <button class="gaz-btn gaz-small" disabled>--</button>
     </div>
@@ -1271,6 +1273,10 @@ if (
 
         const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
         const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
+        const m3First = parseFloat(firstCols[3+1].replace(/"/g,"")); // colonne après kWh
+const m3Last  = parseFloat(lastCols[3+1].replace(/"/g,""));
+const diffM3  = m3Last - m3First;
+
 
         if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
 
@@ -1292,9 +1298,10 @@ if (
       const dureeFormatee = `${H}:${M}`;
 
       const btns = tdAction.querySelectorAll(".gaz-btn");
-      const btnKwh    = btns[0];
-      const btnHeures = btns[1];
-      const btnAvg    = btns[2];
+const btnKwh    = btns[0];
+const btnM3     = btns[1];
+const btnHeures = btns[2];
+const btnAvg    = btns[3];
 
       /* ===========================
          🎨 FORMATAGE, COULEURS & AFFICHAGE
@@ -1355,6 +1362,12 @@ if (
       btnKwh.style.background = bg;
       btnKwh.style.color = textColor;
       btnKwh.style.minWidth = "120px";
+
+      btnM3.textContent = diffM3 + " m³";
+btnM3.style.background = bg;
+btnM3.style.color = textColor;
+btnM3.style.minWidth = "120px";
+
 
       btnHeures.textContent = `⏱ ${dureeFormatee}`;
       btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
@@ -2070,6 +2083,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
