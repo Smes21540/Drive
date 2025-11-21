@@ -1263,31 +1263,48 @@ html += `
         const firstCols = lines[1].split(",");
         const lastCols = lines[lines.length - 1].split(",");
 
-        // --- Colonne 2 : heure (format HH:MM:SS)
-        const hStart = firstCols[1]?.replace(/"/g, "").trim();
-        const hEnd = lastCols[1]?.replace(/"/g, "").trim();
+// --- Nouveau calcul : durée réelle de fonctionnement (delta kWh > 0) ---
+let diffKwh = 0;
+let diffMinutes = 0;
 
-        function parseHeureToMinutes(h) {
-          const m = h.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-          if (!m) return NaN;
-          const hh = parseInt(m[1]);
-          const mm = parseInt(m[2]);
-          const ss = parseInt(m[3] || "0");
-          return hh * 60 + mm + ss / 60;
-        }
+try {
+  const lines = textGaz.split(/\r?\n/).filter(l => l.trim() !== "");
 
-        const startMin = parseHeureToMinutes(hStart);
-        const endMin = parseHeureToMinutes(hEnd);
+  if (lines.length > 2) {
+    let activeMinutes = 0;
 
-        if (isFinite(startMin) && isFinite(endMin)) {
-          diffMinutes = endMin - startMin;
-          if (diffMinutes < 0) diffMinutes += 24 * 60; // passage minuit
-        }
+    for (let i = 1; i < lines.length; i++) {
+      const prev = lines[i - 1].split(",");
+      const curr = lines[i].split(",");
 
-        // --- Colonne 3 : compteur kWh ---
-        const vCfirst = parseFloat(firstCols[2]?.replace(/"/g, "").trim());
-        const vClast = parseFloat(lastCols[2]?.replace(/"/g, "").trim());
-        if (isFinite(vCfirst) && isFinite(vClast)) diffKwh = vClast - vCfirst;
+      const kPrev = parseFloat(prev[2]?.replace(/"/g, "").trim());
+      const kCurr = parseFloat(curr[2]?.replace(/"/g, "").trim());
+
+      if (isFinite(kPrev) && isFinite(kCurr)) {
+        const delta = kCurr - kPrev;
+        if (delta > 0) activeMinutes++;   // brûleur ON
+      }
+    }
+
+    diffMinutes = activeMinutes;
+
+    // consommation : total du jour = dernier - premier
+    const firstCols = lines[1].split(",");
+    const lastCols = lines[lines.length - 1].split(",");
+
+    const vCfirst = parseFloat(firstCols[2].replace(/"/g, "").trim());
+    const vClast = parseFloat(lastCols[2].replace(/"/g, "").trim());
+    if (isFinite(vCfirst) && isFinite(vClast)) diffKwh = vClast - vCfirst;
+  }
+} catch (e) {
+  console.warn("Erreur calcul gaz :", e);
+}
+
+// conversion minutes → HH:MM
+const hours = Math.floor(diffMinutes / 60);
+const minutes = Math.floor(diffMinutes % 60);
+const dureeFormatee = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+
       }
 
       if (!isFinite(diffKwh) || diffKwh < 0) diffKwh = 0;
@@ -2042,6 +2059,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
