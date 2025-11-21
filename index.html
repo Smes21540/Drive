@@ -1277,7 +1277,8 @@ if (
         const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
         const m3First = parseFloat(firstCols[3+1].replace(/"/g,"")); // colonne après kWh
 const m3Last  = parseFloat(lastCols[3+1].replace(/"/g,""));
-const diffM3  = m3Last - m3First;
+diffM3 = m3Last - m3First;
+
 
 
         if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
@@ -2085,6 +2086,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
