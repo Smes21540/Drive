@@ -1302,25 +1302,27 @@ if (
 
       const rounded = Math.round(diffKwh);
 
-      // --- ERREUR (>400000) ---
+      // 🔥 ERREUR si négatif
+      if (rounded < 0) {
+        btnKwh.textContent = "ERREUR";
+        btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
+        btnKwh.style.color = "#fff";
+        btnHeures.textContent = `⏱ ${dureeFormatee}`;
+        btnAvg.textContent = "ERR";
+        return;
+      }
+
+      // 🔥 ERREUR si > 400000
       if (rounded > 400000) {
         btnKwh.textContent = "ERREUR";
         btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
         btnKwh.style.color = "#fff";
-        btnKwh.style.minWidth = "120px";
-
         btnHeures.textContent = `⏱ ${dureeFormatee}`;
-        btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
-        btnHeures.style.color = "#0d47a1";
-        btnHeures.style.minWidth = "120px";
-
         btnAvg.textContent = "ERR";
-        btnAvg.style.background = "#ff8a80";
-        btnAvg.style.color = "#b71c1c";
         return;
       }
 
-      // --- Si conso = 0 : aucun bouton affiché ---
+      // 🫥 Masqué si 0
       if (rounded === 0) {
         btnKwh.style.display = "none";
         btnHeures.style.display = "none";
@@ -1363,24 +1365,35 @@ if (
          📊 Conso moyenne / heure
          =========================== */
 
-      if (diffMinutes === 0) {
-        btnAvg.style.display = "none";
-      } else {
-        const hours = diffMinutes / 60;
-        const avg = rounded / hours;
+      const hours = diffMinutes / 60;
 
-        btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
-        btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
-        btnAvg.style.color = "#01579b";
-        btnAvg.style.minWidth = "90px";
-        btnAvg.style.fontSize = "12px";
+      if (hours === 0) {
+        btnAvg.style.display = "none";
+        return;
       }
+
+      const avg = rounded / hours;
+
+      // 🚨 ERREUR si < 1000 kWh/h
+      if (avg < 1000) {
+        btnAvg.textContent = "ERR";
+        btnAvg.style.background = "#ff8a80";
+        btnAvg.style.color = "#b71c1c";
+        return;
+      }
+
+      btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
+      btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
+      btnAvg.style.color = "#01579b";
+      btnAvg.style.minWidth = "90px";
+      btnAvg.style.fontSize = "12px";
 
     } catch (err) {
       console.warn("Erreur GAZ:", err);
     }
   })();
 }
+
 
 
 
@@ -2057,6 +2070,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
