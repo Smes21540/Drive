@@ -1375,7 +1375,8 @@ if (!isFinite(diffM3) || diffM3 < 0) {
 } else if (diffM3 === 0) {
     btnM3.style.display = "none";
 } else {
-    btnM3.textContent = `${diffM3} m³`;
+    btnM3.textContent = diffM3 + " m³";
+
     btnM3.style.background = bg;      // même fond que kWh
     btnM3.style.color = textColor;    // même texte que kWh
     btnM3.style.minWidth = "120px";
@@ -2096,6 +2097,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
