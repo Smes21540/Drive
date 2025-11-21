@@ -512,6 +512,8 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
     <button onclick="applyFilter()">Filtrer</button>
     <button onclick="clearFilter()">Tout afficher</button>
     <button id="downloadFolderBtn">Télécharger le dossier</button>
+    <button id="exportCsvBtn" style="display:none;">Export CSV</button>
+
   </div>
 
   <div id="tableWrapper">
@@ -1007,6 +1009,15 @@ document.querySelector(".controls").style.display = "flex";
   downloadBtn.style.display="inline-block";
 
 downloadBtn.style.display="inline-block";
+
+  // Bouton Export CSV visible uniquement dans Consommation Gaz
+const exportBtn = document.getElementById("exportCsvBtn");
+if (folderName.toLowerCase().includes("consommation gaz")) {
+    exportBtn.style.display = "inline-block";
+} else {
+    exportBtn.style.display = "none";
+}
+
 
 // 🔍 Prépare la liste des dates ayant un JSON "actif"
 const jsonDates = new Set();
@@ -2055,6 +2066,43 @@ function recolorHotDays(instance) {
 }
 
 
+/* ----------- Export CSV (Gaz) ----------- */
+document.getElementById("exportCsvBtn").addEventListener("click", function () {
+
+    // Toutes les lignes visibles
+    const rows = Array.from(document.querySelectorAll("#csvTable tbody tr"))
+        .filter(r => r.style.display !== "none");
+
+    if (rows.length === 0) {
+        alert("Aucune ligne visible à exporter.");
+        return;
+    }
+
+    let csv = "Date,ConsokWh,ConsoM3,Duree,Moyenne(kWh/h),Tonnage\n";
+
+    rows.forEach(row => {
+
+        const date = row.querySelector("td:nth-child(1)")?.textContent.split(" ")[0] || "";
+
+        const btns = row.querySelectorAll(".gaz-group .gaz-btn");
+        if (btns.length === 4) {
+
+            const kwh = btns[0].textContent.replace(" kWh", "").trim();
+            const m3  = btns[1].textContent.replace(" m³", "").trim();
+            const duree = btns[2].textContent.replace("⏱", "").trim();
+            const avg = btns[3].textContent.trim();
+
+            csv += `${date},${kwh},${m3},${duree},${avg},\n`;
+        }
+    });
+
+    // téléchargement
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "export_gaz.csv";
+    link.click();
+});
 
 
 
@@ -2088,6 +2136,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
