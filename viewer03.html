@@ -216,65 +216,57 @@
 let csvData = [];
 let headers = [];
 let chart = null;
+let currentX = "";
 let currentY = [];
 let timeField = "";
 let customColors = {};
 let initialMin = null, initialMax = null;
 
 /* ===================== UTILS ===================== */
-function getCSSVar(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function getCSSVar(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
 function hexToRgb(hex){hex=hex.replace('#','');const n=parseInt(hex,16);return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
-function getParam(n){return new URLSearchParams(window.location.search).get(n);}
-
-/* Palette auto */
 function buildPalette(){
   return [
     getCSSVar('--accent'),
     getCSSVar('--danger'),
-    "#3380ff",
-    "#4caf50",
-    "#ff33a6",
-    "#8e44ad",
-    "#ffc300",
-    "#33cccc"
-  ]
+    "#3380ff","#4caf50","#ff33a6",
+    "#8e44ad","#ffc300","#33cccc"
+  ];
 }
 
 /* ===================== DATASETS ===================== */
 function buildDatasets(){
   const colors = buildPalette();
-  return currentY.map((yCol,i)=>{
-    const label = yCol;
-    const saved = customColors[label];
-    const c = saved || colors[i % colors.length];
-
+  return currentY.map((col,i)=>{
+    const saved = customColors[col];
+    const baseColor = saved || colors[i % colors.length];
     return {
-      label,
-      data: csvData.map(r=>({x:r.__dayKey, y:r[yCol]})),
-      backgroundColor: c,
-      borderColor: c,
+      label: col,
+      data: csvData.map(r=>({x:r.__dayKey,y:r[col]})),
+      backgroundColor: baseColor,
+      borderColor: baseColor,
       borderWidth: 1,
     }
   });
 }
 
-/* ===================== GRID JOUR + TRAITS ===================== */
+/* ===================== TRAITS DE JOUR ===================== */
 const dayBackgroundPlugin = {
-  id:'dayBackground',
+  id: "dayBackground",
   beforeDraw(chart){
-    const {chartArea, scales:{x}} = chart;
+    const {chartArea,scales:{x}} = chart;
     if(!x) return;
     const ctx = chart.ctx;
     ctx.save();
 
     const ticks = x.ticks;
-    for(let i=0;i<ticks.length;i++){
-      const pixel = x.getPixelForValue(ticks[i].value);
+    for(let t of ticks){
+      const px = x.getPixelForValue(t.value);
       ctx.beginPath();
-      ctx.moveTo(pixel, chartArea.top);
-      ctx.lineTo(pixel, chartArea.bottom);
-      ctx.strokeStyle = "rgba(0,0,0,0.1)";
+      ctx.moveTo(px, chartArea.top);
+      ctx.lineTo(px, chartArea.bottom);
       ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(0,0,0,0.12)";
       ctx.stroke();
     }
     ctx.restore();
@@ -283,27 +275,27 @@ const dayBackgroundPlugin = {
 
 /* ===================== CHART ===================== */
 function drawChart(){
-
-  const ctx = document.getElementById('myChart').getContext('2d');
-  const datasets = buildDatasets();
-
   if(chart) chart.destroy();
 
+  const ctx = document.getElementById("myChart").getContext("2d");
+  const datasets = buildDatasets();
+
   chart = new Chart(ctx,{
-    type:'bar',
+    type: "bar",
     data:{ datasets },
     options:{
       maintainAspectRatio:false,
-      animation:false,
       parsing:false,
       interaction:{mode:"nearest",axis:"x",intersect:true},
       plugins:{
-        legend:{ labels:{ color:getCSSVar('--text')} },
+        legend:{
+          labels:{color:getCSSVar("--text")}
+        },
         tooltip:{
           callbacks:{
             title:(items)=>{
               const ts = items[0].raw.x;
-              return new Date(ts).toLocaleDateString('fr-FR');
+              return new Date(ts).toLocaleDateString("fr-FR");
             },
             label:(item)=> `${item.dataset.label} : ${item.raw.y}`
           }
@@ -315,76 +307,101 @@ function drawChart(){
       },
       scales:{
         x:{
-          type:'time',
-          time:{unit:'day'},
+          type:"time",
+          time:{unit:"day"},
+          offset:true,
           ticks:{
             autoSkip:false,
-            callback:(v)=>{
-              const d=new Date(v);
-              return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})
+            callback:(val)=>{
+              const d=new Date(val);
+              return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});
             }
-          },
-          offset:true
+          }
         },
         y:{
           beginAtZero:true,
-          title:{display:true,text:'Valeurs'}
+          title:{display:true,text:"Valeurs"}
         }
       }
     },
     plugins:[dayBackgroundPlugin]
   });
 
-  /* ================= CTRL+CLIC → changer couleur ================= */
-  const picker = document.getElementById('colorPicker');
-  chart.canvas.addEventListener('click',(ev)=>{
+  /* ================= CTRL + clic pour changer couleur ================= */
+  const picker=document.getElementById("colorPicker");
+  chart.canvas.addEventListener("click",(ev)=>{
     if(!ev.ctrlKey) return;
-    const elements = chart.getElementsAtEventForMode(ev, 'nearest',{intersect:true}, true);
-    if(!elements.length) return;
+    const el=chart.getElementsAtEventForMode(ev,"nearest",{intersect:true},true);
+    if(!el.length) return;
 
-    const idx = elements[0].datasetIndex;
-    const ds = chart.data.datasets[idx];
+    const dsIndex=el[0].datasetIndex;
+    const ds = chart.data.datasets[dsIndex];
 
     picker.oninput = e=>{
-      ds.backgroundColor = e.target.value;
-      ds.borderColor = e.target.value;
-      customColors[ds.label] = e.target.value;
+      const c=e.target.value;
+      customColors[ds.label]=c;
+      ds.backgroundColor=c;
+      ds.borderColor=c;
       chart.update();
     };
     picker.click();
   });
 }
 
+/* ===================== UI ===================== */
+document.getElementById("yColumnsContainer").addEventListener("change",()=>{
+  currentY = Array.from(
+    document.querySelectorAll("#yColumnsContainer input:checked")
+  ).map(cb=>cb.value);
+  drawChart();
+});
+
+document.getElementById("backBtn").onclick=()=>window.close();
+
+document.getElementById("resetZoom").onclick=()=>{
+  chart.resetZoom();
+  chart.update();
+};
+
 /* ===================== INIT ===================== */
 (async function init(){
   const raw = localStorage.getItem("exportGazCsvData");
-  if(!raw){alert("Aucun CSV Gaz");return;}
+  if(!raw){
+    document.getElementById("errorBox").style.display="block";
+    return;
+  }
   localStorage.removeItem("exportGazCsvData");
 
   const parsed = Papa.parse(raw,{header:true,dynamicTyping:true,skipEmptyLines:true});
   csvData = parsed.data;
   headers = parsed.meta.fields;
 
-  /* colonne date */
-  const defX = headers.find(h=>/date|jour|time/i.test(h.toLowerCase())) || headers[0];
-  timeField = defX;
+  /* ========== trouver colonne date ========= */
+  timeField = headers.find(h=>/date|jour|time/i.test(h.toLowerCase())) || headers[0];
 
-  /* conversion jour → timestamp à minuit */
+  /* Convertir jour → timestamp minuit */
   csvData.forEach(r=>{
-    const t = new Date(r[timeField]);
-    t.setHours(0,0,0,0);
-    r.__dayKey = t.getTime();
+    const d=new Date(r[timeField]);
+    d.setHours(0,0,0,0);
+    r.__dayKey=d.getTime();
   });
 
-  /* colonnes Y = toutes sauf date */
-  currentY = headers.filter(h=>h!==timeField);
+  /* ========== colonne Y à gauche ========== */
+  const yCont=document.getElementById("yColumnsContainer");
+  yCont.innerHTML="";
+  headers.forEach(h=>{
+    if(h===timeField) return;
+    const lab=document.createElement("label");
+    lab.innerHTML=`<input type="checkbox" value="${h}" checked> ${h}`;
+    yCont.appendChild(lab);
+  });
 
-  document.getElementById("resetZoom").style.display="inline-block";
-  document.getElementById("exportPDF").style.display="inline-block";
+  currentY = headers.filter(h=>h!==timeField);
 
   drawChart();
 })();
 </script>
+
 
 
 
