@@ -18,7 +18,7 @@
   <style>
     :root{
       --bg:#fff5f5; --panel:#ffffff; --accent:#ff7043; --accent-darker:#e64a19;
-      --accent-muted:#ffccbc; --danger:#d84315; --text:#333; --shadow:rgba(0,0,0,0.1);
+      --accent-muted:#fff9f7; --danger:#d84315; --text:#333; --shadow:rgba(0,0,0,0.1);
     }
 
     body{
@@ -245,8 +245,8 @@
   }
   function setTheme(theme){
     localStorage.setItem("selectedTheme",theme);
-    if(theme==="orange") applyThemeVars({"--accent":"#ff7043","--accent-darker":"#e64a19","--accent-muted":"#ffccbc","--bg":"#fff5f5","--panel":"#ffffff","--danger":"#d84315","--text":"#333"});
-    if(theme==="blue")   applyThemeVars({"--accent":"#2196f3","--accent-darker":"#1976d2","--accent-muted":"#bbdefb","--bg":"#e3f2fd","--panel":"#ffffff","--danger":"#0d47a1","--text":"#0d47a1"});
+    if(theme==="orange") applyThemeVars({"--accent":"#ff7043","--accent-darker":"#e64a19","--accent-muted":"#fff9f7","--bg":"#fff5f5","--panel":"#ffffff","--danger":"#d84315","--text":"#333"});
+    if(theme==="blue")   applyThemeVars({"--accent":"#2196f3","--accent-darker":"#1976d2","--accent-muted":"#e3f1fc","--bg":"#e3f2fd","--panel":"#ffffff","--danger":"#0d47a1","--text":"#0d47a1"});
     if(theme==="green")  applyThemeVars({"--accent":"#4caf50","--accent-darker":"#2e7d32","--accent-muted":"#c8e6c9","--bg":"#f1f8e9","--panel":"#ffffff","--danger":"#1b5e20","--text":"#1b5e20"});
     if(theme==="purple") applyThemeVars({"--accent":"#9c27b0","--accent-darker":"#6a1b9a","--accent-muted":"#e1bee7","--bg":"#f3e5f5","--panel":"#ffffff","--danger":"#4a148c","--text":"#4a148c"});
     if(theme==="bordeaux")applyThemeVars({"--accent":"#800020","--accent-darker":"#4b0014","--accent-muted":"#d7a1a9","--bg":"#fff0f2","--panel":"#ffffff","--danger":"#600018","--text":"#4b0014"});
