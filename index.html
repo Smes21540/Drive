@@ -1336,10 +1336,13 @@ for (let i = 1; i < lines.length; i++) {
   const vInf = idxInf !== undefined ? parseFloat(cols[idxInf]) : NaN;
   const vSup = idxSup !== undefined ? parseFloat(cols[idxSup]) : NaN;
 
-  if ((isFinite(vInf) && vInf > FLAME_THRESHOLD) ||
-      (isFinite(vSup) && vSup > FLAME_THRESHOLD)) {
+if (
+    (isFinite(vInf) && vInf > 40 && vInf < 300) ||
+    (isFinite(vSup) && vSup > 40 && vSup < 300)
+) {
     countFlame++;
-  }
+}
+
 }
 
 
@@ -2038,10 +2041,13 @@ if (!tracatemp) {
           const vInf = idxInf !== undefined ? parseFloat(cols[idxInf]) : NaN;
           const vSup = idxSup !== undefined ? parseFloat(cols[idxSup]) : NaN;
 
-          if ((isFinite(vInf) && vInf > FLAME_THRESHOLD) ||
-              (isFinite(vSup) && vSup > FLAME_THRESHOLD)) {
-            countFlame++;
-          }
+if (
+    (isFinite(vInf) && vInf > 40 && vInf < 300) ||
+    (isFinite(vSup) && vSup > 40 && vSup < 300)
+) {
+    countFlame++;
+}
+
         }
 
         if (countFlame >= 1) {
@@ -2135,7 +2141,11 @@ const res = await fetch(url);
     const vInf = idxInf !== undefined ? parseFloat(cols[idxInf]) : NaN;
 
     // 🔥 seuil
-    if ((vSup && vSup > FLAME_THRESHOLD) || (vInf && vInf > FLAME_THRESHOLD)) {
+    if (
+    (isFinite(vSup) && vSup > 40 && vSup < 300) ||
+    (isFinite(vInf) && vInf > 40 && vInf < 300)
+)
+ {
       markFolderWithFlame(parentLi);
     }
 
@@ -2401,6 +2411,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
