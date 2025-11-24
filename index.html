@@ -1103,10 +1103,26 @@ document.querySelectorAll('#csvTable tbody tr').forEach(tr => {
 
   const fname = nameCell.textContent.trim();
   const m = fname.match(/(\d{8})\.csv$/i);
-  if (m && hotDaysMap[m[1]]) {
-    const hadNote = flameCell.innerHTML.includes("📝");
-    flameCell.innerHTML = `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
-    if (hadNote) flameCell.innerHTML += ` <span class="note" title="Note associée">📝</span>`;
+if (m && hotDaysMap[m[1]] && !flameCell.innerHTML.includes("🔥")) {
+  flameCell.insertAdjacentHTML(
+    "afterbegin",
+    `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`
+  );
+}
+
+if (!flameCell.innerHTML.includes("🔥")) {
+  flameCell.insertAdjacentHTML(
+    "afterbegin",
+    `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`
+  );
+}
+if (hadNote && !flameCell.innerHTML.includes("📝")) {
+  flameCell.insertAdjacentHTML(
+    "beforeend",
+    ` <span class="note" title="Note associée">📝</span>`
+  );
+}
+
   }
 });
 
@@ -1363,8 +1379,19 @@ if (
 if (countFlame >= 1) {
   // 🔥 Ajoute la flamme tout en préservant la note existante
   const hadNote = tdFlame.innerHTML.includes("📝");
-  tdFlame.innerHTML = `<span class="flame" title="Brûleur actif détecté ce jour !">🔥</span>`;
-  if (hadNote) tdFlame.innerHTML += ` <span class="note" title="Note associée">📝</span>`;
+if (!tdFlame.innerHTML.includes("🔥")) {
+  tdFlame.insertAdjacentHTML(
+    "afterbegin",
+    `<span class="flame" title="Brûleur actif détecté ce jour !">🔥</span>`
+  );
+}
+if (hadNote && !tdFlame.innerHTML.includes("📝")) {
+  tdFlame.insertAdjacentHTML(
+    "beforeend",
+    ` <span class="note" title="Note associée">📝</span>`
+  );
+}
+
 }
 
 
@@ -2425,3 +2452,4 @@ if (last) {
 </script>
 </body>
 </html>
+
