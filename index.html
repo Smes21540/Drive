@@ -986,6 +986,10 @@ async function fetchChildren(folderId){
 }
 
 async function loadFolderFilesOnClick(li, event){
+  // reset des notes
+  storedNotes = {};
+  if (typeof jsonDates !== "undefined") jsonDates.clear?.();
+  localStorage.removeItem("csvNotes");
 
   await toggleFolder(li);
 
@@ -2446,6 +2450,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
