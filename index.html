@@ -1103,24 +1103,23 @@ document.querySelectorAll('#csvTable tbody tr').forEach(tr => {
 
   const fname = nameCell.textContent.trim();
   const m = fname.match(/(\d{8})\.csv$/i);
-if (m && hotDaysMap[m[1]] && !flameCell.innerHTML.includes("🔥")) {
-  flameCell.insertAdjacentHTML(
-    "afterbegin",
-    `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`
-  );
-}
 
-if (!flameCell.innerHTML.includes("🔥")) {
-  flameCell.insertAdjacentHTML(
-    "afterbegin",
-    `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`
-  );
-}
-if (hadNote && !flameCell.innerHTML.includes("📝")) {
-  flameCell.insertAdjacentHTML(
-    "beforeend",
-    ` <span class="note" title="Note associée">📝</span>`
-  );
+  // 🔥 flamme DAY
+  if (m && hotDaysMap[m[1]] && !flameCell.innerHTML.includes("🔥")) {
+    flameCell.insertAdjacentHTML(
+      "afterbegin",
+      `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`
+    );
+  }
+
+  // 📝 notes depuis JSON
+  if (m && storedNotes[m[1]] && !flameCell.innerHTML.includes("📝")) {
+    flameCell.insertAdjacentHTML(
+      "beforeend",
+      ` <span class="note" title="${storedNotes[m[1]].join("\n")}">📝</span>`
+    );
+  }
+});
 }
 
   }
@@ -2452,5 +2451,6 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
