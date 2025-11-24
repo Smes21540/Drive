@@ -513,6 +513,8 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
     <button onclick="clearFilter()">Tout afficher</button>
     <button id="downloadFolderBtn">Télécharger le dossier</button>
     <button id="exportCsvBtn" style="display:none;">Graphique</button>
+    <button id="exportExcelGazBtn" style="display:none;">Export Excel</button>
+
 
   </div>
 
@@ -1157,13 +1159,17 @@ document.querySelector(".controls").style.display = "flex";
 
 downloadBtn.style.display="inline-block";
 
-  // Bouton Export CSV visible uniquement dans Consommation Gaz
 const exportBtn = document.getElementById("exportCsvBtn");
+const excelBtn  = document.getElementById("exportExcelGazBtn");
+
 if (folderName.toLowerCase().includes("consommation gaz")) {
     exportBtn.style.display = "inline-block";
+    excelBtn.style.display  = "inline-block";
 } else {
     exportBtn.style.display = "none";
+    excelBtn.style.display  = "none";
 }
+
 
 
 // 🔍 Prépare la liste des dates ayant un JSON "actif"
@@ -2306,6 +2312,61 @@ window.open("viewer03.html?export_gaz=1", "_blank");
 });
 
 
+document.getElementById("exportExcelGazBtn").addEventListener("click", function () {
+
+    const rows = Array.from(document.querySelectorAll("#csvTable tbody tr"))
+        .filter(r => r.style.display !== "none");
+
+    if (rows.length === 0) {
+        alert("Aucune ligne visible à exporter.");
+        return;
+    }
+
+    const data = [];
+    data.push([
+        "Date",
+        "kWh consommés",
+        "m³ consommés",
+        "Durée (HH:mm)",
+        "Durée (minutes)",
+        "Moyenne kWh/h",
+        "Tonnage"
+    ]);
+
+    for (const row of rows) {
+
+        // 1️⃣ Date
+        let date = row.querySelector("td:nth-child(1)")?.textContent.split(" ")[0] || "";
+
+        // 2️⃣ Boutons gaz
+        const btns = row.querySelectorAll(".gaz-group .gaz-btn");
+        if (btns.length !== 4) continue;
+
+        const kwh   = parseFloat(btns[0].textContent.replace(/[^\d.-]/g, "")) || 0;
+        const m3    = parseFloat(btns[1].textContent.replace(/[^\d.-]/g, "")) || 0;
+        const duree = btns[2].textContent.replace(/[^0-9:]/g, "") || "00:00";
+        const avg   = parseFloat(btns[3].textContent.replace(/[^\d.-]/g, "")) || 0;
+
+        let mins = 0;
+        if (duree.includes(":")) {
+            const [h, m] = duree.split(":");
+            mins = (parseInt(h) * 60) + parseInt(m);
+        }
+
+        // 3️⃣ Tonnage stocké par displayFiles()
+        let tonnage = parseFloat(row.dataset.tonnage) || 0;
+        tonnage = Number(tonnage.toFixed(1));
+
+        data.push([date, kwh, m3, duree, mins, avg, tonnage]);
+    }
+
+    // Génération Excel
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Consommation Gaz");
+
+    XLSX.writeFile(wb, `export_gaz_${new Date().toISOString().slice(0,10)}.xlsx`);
+});
 
 
 
@@ -2338,6 +2399,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
