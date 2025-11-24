@@ -460,6 +460,74 @@
     let notesVisible = true;
 
 
+/********************** MODE EXPORT CSV LOCAL ************************/
+(function(){
+    const params = new URLSearchParams(location.search);
+    if (params.get("export_gaz") == "1") {
+
+        console.warn("MODE EXPORT_GAZ LOCAL ACTIVÉ");
+
+        const raw = localStorage.getItem("exportGazCsvData");
+        if (!raw) {
+            alert("Aucun CSV local trouvé !");
+            return;
+        }
+
+        localStorage.removeItem("exportGazCsvData");
+
+        // Parse CSV en texte brut → exactement comme un fichier Drive
+        const parsed = Papa.parse(raw, {
+            header: true,
+            dynamicTyping: true,
+            skipEmptyLines: true
+        });
+
+        csvData = parsed.data;
+        headers = parsed.meta.fields;
+
+        // On masque tout ce qui est lié au Drive / PDF / Z3 / Notes
+        document.getElementById("exportPDF").style.display = "none";
+        document.getElementById("toggleZ3").style.display = "none";
+        document.getElementById("toggleNotes").style.display = "none";
+
+        // === Construction UI X/Y ===
+        const xSel = document.getElementById("xColumn");
+        const yCont = document.getElementById("yColumnsContainer");
+
+        xSel.innerHTML = "";
+        yCont.innerHTML = "";
+
+        const fallbackX = headers.find(h=>/date|heure|time/i.test(h.toLowerCase())) || headers[0];
+
+        headers.forEach(h=>{
+            const opt=document.createElement("option");
+            opt.value=h;
+            opt.textContent=h;
+            xSel.appendChild(opt);
+
+            if(h!==fallbackX){
+                const lbl=document.createElement("label");
+                lbl.innerHTML=`<input type="checkbox" value="${h}" checked> ${h}`;
+                yCont.appendChild(lbl);
+            }
+        });
+
+        // Appliquer X et tracer direct
+        timeField=fallbackX;
+        xSel.value=fallbackX;
+        xSel.style.display="none";
+
+        document.getElementById("columnSelectors").style.display="flex";
+        currentX=fallbackX;
+        currentY=headers.filter(h=>h!==fallbackX);
+
+        drawChart();
+        return; // 🔥 IMPORTANT : STOP tout le reste (Drive + notes + Z3 + autoload)
+    }
+})();
+
+
+
   /* ===================== THEME ===================== */
 function applyThemeVars(vars){
   const r=document.documentElement;
@@ -2452,6 +2520,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
