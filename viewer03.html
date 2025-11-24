@@ -392,11 +392,12 @@ function drawChart(){
         }
       },
       scales:{
-        x:{
-          type:"time",
-          time:{unit:"day",tooltipFormat:"dd/MM/yyyy",stepSize:1},
-          offset:false,
-          stacked:true,
+x:{
+  type:"time",
+  time:{unit:"day",tooltipFormat:"dd/MM/yyyy",stepSize:1},
+  offset:true,
+  stacked:false,
+
           ticks:{
             autoSkip:false,
             callback:(value)=>{
