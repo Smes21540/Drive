@@ -471,6 +471,19 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   opacity: 0.4;
 }
 
+#noteTooltip {
+  position: fixed;
+  display: none;
+  background: #1565c0;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  max-width: 350px;
+  white-space: pre-line;
+  z-index: 4000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
   
 
 </style>
@@ -1663,6 +1676,26 @@ tr.appendChild(tdSize);
   }
 }
 
+/* ======================= NOTES TOOLTIP ======================= */
+document.addEventListener("mouseover", (e) => {
+  const tip = document.getElementById("noteTooltip");
+  const el = e.target;
+
+  if (el.classList.contains("note")) {
+    const text = el.title || "";
+    if (text.trim() === "") return;
+
+    tip.textContent = text;
+    tip.style.display = "block";
+    tip.style.top  = e.clientY + 12 + "px";
+    tip.style.left = e.clientX + 12 + "px";
+  } else {
+    tip.style.display = "none";
+  }
+});
+/* ============================================================= */
+
+  
 
 /* ----------- Open viewer (CSV list + index) ----------- */
 async function openViewer(viewer, id, name){
@@ -2424,8 +2457,13 @@ if (last) {
 
 };
 </script>
+
+<div id="noteTooltip"></div>
+
+  
 </body>
 </html>
+
 
 
 
