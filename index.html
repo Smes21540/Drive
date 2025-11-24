@@ -2240,7 +2240,92 @@ function recolorHotDays(instance) {
 
 
 /* ----------- Export CSV (Gaz) ----------- */
-document.getElementById("exportCsvBtn")
+document.getElementById("exportCsvBtn").onclick = () => {
+  const tbody = document.querySelector("#csvTable tbody");
+  if (!tbody) {
+    alert("Aucune donnée à exporter.");
+    return;
+  }
+
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+
+  const header = [
+    "Date",
+    "Nom du fichier",
+    "kWh",
+    "m³",
+    "Temps",
+    "Moyenne kWh/h",
+    "Tonnage (t)"
+  ];
+
+  const lines = [];
+  lines.push(header.join(";"));
+
+  rows.forEach(tr => {
+    const gazGroup = tr.querySelector(".gaz-group");
+    if (!gazGroup) return; // uniquement les lignes gaz
+
+    const cells = tr.cells;
+    if (!cells || cells.length < 4) return;
+
+    // Colonne 0 = Date (avec jour en toutes lettres → on prend juste la date)
+    const rawDate = cells[0].textContent.trim();
+    const dateOnly = rawDate.split(" ")[0] || "";
+
+    // Colonne 3 = Nom du fichier
+    const fileName = cells[3].textContent.trim();
+
+    const btns = gazGroup.querySelectorAll(".gaz-btn");
+    if (btns.length < 4) return;
+
+    // Texte des boutons
+    const kwhText = btns[0].textContent.replace("kWh", "").trim();
+    const m3Text  = btns[1].textContent.replace("m³", "").trim();
+    const timeRaw = btns[2].textContent.replace("⏱", "").trim();
+    const avgText = btns[3].textContent.replace("kWh/h", "").trim();
+
+    // Tonnage stocké dans l’attribut data
+    const tonnage = (tr.dataset.tonnage !== undefined)
+      ? String(Number(tr.dataset.tonnage).toFixed(1))
+      : "";
+
+    function esc(v) {
+      v = String(v ?? "").replace(/"/g, '""');
+      return `"${v}"`;
+    }
+
+    const row = [
+      esc(dateOnly),
+      esc(fileName),
+      esc(kwhText),
+      esc(m3Text),
+      esc(timeRaw),
+      esc(avgText),
+      esc(tonnage)
+    ].join(";");
+
+    lines.push(row);
+  });
+
+  if (lines.length <= 1) {
+    alert("Aucune ligne gaz exploitable à exporter.");
+    return;
+  }
+
+  const csvContent = lines.join("\r\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+  const active = document.querySelector("#folderTree .active-folder");
+  const folderName = active ? active.textContent.trim() : "Consommation_Gaz";
+  const safeName = folderName.replace(/[^a-z0-9_\-]+/gi, "_");
+
+  const fileName = `export_gaz_${safeName}.csv`;
+
+  // FileSaver déjà inclus
+  saveAs(blob, fileName);
+};
+
 
 
 /* ----------- Init ----------- */
@@ -2271,6 +2356,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
