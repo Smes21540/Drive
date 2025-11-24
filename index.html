@@ -2297,11 +2297,12 @@ if (row.dataset.tonnage) {
         csv += `${date},${kwh},${m3},${duree},${mins},${avg},${tonnage}\n`;
     }
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "export_gaz.csv";
-    link.click();
+// 1️⃣ Sauvegarde du CSV pour viewer02
+localStorage.setItem("exportGazCsvData", csv);
+
+// 2️⃣ Ouvre viewer02 en mode courbes
+window.open("viewer02.html?export_gaz=1", "_blank");
+
 });
 
 
@@ -2337,3 +2338,4 @@ if (last) {
 </script>
 </body>
 </html>
+
