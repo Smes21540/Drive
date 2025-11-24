@@ -459,6 +459,8 @@
   let z3Visible = false;
     let notesVisible = true;
 
+    let parasiteFilterEnabled = false;
+
 /********************** 🔥 MODE EXPORT LOCAL GAZ 🔥 ************************/
 (function(){
     const params = new URLSearchParams(location.search);
@@ -834,8 +836,7 @@ setTimeout(() => {
     return result;
   }
 
-/* ====== FILTRE VALEURS PARASITES ====== */
-let parasiteFilterEnabled = false;
+
 
 function filterParasites(points) {
   if (!points.length) return points;
@@ -2525,6 +2526,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
