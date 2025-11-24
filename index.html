@@ -1247,19 +1247,24 @@ function addNote(cell){
 
 
 
-for(const f of files){
-    // ❌ On n'affiche pas les .json : ils servent juste à poser 📝
-    if (f.name.toLowerCase().endsWith(".json")) continue;
+for (const f of files) {
 
-    // Date
-    let date='';
+    let date = "";  // 👈 de suite
 
-    const m=f.name.match(/(\d{8})\.csv$/i);
-    if(m){ date=`${m[1].slice(0,4)}-${m[1].slice(4,6)}-${m[1].slice(6,8)}`; }
-    else if(/\.(jpg|jpeg)$/i.test(f.name)){
-      if(f.modifiedTime) date=f.modifiedTime.slice(0,10);
-      else if(f.createdTime) date=f.createdTime.slice(0,10);
+    // extrait la date du fichier CSV
+    const m = f.name.match(/(\d{8})\.csv$/i);
+    if(m) {
+        date = `${m[1].slice(0,4)}-${m[1].slice(4,6)}-${m[1].slice(6,8)}`;
+    } 
+    else if (/\.(jpg|jpeg)$/i.test(f.name)) {
+        if(f.modifiedTime) date = f.modifiedTime.slice(0,10);
+        else if(f.createdTime) date = f.createdTime.slice(0,10);
     }
+
+    // FILTRAGE ici, maintenant OK
+    if((filterStartDate && date < filterStartDate) || 
+       (filterEndDate && date > filterEndDate)) continue;
+
 
     if((filterStartDate && date<filterStartDate) || (filterEndDate && date>filterEndDate)) continue;
 
@@ -2474,6 +2479,7 @@ if (last) {
   
 </body>
 </html>
+
 
 
 
