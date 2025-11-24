@@ -363,6 +363,75 @@ document.getElementById("resetZoom").onclick=()=>{
   chart.update();
 };
 
+/* ===================== EXPORT PDF ===================== */
+document.getElementById('exportPDF').onclick = () => {
+  if(!chart){
+    alert("Aucun graphique à exporter.");
+    return;
+  }
+
+  let PDF = null;
+  if(window.jspdf && window.jspdf.jsPDF) PDF = window.jspdf.jsPDF;
+  else if(window.jsPDF) PDF = window.jsPDF;
+  if(!PDF){
+    alert("jsPDF non chargé.");
+    return;
+  }
+
+  const pdf = new PDF({orientation:"landscape"});
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  /* ----------- TITRE ----------- */
+  const csvName = (getParam('fileName') || "export_gaz.csv").split("\\").pop();
+  const titleTxt = "Consommation Gaz — " + csvName;
+  const danger = getCSSVar('--danger') || "#d84315";
+  const {r,g,b} = hexToRgb(danger);
+
+  pdf.setFontSize(16);
+  pdf.setTextColor(r,g,b);
+  const lines = pdf.splitTextToSize(titleTxt,pageWidth-20);
+  pdf.text(lines,10,12);
+
+  /* ----------- CAPTURE GRAPHIQUE HD ----------- */
+  const baseCanvas = chart.canvas;
+  const tmp = document.createElement("canvas");
+  tmp.width = baseCanvas.width * 3;
+  tmp.height = baseCanvas.height * 3;
+
+  const ctx2 = tmp.getContext("2d");
+  ctx2.fillStyle = "#ffffff";
+  ctx2.fillRect(0,0,tmp.width,tmp.height);
+  ctx2.scale(3,3);
+  ctx2.imageSmoothingEnabled = false;
+  ctx2.drawImage(baseCanvas,0,0);
+
+  const img = tmp.toDataURL("image/jpeg",0.92);
+
+  /* ----------- PLACEMENT ----------- */
+  const maxW = pageWidth - 20;
+  const maxH = pageHeight - 40;
+  const scale = Math.min(maxW / baseCanvas.width, maxH / baseCanvas.height);
+
+  const imgX = (pageWidth - baseCanvas.width*scale)/2;
+  const imgY = 20;
+
+  pdf.addImage(img,"JPEG",imgX,imgY,baseCanvas.width*scale,baseCanvas.height*scale);
+
+  /* ----------- DATE RANGE ----------- */
+  const allX = csvData.map(r=>r.__dayKey).filter(x=>Number.isFinite(x));
+  const minDate = new Date(Math.min(...allX)).toLocaleDateString("fr-FR");
+  const maxDate = new Date(Math.max(...allX)).toLocaleDateString("fr-FR");
+
+  pdf.setFontSize(10);
+  pdf.setTextColor(80,80,80);
+  pdf.text(`Période : ${minDate} → ${maxDate}`,pageWidth/2,imgY + baseCanvas.height*scale + 10,{align:"center"});
+
+  /* ----------- EXPORT ----------- */
+  pdf.save(csvName.replace(/\.csv$/i,".pdf"));
+};
+
+
 /* ===================== INIT ===================== */
 (async function init(){
   const raw = localStorage.getItem("exportGazCsvData");
