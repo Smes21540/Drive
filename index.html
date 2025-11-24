@@ -596,6 +596,8 @@ const FLAME_THRESHOLD = 40.0;   // seuil déclencheur de la flamme 🔥
 /* ----------- État ----------- */
 let imageFiles=[], currentImageIndex=0;
 let filterStartDate="", filterEndDate="";
+let storedNotes = {}; // key = YYYYMMDD → tableau de notes textuelles
+
 let themeMenuTimer;
 let cancelScan = false; // 🛑 permet d’arrêter le scan si on clique ailleurs
 
@@ -1177,34 +1179,40 @@ if (folderName.toLowerCase().includes("consommation gaz")) {
 // 🔍 Prépare la liste des dates ayant un JSON "actif"
 const jsonDates = new Set();
 
-await Promise.all(files
-  .filter(f => f.name.toLowerCase().endsWith(".json"))
-  .map(async (file) => {
-    const m = file.name.match(/(\d{8})/);
-    if (!m) return;
+await Promise.all(
+  files
+    .filter(f => f.name.toLowerCase().endsWith(".json"))
+    .map(async (file) => {
+      const m = file.name.match(/(\d{8})/);
+      if (!m) return;
 
-    try {
-      const res = await fetch(
-        `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name)}&site=Smes_Acces`
-      );
-      if (!res.ok) return;
-      const text = await res.text();
+      try {
+        const res = await fetch(
+          `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name)}&site=Smes_Acces`
+        );
+        if (!res.ok) return;
 
-try {
-  const data = JSON.parse(text);
-  if (data?.[0]?.status?.toLowerCase() === "active") {
-    jsonDates.add(m[1]);
-  }
-} catch (e) {
-  // Si le JSON n'est pas bien formé, on ignore sans planter
-  console.warn("⚠️ JSON mal formé :", file.name);
-}
+        const text = await res.text();
+        const data = JSON.parse(text);
 
-    } catch (err) {
-      console.warn("Erreur lecture JSON :", file.name, err);
-    }
-  })
+        if (!Array.isArray(data)) return;
+
+        data.forEach(n => {
+          if (typeof n.note === "string") {
+            if (!storedNotes[m[1]]) storedNotes[m[1]] = [];
+            storedNotes[m[1]].push(n.note.trim());
+          }
+        });
+
+        if (storedNotes[m[1]]?.length > 0) {
+          jsonDates.add(m[1]);
+        }
+      } catch (e) {
+        console.warn("⚠️ JSON erreur ou mal formé :", file.name, e);
+      }
+    })
 );
+
 
 
 // ➕ Helpers pour ajouter sans écraser
@@ -1264,6 +1272,13 @@ if (match) {
 // 📝 Ajoute une icône si un JSON de la même date est présent (persiste même après réaffichage)
 if (match && jsonDates.has(match[1])) {
   addNote(tdFlame);
+  const dateKey = match[1];
+  const node = tdFlame.querySelector(".note");
+  if (node && storedNotes[dateKey]) {
+    node.title = storedNotes[dateKey].join("\n");
+  }
+}
+
   tdFlame.dataset.hasNote = "true"; // marquage persistant
 }
 
@@ -2411,6 +2426,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
