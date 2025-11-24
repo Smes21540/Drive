@@ -308,16 +308,12 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  font-size: 20px;
+  font-size: 20px;               /* même taille que 🔥 */
   vertical-align: middle;
-  margin-left: 4px;
-  color: #1565c0;
+  margin-left: 4px;              /* petit espace entre 🔥 et 📝 */
+  color: #1565c0;                /* bleu lisible */
   text-shadow: 0 0 4px rgba(21, 101, 192, 0.5);
-  cursor: help;   /* 👈 ici */
 }
-
-
-
 
 
 @keyframes sway {
@@ -475,19 +471,6 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   opacity: 0.4;
 }
 
-#noteTooltip {
-  position: fixed;
-  display: none;
-  background: #1565c0;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  max-width: 350px;
-  white-space: pre-line;
-  z-index: 4000;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
   
 
 </style>
@@ -607,14 +590,19 @@ const ROOT_FOLDER_ID="18QkQPyCZxTCAaoz_qd1wAelmQbSE4ex8";
 // ✅ Active/désactive les calculs de consommation gaz
 const ENABLE_GAZ_CALC = true;  // ← passe à false pour désactiver
 
+// === Dictionnaire global des notes ===
+// storedNotes["YYYYMMDD"] = [ "txt1", "txt2", ... ]
+let storedNotes = {};
+
+
+
+  
 /* ----------- Config personnalisée ----------- */
 const FLAME_THRESHOLD = 40.0;   // seuil déclencheur de la flamme 🔥
 
 /* ----------- État ----------- */
 let imageFiles=[], currentImageIndex=0;
 let filterStartDate="", filterEndDate="";
-let storedNotes = {}; // key = YYYYMMDD → tableau de notes textuelles
-
 let themeMenuTimer;
 let cancelScan = false; // 🛑 permet d’arrêter le scan si on clique ailleurs
 
@@ -1159,199 +1147,521 @@ if (Object.keys(hotDaysMap).length > 0) {
 
 
 
-async function displayFiles(files, folderName) {
+async function displayFiles(files, folderName){
 
-  const tbody = document.querySelector('#csvTable tbody');
-  const downloadBtn = document.getElementById('downloadFolderBtn');
-  tbody.innerHTML = '';
+  const tbody=document.querySelector('#csvTable tbody');
+  const downloadBtn=document.getElementById('downloadFolderBtn');
+  tbody.innerHTML='';
 
-  // Montrer les filtres
-  document.querySelector(".controls").style.display = "flex";
+  // ✅ Afficher les filtres uniquement dans un dossier final (contenant des fichiers)
+document.querySelector(".controls").style.display = "flex";
 
-  if (files.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Aucun fichier</td></tr>`;
-    downloadBtn.style.display = "none";
+
+  if(files.length===0){
+    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;">Aucun fichier</td></tr>';
+    downloadBtn.style.display="none";
     return;
   }
+  
 
-  downloadBtn.style.display = "inline-block";
+  downloadBtn.style.display="inline-block";
 
-  const exportBtn = document.getElementById("exportCsvBtn");
-  const excelBtn  = document.getElementById("exportExcelGazBtn");
+downloadBtn.style.display="inline-block";
 
-  if (folderName.toLowerCase().includes("consommation gaz")) {
+const exportBtn = document.getElementById("exportCsvBtn");
+const excelBtn  = document.getElementById("exportExcelGazBtn");
+
+if (folderName.toLowerCase().includes("consommation gaz")) {
     exportBtn.style.display = "inline-block";
     excelBtn.style.display  = "inline-block";
-  } else {
+} else {
     exportBtn.style.display = "none";
     excelBtn.style.display  = "none";
-  }
+}
 
-  /* ======== LECTURE JSON NOTES ======== */
-  const jsonDates = new Set();
-  storedNotes = {};
 
-  await Promise.all(
-    files
-      .filter(f => f.name.toLowerCase().endsWith(".json"))
-      .map(async file => {
-        const m = file.name.match(/(\d{8})/);
-        if (!m) return;
 
-        try {
-          const res = await fetch(
-            `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name)}&site=Smes_Acces`
-          );
-          if (!res.ok) return;
+// 🔍 Prépare la liste des dates ayant un JSON "actif"
+const jsonDates = new Set();
 
-          const text = await res.text();
-          const data = JSON.parse(text);
-          if (!Array.isArray(data)) return;
+await Promise.all(
+  files.filter(f => f.name.toLowerCase().endsWith(".json"))
+    .map(async (file) => {
+      const m = file.name.match(/(\d{8})/);
+      if (!m) return;
+      const key = m[1];
 
-          data.forEach(n => {
-            if (typeof n.note === "string") {
-              if (!storedNotes[m[1]]) storedNotes[m[1]] = [];
-              storedNotes[m[1]].push(n.note.trim());
-            }
-          });
+      try {
+        const res = await fetch(
+          `https://smes21540.netlify.app/.netlify/functions/drive?id=${file.id}&name=${encodeURIComponent(file.name)}&site=Smes_Acces`
+        );
+        if (!res.ok) return;
 
-          if (storedNotes[m[1]].length > 0) jsonDates.add(m[1]);
-        } catch (e) {
-          console.warn("⚠️ JSON mal formé:", file.name, e);
+        const text = await res.text();
+        const data = JSON.parse(text);
+
+        // JSON attendu sous forme d’ARRAY
+        // On extrait toutes les notes actives
+        const notesForDate = data
+          .filter(n => n.status?.toLowerCase() === "active")
+          .map(n => n.note?.trim())
+          .filter(Boolean);
+
+        if (notesForDate.length > 0) {
+          storedNotes[key] = notesForDate;
+          jsonDates.add(key);
         }
-      })
-  );
 
-  /* ======== HELPERS ======== */
-  function addFlame(cell) {
-    if (!cell.innerHTML.includes("🔥")) {
-      cell.innerHTML += ` <span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
-    }
-  }
-
-  function addNote(cell, text = "Note associée") {
-    cell.innerHTML += ` <span class="note" title="${text}">📝</span>`;
-  }
-
-  /* ======== AFFICHAGE DES FICHIERS ======== */
-  for (const f of files) {
-
-    const tr = document.createElement('tr');
-
-    /* ==== 1 — DATE ==== */
-    const tdDate = document.createElement('td');
-    let date = "";
-
-    const m = f.name.match(/(\d{8})\.csv$/i);
-    if (m) {
-      date = `${m[1].slice(0, 4)}-${m[1].slice(4, 6)}-${m[1].slice(6, 8)}`;
-    } else if (/\.(jpg|jpeg)$/i.test(f.name)) {
-      date = f.modifiedTime?.slice(0, 10) || f.createdTime?.slice(0, 10) || "";
-    }
-
-    if (date) {
-      const d = new Date(date);
-      const jours = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
-      const j = jours[d.getDay()];
-      tdDate.textContent = `${date} ${j}`;
-
-      if (d.getDay() === 0 || d.getDay() === 6) {
-        tdDate.style.color = "var(--danger)";
-        tdDate.style.fontWeight = "bold";
+      } catch (err) {
+        console.warn("⚠️ JSON mal formé :", file.name);
       }
-    }
+    })
+);
 
-    /* ==== 2 — FLAMMES + NOTES ==== */
-    const tdFlame = document.createElement('td');
-    tdFlame.style.textAlign = "center";
 
-    const match = f.name.match(/(\d{8})\.csv$/i);
-    const dateKey = match ? match[1] : null;
 
-    if (dateKey && hotDaysMap[dateKey]) addFlame(tdFlame);
-
-    if (dateKey && jsonDates.has(dateKey)) {
-      const text = storedNotes[dateKey].join("\n");
-      addNote(tdFlame, text);
-    }
-
-    /* ==== 3 — NOM ==== */
-    const tdName = document.createElement('td');
-    tdName.textContent = f.name;
-
-    /* ==== 4 — DOSSIER ==== */
-    const tdFolder = document.createElement('td');
-    tdFolder.textContent = folderName;
-
-    /* ==== 5 — TAILLE ==== */
-    const tdSize = document.createElement('td');
-    tdSize.textContent = f.size ? formatSize(f.size) : "?";
-
-    /* ==== 6 — ACTIONS ==== */
-    const tdAction = document.createElement('td');
-    tdAction.className = "action-cell";
-    let html = "";
-
-    // CSV
-    if (f.name.toLowerCase().endsWith(".csv")) {
-      html += `<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank">
-                <button class="action-btn">Télécharger</button>
-              </a>`;
-      html += `<button class="action-btn" onclick="openViewer('viewer.html','${f.id}','${f.name}')">Tableau</button>`;
-    }
-
-    // JPG
-    if (/\.(jpg|jpeg)$/i.test(f.name)) {
-      html += `<img src="https://drive.google.com/thumbnail?id=${f.id}" onclick="openModal('${f.id}')" alt="aperçu">`;
-      html += `<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank">
-                <button class="action-btn">Télécharger</button>
-              </a>`;
-    }
-
-    // PDF
-    if (f.name.toLowerCase().endsWith('.pdf')) {
-      html += `<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank">
-                <button class="action-btn">Télécharger</button>
-              </a>`;
-      html += `<button class="action-btn" onclick="openModal('${f.id}','pdf')">Ouvrir</button>`;
-    }
-
-    tdAction.innerHTML = html;
-
-    /* ==== AJOUT LIGNE ==== */
-    tr.appendChild(tdDate);
-    tr.appendChild(tdFlame);
-    tr.appendChild(tdAction);
-    tr.appendChild(tdName);
-    tr.appendChild(tdFolder);
-    tr.appendChild(tdSize);
-
-    tbody.appendChild(tr);
-  } // end for
-
-} // end displayFiles
-
-/* ======================= NOTES TOOLTIP ======================= */
-document.addEventListener("mouseover", (e) => {
-  const tip = document.getElementById("noteTooltip");
-  const el = e.target;
-
-  if (el.classList.contains("note")) {
-    const text = el.title || "";
-    if (text.trim() === "") return;
-
-    tip.textContent = text;
-    tip.style.display = "block";
-    tip.style.top  = (e.clientY + 14) + "px";
-    tip.style.left = (e.clientX + 14) + "px";
-  } else {
-    tip.style.display = "none";
+// ➕ Helpers pour ajouter sans écraser
+function addFlame(cell){
+  if (!cell.innerHTML.includes("🔥")) {
+    cell.innerHTML += (cell.innerHTML ? " " : "") + `<span class="flame" title="Brûleur actif ce jour-là">🔥</span>`;
   }
-});
+}
+function addNote(cell){
+  if (!cell.innerHTML.includes("📝")) {
+    cell.innerHTML += (cell.innerHTML ? " " : "") + `<span class="note" title="Note associée">📝</span>`;
+  }
+}
 
-/* ============================================================= */
+
+
+
+for(const f of files){
+    // ❌ On n'affiche pas les .json : ils servent juste à poser 📝
+    if (f.name.toLowerCase().endsWith(".json")) continue;
+
+    // Date
+    let date='';
+
+    const m=f.name.match(/(\d{8})\.csv$/i);
+    if(m){ date=`${m[1].slice(0,4)}-${m[1].slice(4,6)}-${m[1].slice(6,8)}`; }
+    else if(/\.(jpg|jpeg)$/i.test(f.name)){
+      if(f.modifiedTime) date=f.modifiedTime.slice(0,10);
+      else if(f.createdTime) date=f.createdTime.slice(0,10);
+    }
+
+    if((filterStartDate && date<filterStartDate) || (filterEndDate && date>filterEndDate)) continue;
+
+const tr=document.createElement('tr');
+
+    const tdFlame = document.createElement('td');
+tdFlame.style.textAlign = "center";
+tdFlame.style.width = "26px";
+tdFlame.textContent = "";
+
+    
+
+// 🔥 Application flamme si le fichier correspond à un jour chaud
+const match = f.name.match(/(\d{8})\.csv$/i);
+if (match) {
+  const dateKey = match[1];
+
+  if (hotDaysMap[dateKey]) {
+    addFlame(tdFlame);
+  } else {
+    setTimeout(() => {
+      if (hotDaysMap[dateKey]) addFlame(tdFlame);
+    }, 1000);
+  }
+}
+
+// 📝 Ajoute une icône si un JSON de la même date est présent (persiste même après réaffichage)
+if (match && storedNotes[match[1]]) {
+  const txt = storedNotes[match[1]].join("\n");
+  tdFlame.innerHTML += ` <span class="note" title="${txt}">📝</span>`;
+}
+
+
+
+
+
+
+// Bloc DATE avec affichage du jour
+const tdDate=document.createElement('td');
+if (date) {
+  const d = new Date(date);
+  const jours = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+  const jourNom = jours[d.getDay()];
+  tdDate.textContent = `${date} ${jourNom}`;
+
+  // Week-end → rouge + gras
+  if (d.getDay() === 0 || d.getDay() === 6) {
+    tdDate.style.color = "var(--danger)";
+    tdDate.style.fontWeight = "bold";
+  }
+} else {
+  tdDate.textContent = '';
+}
+
+const tdName = document.createElement('td');
+tdName.textContent = f.name;
+
+// === FLAMME FILE (avec cancelScan) ===
+if (f.name.toLowerCase().endsWith(".csv") &&
+    (folderName.toLowerCase().includes("traça_temp") || folderName.toLowerCase().includes("traca_temp"))) {
+  
+  // Message provisoire
+  tdName.innerHTML = `${f.name}&nbsp;&nbsp;&nbsp;<span style="color:gray;font-size:11px;">(scan en cours...)</span>`;
+
+  (async () => {
+    try {
+      if (cancelScan) { tdName.innerHTML = f.name; return; } // 🛑 stop si demandé
+
+      const url = `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`;
+
+      const res = await fetch(url);
+      if (!res.ok) { tdName.innerHTML = f.name; return; }
+
+      const text = await res.text();
+      if (cancelScan) { tdName.innerHTML = f.name; return; } // 🛑 stop si demandé
+
+      const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+      if (lines.length < 2) { tdName.innerHTML = f.name; return; }
+
+      const headers = lines[0].split(",").map(h => h.replace(/"/g,"").trim().toLowerCase());
+      let idxInf = headers.map((h,i)=>({h,i})).filter(o=>o.h.includes("sonde ac inf"))[1]?.i;
+      let idxSup = headers.map((h,i)=>({h,i})).filter(o=>o.h.includes("sonde ac sup"))[1]?.i;
+
+      if (idxInf === undefined && idxSup === undefined) { tdName.innerHTML = f.name; return; }
+
+      let countFlame = 0;
+for (let i = 1; i < lines.length; i++) {
+  const cols = lines[i].split(",").map(c => c.replace(/"/g,"").trim());
+
+  // 🕔 Vérifie l’heure (colonne 0 supposée être l’heure du point)
+  const timeStr = cols[0];
+  if (timeStr && /^(\d{2}):(\d{2})/.test(timeStr)) {
+    const [_, hh, mm] = timeStr.match(/^(\d{2}):(\d{2})/);
+    const hour = parseInt(hh, 10);
+
+    // ⏰ Ignore les valeurs avant 5h ou après 23h59
+    if (hour < 5 || hour >= 24) continue;
+  }
+
+  const vInf = idxInf !== undefined ? parseFloat(cols[idxInf]) : NaN;
+  const vSup = idxSup !== undefined ? parseFloat(cols[idxSup]) : NaN;
+
+if (
+    (isFinite(vInf) && vInf > 40 && vInf < 300) ||
+    (isFinite(vSup) && vSup > 40 && vSup < 300)
+) {
+    countFlame++;
+}
+
+}
+
+
+if (countFlame >= 1) {
+  // 🔥 Ajoute la flamme tout en préservant la note existante
+  const hadNote = tdFlame.innerHTML.includes("📝");
+  tdFlame.innerHTML = `<span class="flame" title="Brûleur actif détecté ce jour !">🔥</span>`;
+  if (hadNote) tdFlame.innerHTML += ` <span class="note" title="Note associée">📝</span>`;
+}
+
+
+// 📝 Si un JSON de la même date existe → conserver même si scan flamme réécrit
+const mNote = f.name.match(/(\d{8})\.csv$/i);
+if (mNote && jsonDates.has(mNote[1])) {
+  if (!tdFlame.innerHTML.includes("📝")) addNote(tdFlame);
+  tdFlame.dataset.hasNote = "true";
+}
+
+
+tdName.textContent = f.name;
+
+
+    } catch(e) {
+      console.error("Erreur flamme fichier:", f.name, e);
+      tdName.innerHTML = f.name;
+    }
+  })();
+}
+// === FIN FLAMME FILE ===
+
+
+
+const tdFolder=document.createElement('td'); tdFolder.textContent=folderName;
+
+    const tdSize = document.createElement('td');
+    if (f.size) {
+      tdSize.textContent = formatSize(f.size);
+      if (parseInt(f.size) < 200) {
+        tdSize.style.color = "#999";
+        tdSize.textContent += " (vide)";
+      } else {
+        tdSize.style.color = "inherit";
+      }
+    } else {
+      tdSize.textContent = '?';
+    }
+
+    const tdAction=document.createElement('td'); tdAction.className='action-cell';
+    let html='';
+if(f.name.toLowerCase().endsWith('.csv')){
+  html+=`<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank"><button class="action-btn">Télécharger</button></a>`;
+  html+=`<button class="action-btn" onclick="openViewer('viewer.html','${f.id}','${f.name}')">Tableau</button>`;
+
+  // 👇 bouton Courbes seulement si on n'est PAS dans Historique
+  if (!folderName.toLowerCase().includes("historique")) {
+    html+=`<button class="action-btn" onclick="openViewer('viewer02.html','${f.id}','${f.name}')">Courbes</button>`;
+  }
+
+  // 👇 bouton Sondes uniquement si on est dans Traça_Temp
+  if (folderName.toLowerCase().includes("traça_temp") || folderName.toLowerCase().includes("traca_temp")) {
+    html+=`<button class="action-btn" onclick="openViewer('index03.html','${f.id}','${f.name}')">Sondes</button>`;
+  }
+}
+
+// === CONSOMMATION GAZ : calcul kWh + durée réelle ===
+if (
+  ENABLE_GAZ_CALC &&
+  folderName.toLowerCase().includes("consommation gaz") &&
+  f.name.toLowerCase().endsWith(".csv")
+) {
+
+  html += `
+    <div class="gaz-group">
+      <button class="gaz-btn" disabled>⏳ kWh...</button>
+      <button class="gaz-btn" disabled>m³...</button>
+      <button class="gaz-btn" disabled>⏱ Temps...</button>
+      <button class="gaz-btn gaz-small" disabled>--</button>
+    </div>
+  `;
+
+  (async () => {
+    try {
+      const res = await fetch(
+        `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`
+      );
+
+      const text = await res.text();
+      const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+
+      let diffMinutes = 0;
+      let diffKwh = 0;
+      let diffM3 = 0;
+
+
+      if (lines.length > 2) {
+
+        const firstCols = lines[1].split(",");
+        const lastCols  = lines[lines.length - 1].split(",");
+
+        const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
+        const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
+        const m3First = parseFloat(firstCols[3+1].replace(/"/g,"")); // colonne après kWh
+const m3Last  = parseFloat(lastCols[3+1].replace(/"/g,""));
+diffM3 = m3Last - m3First;
+
+
+
+        if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
+
+        let active = 0;
+        for (let i = 1; i < lines.length; i++) {
+          const prev = lines[i - 1].split(",");
+          const curr = lines[i].split(",");
+
+          const kPrev = parseFloat(prev[2].replace(/"/g,""));
+          const kCurr = parseFloat(curr[2].replace(/"/g,""));
+
+          if (isFinite(kPrev) && isFinite(kCurr) && kCurr > kPrev) active++;
+        }
+        diffMinutes = active;
+      }
+
+      const H = String(Math.floor(diffMinutes / 60)).padStart(2,"0");
+      const M = String(diffMinutes % 60).padStart(2,"0");
+      const dureeFormatee = `${H}:${M}`;
+
+      const btns = tdAction.querySelectorAll(".gaz-btn");
+const btnKwh    = btns[0];
+const btnM3     = btns[1];
+const btnHeures = btns[2];
+const btnAvg    = btns[3];
+
+      /* ===========================
+         🎨 FORMATAGE, COULEURS & AFFICHAGE
+         =========================== */
+
+      const rounded = Math.round(diffKwh);
+
+      // 🔥 ERREUR si négatif
+      if (rounded < 0) {
+        btnKwh.textContent = "ERREUR";
+        btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
+        btnKwh.style.color = "#fff";
+        btnHeures.textContent = `⏱ ${dureeFormatee}`;
+        btnAvg.textContent = "ERREUR";
+        return;
+      }
+
+      // 🔥 ERREUR si > 400000
+      if (rounded > 400000) {
+        btnKwh.textContent = "ERREUR";
+        btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
+        btnKwh.style.color = "#fff";
+        btnHeures.textContent = `⏱ ${dureeFormatee}`;
+        btnAvg.textContent = "ERREUR";
+        return;
+      }
+
+      // 🫥 Masqué si 0
+      if (rounded === 0) {
+        btnKwh.style.display = "none";
+        btnHeures.style.display = "none";
+        btnAvg.style.display = "none";
+        btnM3.style.display = "none";
+
+        return;
+      }
+
+      // --- Valeur normale ---
+      const padded = String(rounded).padStart(7, " ");
+
+      let v = Math.min(Math.max(rounded, 0), 200000);
+      let bg = "";
+      let textColor = "#1b5e20";
+
+      if (v <= 10000) {
+        const ratio = v / 10000;
+        const g = Math.round(230 - 60 * ratio);
+        const r = Math.round(200 + 55 * ratio);
+        bg = `linear-gradient(180deg, rgb(${r},${g},100), rgb(${r+20},${g+20},120))`;
+        textColor = "#2e7d32";
+      } else {
+        const ratio = (v - 10000) / 190000;
+        const r = 255;
+        const g = Math.round(235 - 155 * ratio);
+        bg = `linear-gradient(180deg, rgb(${r},${g},80), rgb(${r-20},${g-30},60))`;
+        textColor = "#3e2723";
+      }
+
+      btnKwh.textContent = `${padded} kWh`;
+      btnKwh.style.background = bg;
+      btnKwh.style.color = textColor;
+      btnKwh.style.minWidth = "120px";
+
+      btnM3.textContent = diffM3 + " m³";
+btnM3.style.background = bg;
+btnM3.style.color = textColor;
+btnM3.style.minWidth = "120px";
+
+
+      btnHeures.textContent = `⏱ ${dureeFormatee}`;
+      btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
+      btnHeures.style.color = "#0d47a1";
+      btnHeures.style.minWidth = "120px";
+
+      /* ===========================
+         📊 Conso moyenne / heure
+         =========================== */
+
+      const hours = diffMinutes / 60;
+
+      if (hours === 0) {
+        btnAvg.style.display = "none";
+        return;
+      }
+
+      const avg = rounded / hours;
+
+      // 🚨 ERREUR si < 1000 kWh/h
+      if (avg < 1000) {
+        btnAvg.textContent = "ERREUR";
+        btnAvg.style.background = "#ff8a80";
+        btnAvg.style.color = "#b71c1c";
+        return;
+      }
+
+      btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
+      btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
+      btnAvg.style.color = "#01579b";
+      btnAvg.style.minWidth = "90px";
+      btnAvg.style.fontSize = "12px";
+
+/* ===========================
+   📦 TONNAGE — Pré-calcul automatique
+   =========================== */
+
+const dateStr = tdDate.textContent.split(" ")[0]; // YYYY-MM-DD
+
+// 🔍 Récupère le chemin complet du site
+const fullPath = localStorage.getItem("lastFolderPath") || "";
+const siteRoot = fullPath.split("/")[0];   // ex: "Valbonne"
+
+// 🔧 Appel correct
+let tonnage = await getTonnageForDate(siteRoot, dateStr);
+
+if (!isFinite(tonnage)) tonnage = 0;
+
+// Stockage pour export CSV
+tr.dataset.tonnage = Number(tonnage.toFixed(1));
+
+
+
+if (!isFinite(tonnage)) tonnage = 0;
+
+// 🔥 Stockage invisible (export CSV le réutilisera)
+tr.dataset.tonnage = tonnage;
+
+
+    } catch (err) {
+      console.warn("Erreur GAZ:", err);
+    }
+  })();
+}
+
+
+
+
+
+
+
+
+
+
+
+    if(/\.(jpg|jpeg)$/i.test(f.name)){
+      html+=`<img src="https://drive.google.com/thumbnail?id=${f.id}" onclick="openModal('${f.id}')" alt="aperçu">`;
+      html+=`<a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank"><button class="action-btn">Télécharger</button></a>`;
+    }
+
+// === PDF ===
+if (f.name.toLowerCase().endsWith(".pdf")) {
+  html += `
+    <a href="https://drive.google.com/uc?export=download&id=${f.id}" target="_blank">
+      <button class="action-btn">Télécharger</button>
+    </a>
+    <button class="action-btn" onclick="openModal('${f.id}', 'pdf')">Ouvrir</button>
+  `;
+}
 
   
+    tdAction.innerHTML=html;
+
+
+tr.appendChild(tdDate);
+    tr.appendChild(tdFlame);
+tr.appendChild(tdAction);
+tr.appendChild(tdName);
+tr.appendChild(tdFolder);
+tr.appendChild(tdSize);
+
+
+    tbody.appendChild(tr);
+  }
+}
+}
 
 /* ----------- Open viewer (CSV list + index) ----------- */
 async function openViewer(viewer, id, name){
@@ -2113,26 +2423,5 @@ if (last) {
 
 };
 </script>
-
-<div id="noteTooltip"></div>
-
-  
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
