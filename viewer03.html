@@ -10,7 +10,6 @@
   <!-- Librairies -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -176,7 +175,7 @@
 
   <div class="controls" id="columnSelectors" style="display:none; flex-direction:column; gap:8px;">
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-      <select id="xColumn"></select>
+      <select id="xColumn" style="display:none;"></select>
     </div>
   </div>
 
@@ -187,11 +186,10 @@
     <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
       <canvas id="myChart" width="1400" height="700"></canvas>
       <input type="color" id="colorPicker" style="display:none;" />
-      
     </div>
   </div>
 
-  <div id="zoomInfo">🔍 Sélectionner une zone (drag) pour zoomer, molette+Ctrl pour zoom, Ctrl+clic sur la courbe pour changer sa couleur</div>
+  <div id="zoomInfo">🔍 Sélectionner une zone (drag) pour zoomer, molette+Ctrl pour zoom, Ctrl+clic sur une barre pour changer sa couleur</div>
 
   <div id="spinner"><div class="spin-inner"></div></div>
 
@@ -216,15 +214,20 @@
 let csvData = [];
 let headers = [];
 let chart = null;
-let currentX = "";
 let currentY = [];
 let timeField = "";
 let customColors = {};
 let initialMin = null, initialMax = null;
+let themeMenuTimer;
 
 /* ===================== UTILS ===================== */
 function getCSSVar(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
-function hexToRgb(hex){hex=hex.replace('#','');const n=parseInt(hex,16);return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
+function hexToRgb(hex){
+  hex=hex.replace('#','');
+  if(hex.length===3){hex=hex.split('').map(h=>h+h).join('');}
+  const n=parseInt(hex,16);
+  return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};
+}
 function buildPalette(){
   return [
     getCSSVar('--accent'),
@@ -233,41 +236,106 @@ function buildPalette(){
     "#8e44ad","#ffc300","#33cccc"
   ];
 }
+function getParam(n){return new URLSearchParams(window.location.search).get(n);}
+function showSpinner(){document.getElementById('spinner').style.display='block';}
+function hideSpinner(){document.getElementById('spinner').style.display='none';}
+function showError(msg){
+  hideSpinner();
+  const box = document.getElementById('errorBox');
+  if(msg) box.firstChild.textContent = msg;
+  box.style.display='block';
+}
+
+/* ===================== THEME ===================== */
+function applyThemeVars(vars){
+  const r=document.documentElement;
+  Object.entries(vars).forEach(([k,v])=>r.style.setProperty(k,v));
+  const palette = buildPalette();
+  if(chart){
+    chart.data.datasets.forEach((ds,i)=>{
+      const saved = customColors[ds.label];
+      const c = saved || palette[i % palette.length];
+      ds.borderColor = c;
+      ds.backgroundColor = c;
+    });
+    chart.update('none');
+  }
+}
+function setTheme(theme){
+  localStorage.setItem("selectedTheme",theme);
+  if(theme==="orange") applyThemeVars({"--accent":"#ff7043","--accent-darker":"#e64a19","--accent-muted":"#fff9f7","--bg":"#fff5f5","--panel":"#ffffff","--danger":"#d84315","--text":"#333"});
+  if(theme==="blue")   applyThemeVars({"--accent":"#2196f3","--accent-darker":"#1976d2","--accent-muted":"#e3f1fc","--bg":"#e3f2fd","--panel":"#ffffff","--danger":"#0d47a1","--text":"#0d47a1"});
+  if(theme==="green")  applyThemeVars({"--accent":"#4caf50","--accent-darker":"#2e7d32","--accent-muted":"#c8e6c9","--bg":"#f1f8e9","--panel":"#ffffff","--danger":"#1b5e20","--text":"#1b5e20"});
+  if(theme==="purple") applyThemeVars({"--accent":"#9c27b0","--accent-darker":"#6a1b9a","--accent-muted":"#e1bee7","--bg":"#f3e5f5","--panel":"#ffffff","--danger":"#4a148c","--text":"#4a148c"});
+  if(theme==="bordeaux")applyThemeVars({"--accent":"#800020","--accent-darker":"#4b0014","--accent-muted":"#d7a1a9","--bg":"#fff0f2","--panel":"#ffffff","--danger":"#600018","--text":"#4b0014"});
+}
+document.getElementById("secretBtn").onclick=()=>{
+  const m=document.getElementById("themeMenu");
+  if(m.style.display==="block"){closeThemeMenu();}else{m.style.display="block";resetThemeMenuTimer();}
+};
+function resetThemeMenuTimer(){clearTimeout(themeMenuTimer);themeMenuTimer=setTimeout(closeThemeMenu,10000);}
+function closeThemeMenu(){document.getElementById("themeMenu").style.display="none";clearTimeout(themeMenuTimer);}
 
 /* ===================== DATASETS ===================== */
 function buildDatasets(){
-  const colors = buildPalette();
+  const palette = buildPalette();
   return currentY.map((col,i)=>{
     const saved = customColors[col];
-    const baseColor = saved || colors[i % colors.length];
+    const baseColor = saved || palette[i % palette.length];
+    const data = csvData
+      .map(r => {
+        const x = r.__dayKey;
+        const y = r[col];
+        return (Number.isFinite(x) && typeof y === "number") ? {x,y} : null;
+      })
+      .filter(Boolean);
     return {
       label: col,
-      data: csvData.map(r=>({x:r.__dayKey,y:r[col]})),
+      data,
       backgroundColor: baseColor,
       borderColor: baseColor,
       borderWidth: 1,
-    }
+      barPercentage:0.7,
+      categoryPercentage:0.9
+    };
   });
 }
 
-/* ===================== TRAITS DE JOUR ===================== */
+/* ===================== PLUGIN FOND JOUR + TRAITS ===================== */
 const dayBackgroundPlugin = {
-  id: "dayBackground",
+  id:'dayBackground',
   beforeDraw(chart){
-    const {chartArea,scales:{x}} = chart;
-    if(!x) return;
+    const {scales:{x}, chartArea} = chart;
+    if(!x || !isFinite(x.min) || !isFinite(x.max)) return;
+    const oneDay = 86400000;
+    let start = new Date(x.min);
+    start.setHours(0,0,0,0);
+
     const ctx = chart.ctx;
     ctx.save();
+    let toggle = false;
 
-    const ticks = x.ticks;
-    for(let t of ticks){
-      const px = x.getPixelForValue(t.value);
+    for(let d = start.getTime(); d < x.max; d += oneDay){
+      const from = x.getPixelForValue(d);
+      const to   = x.getPixelForValue(d + oneDay);
+      const w = to - from;
+      if(!Number.isFinite(from) || !Number.isFinite(to) || w<=0) continue;
+
+      // fond alterné très clair
+      ctx.fillStyle = toggle
+        ? (getCSSVar('--accent-muted') || 'rgba(255,112,67,0.08)')
+        : 'rgba(0,0,0,0.02)';
+      ctx.fillRect(from, chartArea.top, w, chartArea.bottom - chartArea.top);
+
+      // trait fin à gauche du jour
       ctx.beginPath();
-      ctx.moveTo(px, chartArea.top);
-      ctx.lineTo(px, chartArea.bottom);
+      ctx.moveTo(from, chartArea.top);
+      ctx.lineTo(from, chartArea.bottom);
       ctx.lineWidth = 1;
       ctx.strokeStyle = "rgba(0,0,0,0.12)";
       ctx.stroke();
+
+      toggle = !toggle;
     }
     ctx.restore();
   }
@@ -275,10 +343,24 @@ const dayBackgroundPlugin = {
 
 /* ===================== CHART ===================== */
 function drawChart(){
-  if(chart) chart.destroy();
+  if(!csvData.length || !timeField || !currentY.length){
+    if(chart){ chart.destroy(); chart=null; }
+    return;
+  }
+
+  if(chart){ chart.destroy(); }
 
   const ctx = document.getElementById("myChart").getContext("2d");
   const datasets = buildDatasets();
+
+  // bornes initiales X pour reset zoom
+  const allX = csvData.map(r=>r.__dayKey).filter(v=>Number.isFinite(v));
+  if(allX.length){
+    const minX = Math.min(...allX);
+    const maxX = Math.max(...allX);
+    if(initialMin === null) initialMin = minX;
+    if(initialMax === null) initialMax = maxX;
+  }
 
   chart = new Chart(ctx,{
     type: "bar",
@@ -294,6 +376,7 @@ function drawChart(){
         tooltip:{
           callbacks:{
             title:(items)=>{
+              if(!items.length) return "";
               const ts = items[0].raw.x;
               return new Date(ts).toLocaleDateString("fr-FR");
             },
@@ -301,25 +384,30 @@ function drawChart(){
           }
         },
         zoom:{
-          zoom:{wheel:{enabled:true,modifierKey:"ctrl"},drag:{enabled:true,mode:"x"}},
-          pan:{enabled:true,mode:"x"},
+          zoom:{
+            wheel:{enabled:true,modifierKey:"ctrl"},
+            drag:{enabled:true,mode:"x"}
+          },
+          pan:{enabled:true,mode:"x"}
         }
       },
       scales:{
         x:{
           type:"time",
-          time:{unit:"day"},
-          offset:true,
+          time:{unit:"day",tooltipFormat:"dd/MM/yyyy",stepSize:1},
+          offset:false,
+          stacked:true,
           ticks:{
             autoSkip:false,
-            callback:(val)=>{
-              const d=new Date(val);
+            callback:(value)=>{
+              const d=new Date(value);
               return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"});
             }
           }
         },
         y:{
           beginAtZero:true,
+          stacked:false,
           title:{display:true,text:"Valeurs"}
         }
       }
@@ -327,14 +415,15 @@ function drawChart(){
     plugins:[dayBackgroundPlugin]
   });
 
-  /* ================= CTRL + clic pour changer couleur ================= */
   const picker=document.getElementById("colorPicker");
+
+  // Ctrl+clic sur une barre pour changer la couleur du dataset
   chart.canvas.addEventListener("click",(ev)=>{
     if(!ev.ctrlKey) return;
-    const el=chart.getElementsAtEventForMode(ev,"nearest",{intersect:true},true);
-    if(!el.length) return;
+    const elements = chart.getElementsAtEventForMode(ev,"nearest",{intersect:true},true);
+    if(!elements.length) return;
 
-    const dsIndex=el[0].datasetIndex;
+    const dsIndex = elements[0].datasetIndex;
     const ds = chart.data.datasets[dsIndex];
 
     picker.oninput = e=>{
@@ -346,6 +435,10 @@ function drawChart(){
     };
     picker.click();
   });
+
+  // après zoom / drag, on recalcule le rendu
+  chart.canvas.addEventListener('mouseup', ()=>{ chart.update('none'); });
+  chart.canvas.addEventListener('wheel', ()=>{ chart.update('none'); }, {passive:true});
 }
 
 /* ===================== UI ===================== */
@@ -359,8 +452,11 @@ document.getElementById("yColumnsContainer").addEventListener("change",()=>{
 document.getElementById("backBtn").onclick=()=>window.close();
 
 document.getElementById("resetZoom").onclick=()=>{
+  if(!chart || initialMin===null || initialMax===null) return;
   chart.resetZoom();
-  chart.update();
+  chart.options.scales.x.min = initialMin;
+  chart.options.scales.x.max = initialMax;
+  chart.update('none');
 };
 
 /* ===================== EXPORT PDF ===================== */
@@ -382,7 +478,6 @@ document.getElementById('exportPDF').onclick = () => {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
 
-  /* ----------- TITRE ----------- */
   const csvName = (getParam('fileName') || "export_gaz.csv").split("\\").pop();
   const titleTxt = "Consommation Gaz — " + csvName;
   const danger = getCSSVar('--danger') || "#d84315";
@@ -393,7 +488,6 @@ document.getElementById('exportPDF').onclick = () => {
   const lines = pdf.splitTextToSize(titleTxt,pageWidth-20);
   pdf.text(lines,10,12);
 
-  /* ----------- CAPTURE GRAPHIQUE HD ----------- */
   const baseCanvas = chart.canvas;
   const tmp = document.createElement("canvas");
   tmp.width = baseCanvas.width * 3;
@@ -408,54 +502,72 @@ document.getElementById('exportPDF').onclick = () => {
 
   const img = tmp.toDataURL("image/jpeg",0.92);
 
-  /* ----------- PLACEMENT ----------- */
   const maxW = pageWidth - 20;
   const maxH = pageHeight - 40;
   const scale = Math.min(maxW / baseCanvas.width, maxH / baseCanvas.height);
-
   const imgX = (pageWidth - baseCanvas.width*scale)/2;
   const imgY = 20;
 
   pdf.addImage(img,"JPEG",imgX,imgY,baseCanvas.width*scale,baseCanvas.height*scale);
 
-  /* ----------- DATE RANGE ----------- */
   const allX = csvData.map(r=>r.__dayKey).filter(x=>Number.isFinite(x));
-  const minDate = new Date(Math.min(...allX)).toLocaleDateString("fr-FR");
-  const maxDate = new Date(Math.max(...allX)).toLocaleDateString("fr-FR");
+  if(allX.length){
+    const minDate = new Date(Math.min(...allX)).toLocaleDateString("fr-FR");
+    const maxDate = new Date(Math.max(...allX)).toLocaleDateString("fr-FR");
+    pdf.setFontSize(10);
+    pdf.setTextColor(80,80,80);
+    pdf.text(`Période : ${minDate} → ${maxDate}`,pageWidth/2,imgY + baseCanvas.height*scale + 10,{align:"center"});
+  }
 
-  pdf.setFontSize(10);
-  pdf.setTextColor(80,80,80);
-  pdf.text(`Période : ${minDate} → ${maxDate}`,pageWidth/2,imgY + baseCanvas.height*scale + 10,{align:"center"});
-
-  /* ----------- EXPORT ----------- */
   pdf.save(csvName.replace(/\.csv$/i,".pdf"));
 };
 
-
 /* ===================== INIT ===================== */
 (async function init(){
+  setTheme(localStorage.getItem("selectedTheme") || "orange");
+  document.getElementById("resetZoom").style.display="inline-block";
+  document.getElementById("exportPDF").style.display="inline-block";
+
+  const params = new URLSearchParams(location.search);
+  if(params.get("export_gaz")!=="1"){
+    showError("Mode export gaz non activé.");
+    return;
+  }
+
   const raw = localStorage.getItem("exportGazCsvData");
   if(!raw){
-    document.getElementById("errorBox").style.display="block";
+    showError("⚠️ Aucun CSV gaz dans le stockage local.");
     return;
   }
   localStorage.removeItem("exportGazCsvData");
 
-  const parsed = Papa.parse(raw,{header:true,dynamicTyping:true,skipEmptyLines:true});
-  csvData = parsed.data;
-  headers = parsed.meta.fields;
+  showSpinner();
+  const parsed = Papa.parse(raw,{
+    header:true,
+    dynamicTyping:true,
+    skipEmptyLines:true
+  });
+  hideSpinner();
 
-  /* ========== trouver colonne date ========= */
-  timeField = headers.find(h=>/date|jour|time/i.test(h.toLowerCase())) || headers[0];
+  csvData = parsed.data || [];
+  headers = parsed.meta.fields || [];
 
-  /* Convertir jour → timestamp minuit */
+  document.getElementById('fileName').textContent = "Export Gaz";
+  document.getElementById('fileName').style.display = "block";
+  document.getElementById('lineCount').textContent = csvData.length+" ligne"+(csvData.length>1?"s":"");
+  document.getElementById('lineCount').style.display = "block";
+
+  // détection de la colonne date
+  timeField = headers.find(h=>/date|jour|time/i.test((h||"").toLowerCase())) || headers[0];
+
+  // convertir la date en timestamp minuit
   csvData.forEach(r=>{
     const d=new Date(r[timeField]);
     d.setHours(0,0,0,0);
     r.__dayKey=d.getTime();
   });
 
-  /* ========== colonne Y à gauche ========== */
+  // liste des colonnes Y à gauche
   const yCont=document.getElementById("yColumnsContainer");
   yCont.innerHTML="";
   headers.forEach(h=>{
@@ -467,12 +579,15 @@ document.getElementById('exportPDF').onclick = () => {
 
   currentY = headers.filter(h=>h!==timeField);
 
+  document.getElementById('columnSelectors').style.display="flex";
+
   drawChart();
+
+  const zi = document.getElementById('zoomInfo');
+  zi.style.display='block';
+  setTimeout(()=>{zi.style.display='none';},5000);
 })();
 </script>
-
-
-
 
 </body>
 </html>
