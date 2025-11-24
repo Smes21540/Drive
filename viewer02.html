@@ -459,26 +459,22 @@
   let z3Visible = false;
     let notesVisible = true;
 
-let parasiteFilterEnabled = false;
-
-    
-
-/********************** MODE EXPORT CSV LOCAL ************************/
+/********************** 🔥 MODE EXPORT LOCAL GAZ 🔥 ************************/
 (function(){
     const params = new URLSearchParams(location.search);
     if (params.get("export_gaz") == "1") {
 
-        console.warn("MODE EXPORT_GAZ LOCAL ACTIVÉ");
+        console.warn("=== MODE EXPORT_GAZ LOCAL ===");
 
         const raw = localStorage.getItem("exportGazCsvData");
         if (!raw) {
-            alert("Aucun CSV local trouvé !");
+            alert("⚠️ Aucun CSV export trouvé.");
             return;
         }
 
         localStorage.removeItem("exportGazCsvData");
 
-        // Parse CSV en texte brut → exactement comme un fichier Drive
+        // Parser brut comme un vrai CSV
         const parsed = Papa.parse(raw, {
             header: true,
             dynamicTyping: true,
@@ -488,21 +484,27 @@ let parasiteFilterEnabled = false;
         csvData = parsed.data;
         headers = parsed.meta.fields;
 
-        // On masque tout ce qui est lié au Drive / PDF / Z3 / Notes
-        document.getElementById("exportPDF").style.display = "none";
-        document.getElementById("toggleZ3").style.display = "none";
-        document.getElementById("toggleNotes").style.display = "none";
+        // 🧹 Désactivation TOTAL des features Drive / PDF / Z3 / Notes
+        [
+            "exportPDF","toggleZ3","toggleNotes",
+            "filterParasites","resetZoom","smoothBtn"
+        ].forEach(id=>{
+            const b=document.getElementById(id);
+            if(b) b.style.display="none";
+        });
 
-        // === Construction UI X/Y ===
+        // === Construction X/Y simple ===
         const xSel = document.getElementById("xColumn");
         const yCont = document.getElementById("yColumnsContainer");
 
         xSel.innerHTML = "";
         yCont.innerHTML = "";
 
+        // colonne temps la plus probable
         const fallbackX = headers.find(h=>/date|heure|time/i.test(h.toLowerCase())) || headers[0];
 
         headers.forEach(h=>{
+            // X
             const opt=document.createElement("option");
             opt.value=h;
             opt.textContent=h;
@@ -515,21 +517,21 @@ let parasiteFilterEnabled = false;
             }
         });
 
-        // Appliquer X et tracer direct
-        timeField=fallbackX;
-        xSel.value=fallbackX;
-        xSel.style.display="none";
+        timeField = fallbackX;
+        currentX  = fallbackX;
+        currentY  = headers.filter(h=>h!==fallbackX);
 
         document.getElementById("columnSelectors").style.display="flex";
-        currentX=fallbackX;
-        currentY=headers.filter(h=>h!==fallbackX);
+        xSel.style.display="none";
 
         drawChart();
-        return; // 🔥 IMPORTANT : STOP tout le reste (Drive + notes + Z3 + autoload)
+        return; // ⬅️ STOP 🚫 tout le viewer normal
     }
 })();
 
 
+
+    
 
   /* ===================== THEME ===================== */
 function applyThemeVars(vars){
@@ -833,6 +835,7 @@ setTimeout(() => {
   }
 
 /* ====== FILTRE VALEURS PARASITES ====== */
+let parasiteFilterEnabled = false;
 
 function filterParasites(points) {
   if (!points.length) return points;
@@ -2522,9 +2525,6 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
-
-
-
 
 
 
