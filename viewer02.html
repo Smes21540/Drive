@@ -445,6 +445,71 @@
     let currentFolderId = null; // 🧩 dossier actuel du CSV
     let currentFolderPath = ""; // 🆕 texte lisible du dossier courant
 
+/* ===================== MODE EXPORT GAZ LOCAL ===================== */
+(async function(){
+  const params = new URLSearchParams(location.search);
+  if (params.get("export_gaz") == "1") {
+
+    const csvRaw = localStorage.getItem("exportGazCsvData");
+    if (!csvRaw) {
+      alert("Aucune donnée CSV locale trouvée.");
+      return;
+    }
+
+    localStorage.removeItem("exportGazCsvData");
+
+    const parsed = Papa.parse(csvRaw, {
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true
+    });
+
+    csvData = parsed.data;
+    headers = parsed.meta.fields;
+
+    baseFileName = "EXPORT_GAZ_LOCAL.csv";
+    document.getElementById('fileName').textContent = baseFileName;
+    document.getElementById('fileName').style.display = "block";
+
+    buildLocalCsvSelectors();
+    return; // BLOQUE tout le reste (Drive, multi-day, Z3, notes)
+  }
+})();
+
+function buildLocalCsvSelectors(){
+  const xSel = document.getElementById('xColumn');
+  const yContainer = document.getElementById("yColumnsContainer");
+  xSel.innerHTML = "";
+  yContainer.innerHTML = "";
+
+  const fallbackX =
+    headers.find(h => /date|heure|time/i.test(h)) || headers[0];
+
+  headers.forEach(h=>{
+    const o=document.createElement("option");
+    o.value=h; o.textContent=h;
+    xSel.appendChild(o);
+
+    if(h !== fallbackX){
+      const l=document.createElement("label");
+      l.innerHTML = `<input type="checkbox" value="${h}" checked> ${h}`;
+      yContainer.appendChild(l);
+    }
+  });
+
+  timeField = fallbackX;
+  xSel.value = fallbackX;
+  xSel.style.display = "none";
+
+  document.getElementById('columnSelectors').style.display = "flex";
+
+  currentX = fallbackX;
+  currentY = Array.from(yContainer.querySelectorAll("input"))
+                    .map(cb=>cb.value);
+
+  drawChart();
+}
+    
 
   let baseFileName="", baseFileId="", headers=[], timeField="", baseDateYYYYMMDD="";
   let colors=[]; let themeMenuTimer;
@@ -453,6 +518,8 @@
   let initialMin = null, initialMax = null;
 
 
+
+    
 
   // Z3
   let z3Events = []; // {time: Date, label: string}
@@ -1905,17 +1972,25 @@ pdf.addImage(
 };
 
   /* ===================== INIT ===================== */
-  (async function(){
+(async function(){
     setTheme(localStorage.getItem("selectedTheme")||"orange");
 
     // initialiser état lissage
     if (!localStorage.getItem("smooth")) localStorage.setItem("smooth","0");
     document.getElementById("smoothBtn").style.display="inline-block";
     document.getElementById("filterParasites").style.display = "inline-block";
-
     updateSmoothBtnUI();
 
+    // 🔥 IMPORTANT : si CSV local, ne charge PAS le Drive
+    const params = new URLSearchParams(location.search);
+    if (params.get("export_gaz") == "1") {
+        console.warn("💾 Mode EXPORT_GAZ_LOCAL actif → Drive désactivé");
+        return;
+    }
+
+    // ➡️ Sinon on charge le Drive normalement
     await loadCSVFromDrive();
+
 
 // === 🗒️ CHARGEMENT AUTOMATIQUE DES NOTES ASSOCIÉES ===
 try {
@@ -2452,6 +2527,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
