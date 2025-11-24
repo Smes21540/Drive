@@ -1316,15 +1316,11 @@ if (match && jsonDates.has(match[1])) {
   }
 }
 
-  tdFlame.dataset.hasNote = "true"; // marquage persistant
-}
+    tdFlame.dataset.hasNote = "true"; // marquage persistant
 
+    const tdName = document.createElement('td');
+    tdName.textContent = f.name;
 
-
-
-
-const tdName = document.createElement('td');
-tdName.textContent = f.name;
 
 // === FLAMME FILE (avec cancelScan) ===
 if (f.name.toLowerCase().endsWith(".csv") &&
@@ -2477,6 +2473,7 @@ if (last) {
   
 </body>
 </html>
+
 
 
 
