@@ -2286,8 +2286,12 @@ document.getElementById("exportCsvBtn").addEventListener("click", async function
         let avg = btns[3].textContent.replace(/[^\d.-]/g, "");
         if (avg === "" || isNaN(avg)) avg = "0";
 
-        // --- TONNAGE (depuis Traça_Temp) ---
-let tonnage = row.dataset.tonnage || "0";
+let tonnage = 0;
+if (row.dataset.tonnage) {
+    tonnage = parseFloat(row.dataset.tonnage);
+    tonnage = Number(tonnage.toFixed(1)); // 🔥 arrondi à 0.1 tonne
+}
+
 
 
         csv += `${date},${kwh},${m3},${duree},${mins},${avg},${tonnage}\n`;
@@ -2333,6 +2337,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
