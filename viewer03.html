@@ -367,8 +367,8 @@ function drawChart(){
     data:{ datasets },
     options:{
       maintainAspectRatio:false,
-      parsing:false,
-      interaction:{mode:"nearest",axis:"x",intersect:true},
+      parsing:true,
+      interaction:{mode:"index",intersect:false},
       plugins:{
         legend:{
           labels:{color:getCSSVar("--text")}
