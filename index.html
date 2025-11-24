@@ -1684,6 +1684,7 @@ tr.appendChild(tdSize);
 
     tbody.appendChild(tr);
   }
+  
 }
 
 /* ======================= NOTES TOOLTIP ======================= */
@@ -1697,12 +1698,13 @@ document.addEventListener("mouseover", (e) => {
 
     tip.textContent = text;
     tip.style.display = "block";
-    tip.style.top  = e.clientY + 12 + "px";
-    tip.style.left = e.clientX + 12 + "px";
+    tip.style.top  = (e.clientY + 14) + "px";
+    tip.style.left = (e.clientX + 14) + "px";
   } else {
     tip.style.display = "none";
   }
 });
+
 /* ============================================================= */
 
   
@@ -2473,6 +2475,7 @@ if (last) {
   
 </body>
 </html>
+
 
 
 
