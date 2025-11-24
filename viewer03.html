@@ -172,8 +172,6 @@
     <button id="backBtn">⬅️ Retour</button>
     <button id="exportPDF" style="display:none;">📄 Exporter PDF</button>
     <button id="resetZoom" style="display:none;">🔄 Réinitialiser zoom</button>
-    <button id="smoothBtn" style="display:none;" title="Active un lissage visuel de la courbe">✨ Lissage OFF</button>
-    <button id="filterParasites" style="display:none;" title="Active ou désactive le filtre des valeurs parasites">🧹 Parasites OFF</button>
   </div>
 
   <div class="controls" id="columnSelectors" style="display:none; flex-direction:column; gap:8px;">
@@ -225,7 +223,7 @@
   let customColors = {};
   let initialMin = null, initialMax = null;
   let themeMenuTimer;
-  let parasiteFilterEnabled = false;
+
 
   /* ===================== THEME ===================== */
   function applyThemeVars(vars){
@@ -234,7 +232,7 @@
     colors = buildPalette();
     if(chart){
       chart.data.datasets.forEach((ds,i)=>{
-        const baseLabel = ds.label.replace(" (lissé)", "");
+        const baseLabel = ds.label;
         const saved = customColors[baseLabel];
         const c = saved || colors[i % colors.length];
         ds.borderColor = c;
@@ -280,49 +278,9 @@
     return nd.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   }
 
-  /* ===================== LISSAGE & PARASITES ===================== */
-  function movingAverage(data, windowSize=5){
-    if (!data.length) return [];
-    const res=[], half=Math.floor(windowSize/2);
-    for(let i=0;i<data.length;i++){
-      let sum=0,count=0;
-      for(let j=i-half;j<=i+half;j++){
-        if(j>=0 && j<data.length){
-          sum+=data[j].y; count++;
-        }
-      }
-      res.push({x:data[i].x,y:sum/count});
-    }
-    return res;
-  }
-
-  function filterParasites(points){
-    if(!points.length) return points;
-    const filtered=[], win=5, half=Math.floor(win/2), threshold=0.10;
-    for(let i=0;i<points.length;i++){
-      const p=points[i];
-      const prev=points[i-1]?.y;
-      const next=points[i+1]?.y;
-      const isZeroJump=(prev===0 && p.y!==0) || (p.y!==0 && next===0);
-      if(isZeroJump){filtered.push(p);continue;}
-      const local=[];
-      for(let j=i-half;j<=i+half;j++){
-        if(j>=0 && j<points.length && points[j].y!==0){
-          local.push(points[j].y);
-        }
-      }
-      if(local.length<3){filtered.push(p);continue;}
-      local.sort((a,b)=>a-b);
-      const med = local[Math.floor(local.length/2)];
-      const diff = Math.abs(p.y-med)/med;
-      if(diff<=threshold) filtered.push(p);
-    }
-    return filtered;
-  }
-
+  
   /* ===================== DATASETS ===================== */
   function buildDatasets(){
-    const smooth = localStorage.getItem("smooth")==="1";
     return currentY.map((yCol,i)=>{
       let pts = csvData.map(r=>{
         const x = r.__sortKey;
@@ -330,15 +288,13 @@
         return (Number.isFinite(x) && typeof y==="number") ? {x,y} : null;
       }).filter(Boolean);
 
-      if(parasiteFilterEnabled) pts = filterParasites(pts);
-      if(smooth) pts = movingAverage(pts, 5);
 
       const baseLabel = yCol;
       const savedColor = customColors[baseLabel];
       const c = savedColor || colors[i % colors.length];
 
       return {
-        label: baseLabel + (smooth ? " (lissé)" : ""),
+        label: baseLabel,
         data: pts,
         borderColor: c,
         backgroundColor: c,
@@ -433,7 +389,9 @@
             onClick:(e,legendItem)=>{
               const datasetIndex = legendItem.datasetIndex;
               const ds = chart.data.datasets[datasetIndex];
-              const baseLabel = ds.label.replace(" (lissé)","");
+             const baseLabel = ds.label;
+
+
               const picker = document.getElementById('colorPicker');
               picker.oninput = (ev)=>{
                 const newColor = ev.target.value;
@@ -559,26 +517,6 @@
     chart.update('none');
   };
 
-  function updateSmoothBtnUI(){
-    const btn = document.getElementById("smoothBtn");
-    const smooth = localStorage.getItem("smooth")==="1";
-    btn.textContent = smooth ? "✨ Lissage ON" : "✨ Lissage OFF";
-    btn.style.background = smooth ? getCSSVar("--accent-darker") : getCSSVar("--accent");
-  }
-  document.getElementById("smoothBtn").onclick = ()=>{
-    const smooth = localStorage.getItem("smooth")==="1";
-    localStorage.setItem("smooth", smooth ? "0" : "1");
-    updateSmoothBtnUI();
-    if(currentY.length) drawChart();
-  };
-
-  document.getElementById("filterParasites").onclick = ()=>{
-    parasiteFilterEnabled = !parasiteFilterEnabled;
-    const btn = document.getElementById("filterParasites");
-    btn.textContent = parasiteFilterEnabled ? "🧹 Parasites ON" : "🧹 Parasites OFF";
-    btn.style.background = parasiteFilterEnabled ? getCSSVar("--accent-darker") : getCSSVar("--accent");
-    if(currentY.length) drawChart();
-  };
 
   /* ===================== EXPORT PDF ===================== */
   document.getElementById('exportPDF').onclick = () => {
@@ -644,12 +582,8 @@
   /* ===================== INIT EXPORT GAZ ===================== */
   (async function init(){
     setTheme(localStorage.getItem("selectedTheme") || "orange");
-    if(!localStorage.getItem("smooth")) localStorage.setItem("smooth","0");
-    document.getElementById("smoothBtn").style.display="inline-block";
-    document.getElementById("filterParasites").style.display="inline-block";
     document.getElementById("resetZoom").style.display="inline-block";
     document.getElementById("exportPDF").style.display="inline-block";
-    updateSmoothBtnUI();
 
     const params = new URLSearchParams(location.search);
     if(params.get("export_gaz")!=="1"){
