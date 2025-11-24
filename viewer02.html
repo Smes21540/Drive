@@ -459,81 +459,6 @@
   let z3Visible = false;
     let notesVisible = true;
 
-    let parasiteFilterEnabled = false;
-
-/********************** 🔥 MODE EXPORT LOCAL GAZ 🔥 ************************/
-(function(){
-    const params = new URLSearchParams(location.search);
-    if (params.get("export_gaz") == "1") {
-
-        console.warn("=== MODE EXPORT_GAZ LOCAL ===");
-
-        const raw = localStorage.getItem("exportGazCsvData");
-        if (!raw) {
-            alert("⚠️ Aucun CSV export trouvé.");
-            return;
-        }
-
-        localStorage.removeItem("exportGazCsvData");
-
-        // Parser brut comme un vrai CSV
-        const parsed = Papa.parse(raw, {
-            header: true,
-            dynamicTyping: true,
-            skipEmptyLines: true
-        });
-
-        csvData = parsed.data;
-        headers = parsed.meta.fields;
-
-        // 🧹 Désactivation TOTAL des features Drive / PDF / Z3 / Notes
-        [
-            "exportPDF","toggleZ3","toggleNotes",
-            "filterParasites","resetZoom","smoothBtn"
-        ].forEach(id=>{
-            const b=document.getElementById(id);
-            if(b) b.style.display="none";
-        });
-
-        // === Construction X/Y simple ===
-        const xSel = document.getElementById("xColumn");
-        const yCont = document.getElementById("yColumnsContainer");
-
-        xSel.innerHTML = "";
-        yCont.innerHTML = "";
-
-        // colonne temps la plus probable
-        const fallbackX = headers.find(h=>/date|heure|time/i.test(h.toLowerCase())) || headers[0];
-
-        headers.forEach(h=>{
-            // X
-            const opt=document.createElement("option");
-            opt.value=h;
-            opt.textContent=h;
-            xSel.appendChild(opt);
-
-            if(h!==fallbackX){
-                const lbl=document.createElement("label");
-                lbl.innerHTML=`<input type="checkbox" value="${h}" checked> ${h}`;
-                yCont.appendChild(lbl);
-            }
-        });
-
-        timeField = fallbackX;
-        currentX  = fallbackX;
-        currentY  = headers.filter(h=>h!==fallbackX);
-
-        document.getElementById("columnSelectors").style.display="flex";
-        xSel.style.display="none";
-
-        drawChart();
-        return; // ⬅️ STOP 🚫 tout le viewer normal
-    }
-})();
-
-
-
-    
 
   /* ===================== THEME ===================== */
 function applyThemeVars(vars){
@@ -836,7 +761,8 @@ setTimeout(() => {
     return result;
   }
 
-
+/* ====== FILTRE VALEURS PARASITES ====== */
+let parasiteFilterEnabled = false;
 
 function filterParasites(points) {
   if (!points.length) return points;
@@ -2526,7 +2452,6 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
-
 
 
 
