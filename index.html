@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Séchoirs Oxyane</title>
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧨</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌽</text></svg>">
 
   
 <!-- Dépendances -->
@@ -2240,73 +2240,7 @@ function recolorHotDays(instance) {
 
 
 /* ----------- Export CSV (Gaz) ----------- */
-document.getElementById("exportCsvBtn").addEventListener("click", async function () {
-
-    const rows = Array.from(document.querySelectorAll("#csvTable tbody tr"))
-        .filter(r => r.style.display !== "none");
-
-    if (rows.length === 0) {
-        alert("Aucune ligne visible à exporter.");
-        return;
-    }
-
-    let csv = "Date,ConsokWh,ConsoM3,Duree,DureeMinutes,Moyenne(kWh/h),Tonnage\n";
-
-    for (const row of rows) {
-
-        // --- DATE ---
-        let date = row.querySelector("td:nth-child(1)")?.textContent.split(" ")[0] || "0";
-        if (!date) date = "0";
-
-        const btns = row.querySelectorAll(".gaz-group .gaz-btn");
-        if (btns.length !== 4) continue;
-
-        // --- KWH ---
-        let kwh = btns[0].textContent.replace(/[^\d.-]/g, "");
-        if (kwh === "" || isNaN(kwh)) kwh = "0";
-
-        // --- M3 ---
-        let m3 = btns[1].textContent.replace(/[^\d.-]/g, "");
-        if (m3 === "" || isNaN(m3)) m3 = "0";
-
-        // --- DUREE (HH:MM) ---
-        let duree = btns[2].textContent.replace(/[^0-9:]/g, "");
-        if (!duree.includes(":")) duree = "0";
-
-        // --- DUREE MINUTES ---
-        let mins = 0;
-        if (duree !== "0") {
-            const p = duree.split(":");
-            const h = parseInt(p[0], 10);
-            const m = parseInt(p[1], 10);
-            mins = (isNaN(h) || isNaN(m)) ? 0 : (h * 60 + m);
-        }
-
-        // --- MOYENNE ---
-        let avg = btns[3].textContent.replace(/[^\d.-]/g, "");
-        if (avg === "" || isNaN(avg)) avg = "0";
-
-let tonnage = 0;
-if (row.dataset.tonnage) {
-    tonnage = parseFloat(row.dataset.tonnage);
-    tonnage = Number(tonnage.toFixed(1)); // 🔥 arrondi à 0.1 tonne
-}
-
-
-
-        csv += `${date},${kwh},${m3},${duree},${mins},${avg},${tonnage}\n`;
-    }
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "export_gaz.csv";
-    link.click();
-});
-
-
-
-
+document.getElementById("exportCsvBtn")
 
 
 /* ----------- Init ----------- */
@@ -2337,6 +2271,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
