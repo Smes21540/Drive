@@ -2336,24 +2336,7 @@ async function saveAverageToServer(n) {
   }
 }
 
-function computeAverageAndSave(datasetIndex, x1, x2) {
-  const ds = chart.data.datasets[datasetIndex].data;
-  const min = Math.min(x1, x2);
-  const max = Math.max(x1, x2);
 
-  const pts = ds.filter(p => p.x >= min && p.x <= max);
-
-  if (!pts.length) {
-    showToast("⚠️ Aucun point sur cette plage.");
-    return;
-  }
-
-  const avg = pts.reduce((s,p)=>s+p.y,0) / pts.length;
-
-  createAverageNote(datasetIndex, min, max, avg);
-  showToast("📌 Moyenne calculée !");
-  chart.update("none");
-}
 
 
   
@@ -2596,6 +2579,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
