@@ -1056,8 +1056,9 @@ const notesPlugin = {
 
       // Texte
       ctx.fillStyle = "#fff";
-      const txt = n.author || "Note";
-      ctx.fillText(txt, x + 10, y);
+const txt = n.text || n.note || "(note vide)";
+ctx.fillText(txt, x + 10, y);
+
 
       // Hit zone clic
       chart.$noteHitZones.push({
@@ -2494,6 +2495,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
