@@ -1628,16 +1628,19 @@ const siteRoot = fullPath.split("/")[0];   // ex: "Valbonne"
 let tonnage = await getTonnageForDate(siteRoot, dateStr);
 
 if (!isFinite(tonnage)) tonnage = 0;
-
-// Stockage pour export CSV
-tr.dataset.tonnage = Number(tonnage.toFixed(1));
+      tr.dataset.tonnage = Number(tonnage.toFixed(1));
 
 
 
-if (!isFinite(tonnage)) tonnage = 0;
 
-// 🔥 Stockage invisible (export CSV le réutilisera)
-tr.dataset.tonnage = tonnage;
+
+
+
+
+
+
+
+
 
 
     } catch (err) {
@@ -2450,6 +2453,7 @@ if (last) {
 </script>
 </body>
 </html>
+
 
 
 
