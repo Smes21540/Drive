@@ -1078,16 +1078,17 @@ ctx.fillText(txt, x + 10, y);
 const avgPlugin = {
   id: "avgPlugin",
   afterDatasetsDraw(chart) {
+
     const ctx = chart.ctx;
     const xScale = chart.scales.x;
     const yScale = chart.scales.y;
-
     if (!xScale || !yScale || !notesData.length) return;
+
+    chart.$avgHitZones = [];
 
     ctx.save();
     ctx.font = "11px sans-serif";
     ctx.textBaseline = "middle";
-    ctx.textAlign = "center";
 
     for (const n of notesData) {
       if (n.status !== "active") continue;
@@ -1095,14 +1096,15 @@ const avgPlugin = {
 
       const x1 = xScale.getPixelForValue(n.x1);
       const x2 = xScale.getPixelForValue(n.x2);
-      if (!Number.isFinite(x1) || !Number.isFinite(x2)) continue;
-
       const pxAvg = yScale.getPixelForValue(n.avg);
-      if (!Number.isFinite(pxAvg)) continue;
+
+      if (!Number.isFinite(x1) || !Number.isFinite(x2) || !Number.isFinite(pxAvg))
+        continue;
 
       const color = n.color || "#0aa6e8";
       const midX = (x1 + x2) / 2;
 
+      // === Ligne horizontale moyenne ===
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -1110,9 +1112,16 @@ const avgPlugin = {
       ctx.lineTo(x2, pxAvg);
       ctx.stroke();
 
-      const labelText = `AVG ${n.dataset}: ${n.avg.toFixed(2)}`;
-      const w = ctx.measureText(labelText).width + 10;
-      const h = 16;
+      // === Fond du tag plein comme les notes ===
+      const labelText = `Moyenne ${n.dataset}\n${n.avg.toFixed(2)}`;
+      const lines = labelText.split("\n");
+      const lh = 15;
+      const padX = 8;
+      const padY = 4;
+
+      const w = Math.max(...lines.map(t => ctx.measureText(t).width)) + padX * 2;
+      const h = lh * lines.length + padY * 2;
+
       const rx = midX - w / 2;
       const ry = pxAvg - h - 4;
       const r = 6;
@@ -1131,13 +1140,28 @@ const avgPlugin = {
       ctx.closePath();
       ctx.fill();
 
+      // === Texte blanc multi-lignes ===
       ctx.fillStyle = "#fff";
-      ctx.fillText(labelText, midX, ry + h / 2);
+      ctx.textAlign = "center";
+
+      lines.forEach((t, i) => {
+        ctx.fillText(t, midX, ry + padY + i * lh + lh / 2);
+      });
+
+      // === Hit zone (édition au clic) ===
+      chart.$avgHitZones.push({
+        note: n,
+        x1: rx,
+        x2: rx + w,
+        y1: ry,
+        y2: ry + h
+      });
     }
 
     ctx.restore();
   }
 };
+
 
 
      
@@ -1365,11 +1389,9 @@ canvas.addEventListener('wheel', async (e)=>{
   });
 
 // === Gestion clic sur une note existante ===
-// ⚠️ Important : si un drag vient d’avoir lieu, on ignore le clic « fantôme »
 canvas.addEventListener("click", (ev) => {
   if (!notesData.length) return;
 
-  // ⬇️ Ajout clé : neutralise l’ouverture de popup juste après un drag
   if (chart.$justDragged) { 
     chart.$justDragged = false; 
     return; 
@@ -1381,6 +1403,20 @@ canvas.addEventListener("click", (ev) => {
   const xScale = chart.scales.x;
   const yScale = chart.scales.y;
 
+  /* 🔥 AJOUT ICI — DÉTECTION DES TAGS AVG RECTANGULAIRES */
+  if (chart.$avgHitZones) {
+    for (const z of chart.$avgHitZones) {
+      if (
+        xClick >= z.x1 && xClick <= z.x2 &&
+        yClick >= z.y1 && yClick <= z.y2
+      ) {
+        showNotePopup(z.note);
+        return;
+      }
+    }
+  }
+
+  /* 🔥 ensuite seulement on fait l'ancien comportement notes */
   let nearest = null;
   let minDist = 18;
 
@@ -1399,6 +1435,7 @@ canvas.addEventListener("click", (ev) => {
     showNotePopup(nearest);
   }
 });
+
 
 // === MODE CALCUL MOYENNE ===
 canvas.addEventListener("click", (ev) => {
@@ -2495,6 +2532,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
