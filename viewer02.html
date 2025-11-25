@@ -1027,62 +1027,112 @@ const notesPlugin = {
     if (!xScale || !yScale) return;
 
     chart.$noteHitZones = [];
-
     ctx.save();
     ctx.font = "11px sans-serif";
     ctx.textBaseline = "top";
 
     for (const n of notesData) {
       if (n.status !== "active") continue;
-      if (n.type === "avg") continue; // ne gère que les notes simples
+      if (n.type === "avg") continue;
 
       const x = xScale.getPixelForValue(n.x);
       const y = yScale.getPixelForValue(n.y);
       if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
 
-// MULTI-LIGNES
-const lines = String(n.note || "").split(/\r?\n/);
-const lh = 14;
-const padX = 8;
-const padY = 6;
+      // MULTI-LIGNES
+      const lines = String(n.note || "").split(/\r?\n/);
+      const lh = 14;
+      const padX = 8;
+      const padY = 6;
 
-// width réelle du texte le + long
-let textWidth = 0;
-for (const t of lines) {
-  const wtxt = ctx.measureText(t).width;
-  if (wtxt > textWidth) textWidth = wtxt;
-}
+      let textW = 0;
+      for (const l of lines) {
+        const w = ctx.measureText(l).width;
+        if (w > textW) textW = w;
+      }
 
-const boxW = textWidth + padX * 2;
-const boxH = lines.length * lh + padY * 2;
+      const boxW = textW + padX * 2;
+      const boxH = lines.length * lh + padY * 2;
 
-const rx = x + 6;
-const ry = y - boxH - 8;
+      const rx = x + 6;
+      const ry = y - boxH - 8;
 
-// fond
-ctx.fillStyle = n.color || "#ff7043";
-ctx.beginPath();
-ctx.moveTo(rx + 6, ry);
-ctx.lineTo(rx + boxW - 6, ry);
-ctx.quadraticCurveTo(rx + boxW, ry, rx + boxW, ry + 6);
-ctx.lineTo(rx + boxW, ry + boxH - 6);
-ctx.quadraticCurveTo(rx + boxW, ry + boxH, rx + boxW - 6, ry + boxH);
-ctx.lineTo(rx + 6, ry + boxH);
-ctx.quadraticCurveTo(rx, ry + boxH, rx, ry + boxH - 6);
-ctx.lineTo(rx, ry + 6);
-ctx.quadraticCurveTo(rx, ry, rx + 6, ry);
-ctx.closePath();
-ctx.fill();
+      // fond couleur complète
+      ctx.fillStyle = n.color || "#ff7043";
+      ctx.beginPath();
+      ctx.roundRect(rx, ry, boxW, boxH, 6);
+      ctx.fill();
 
-// texte blanc
-ctx.fillStyle = "#fff";
-for (let i = 0; i < lines.length; i++) {
-  ctx.fillText(lines[i], rx + padX, ry + padY + i * lh);
-}
+      // texte
+      ctx.fillStyle = "#fff";
+      for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], rx + padX, ry + padY + i * lh);
+      }
 
-
-      // Zone cliquable pour édition
+      // ZONE CLIQUABLE POUR EDIT
       chart.$noteHitZones.push({
+        note: n,
+        x1: rx,
+        x2: rx + boxW,
+        y1: ry,
+        y2: ry + boxH
+      });
+    }
+
+    ctx.restore();
+  }
+};
+
+
+const avgPlugin = {
+  id: "avgPlugin",
+  afterDatasetsDraw(chart) {
+    if (!notesVisible || !notesData.length) return;
+
+    const ctx = chart.ctx;
+    const xScale = chart.scales.x;
+    const yScale = chart.scales.y;
+
+    if (!xScale || !yScale) return;
+
+    chart.$avgHitZones = [];
+    ctx.save();
+    ctx.font = "12px sans-serif";
+    ctx.textBaseline = "middle";
+
+    for (const n of notesData) {
+      if (n.type !== "avg" || n.status !== "active") continue;
+
+      const x1 = xScale.getPixelForValue(n.x1);
+      const x2 = xScale.getPixelForValue(n.x2);
+      const midX = (x1 + x2) / 2;
+
+      // ligne horizontale
+      const y = yScale.getPixelForValue(n.avg);
+      ctx.strokeStyle = n.color || "#0aa6e8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x1, y);
+      ctx.lineTo(x2, y);
+      ctx.stroke();
+
+      // texte
+      const text = `AVG ${n.avg.toFixed(2)}`;
+      const w = ctx.measureText(text).width + 12;
+      const h = 20;
+      const rx = midX - w / 2;
+      const ry = y - 28;
+
+      ctx.fillStyle = n.color || "#0aa6e8";
+      ctx.beginPath();
+      ctx.roundRect(rx, ry, w, h, 6);
+      ctx.fill();
+
+      ctx.fillStyle = "#fff";
+      ctx.fillText(text, midX, ry + h / 2);
+
+      // ZONE CLIQUABLE
+      chart.$avgHitZones.push({
         note: n,
         x1: rx,
         x2: rx + w,
@@ -1093,7 +1143,6 @@ for (let i = 0; i < lines.length; i++) {
     ctx.restore();
   }
 };
-
 
 
 
@@ -1336,7 +1385,7 @@ canvas.addEventListener("click", (ev) => {
   const xScale = chart.scales.x;
   const yScale = chart.scales.y;
 
-  /* 🔥 AJOUT ICI — DÉTECTION DES TAGS AVG RECTANGULAIRES */
+  // === DÉTECTION DES MOYENNES ===
   if (chart.$avgHitZones) {
     for (const z of chart.$avgHitZones) {
       if (
@@ -1349,7 +1398,7 @@ canvas.addEventListener("click", (ev) => {
     }
   }
 
-  /* 🔥 ensuite seulement on fait l'ancien comportement notes */
+  // === DÉTECTION DES NOTES CLASSIQUES ===
   let nearest = null;
   let minDist = 18;
 
@@ -1368,6 +1417,7 @@ canvas.addEventListener("click", (ev) => {
     showNotePopup(nearest);
   }
 });
+
 
 // === DRAG NOTES ===
 canvas.addEventListener("mousedown",(ev)=>{
@@ -1425,30 +1475,33 @@ canvas.addEventListener("click", (ev) => {
     return;
   }
 
-// second point → même dataset obligatoire
+// === SECOND POINT ===
 avgMode = false;
 
-const pts = chart.data.datasets[avgStart.datasetIndex].data
-  .filter(p => p.x >= Math.min(avgStart.x, xValue) && p.x <= Math.max(avgStart.x, xValue));
+if (datasetIndex !== avgStart.datasetIndex) {
+  showToast("⚠️ Les 2 points doivent être sur la MÊME courbe.");
+  avgStart = null;
+  return;
+}
 
+const ds = chart.data.datasets[datasetIndex].data;
+const min = Math.min(avgStart.x, xValue);
+const max = Math.max(avgStart.x, xValue);
+
+const pts = ds.filter(p => p.x >= min && p.x <= max);
 if (!pts.length) {
-  showToast("⚠️ Aucun point sur cette plage.");
+  showToast("⚠️ Aucun point dans cette plage.");
   avgStart = null;
   return;
 }
 
 const avg = pts.reduce((s,p)=>s+p.y,0) / pts.length;
 
-createAverageNote(avgStart.datasetIndex, avgStart.x, xValue, avg);
-showToast(`📌 Moyenne: ${avg.toFixed(2)}`);
+createAverageNote(datasetIndex, min, max, avg);
+showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
 chart.update("none");
 avgStart = null;
 
-
-  if (!found) {
-    showToast("⚠️ Aucun point dans cette zone.");
-    return;
-  }
 
   const avg = computed / found;
   createAverageNote(0, min, max, avg); // datasetIndex symbolique
@@ -2523,6 +2576,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
