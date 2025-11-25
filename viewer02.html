@@ -1074,13 +1074,70 @@ const notesPlugin = {
 };
 
 
-// ==================== AVG LINES PLUGIN ====================
 const avgPlugin = {
   id: "avgPlugin",
   afterDatasetsDraw(chart) {
-     // … code des moyennes …
+    const ctx = chart.ctx;
+    const xScale = chart.scales.x;
+    const yScale = chart.scales.y;
+
+    if (!xScale || !yScale || !notesData.length) return;
+
+    ctx.save();
+    ctx.font = "11px sans-serif";
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+
+    for (const n of notesData) {
+      if (n.status !== "active") continue;
+      if (n.type !== "avg") continue;
+
+      const x1 = xScale.getPixelForValue(n.x1);
+      const x2 = xScale.getPixelForValue(n.x2);
+      if (!Number.isFinite(x1) || !Number.isFinite(x2)) continue;
+
+      const pxAvg = yScale.getPixelForValue(n.avg);
+      if (!Number.isFinite(pxAvg)) continue;
+
+      const color = n.color || "#0aa6e8";
+      const midX = (x1 + x2) / 2;
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x1, pxAvg);
+      ctx.lineTo(x2, pxAvg);
+      ctx.stroke();
+
+      const labelText = `AVG ${n.dataset}: ${n.avg.toFixed(2)}`;
+      const w = ctx.measureText(labelText).width + 10;
+      const h = 16;
+      const rx = midX - w / 2;
+      const ry = pxAvg - h - 4;
+      const r = 6;
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(rx + r, ry);
+      ctx.lineTo(rx + w - r, ry);
+      ctx.quadraticCurveTo(rx + w, ry, rx + w, ry + r);
+      ctx.lineTo(rx + w, ry + h - r);
+      ctx.quadraticCurveTo(rx + w, ry + h, rx + w - r, ry + h);
+      ctx.lineTo(rx + r, ry + h);
+      ctx.quadraticCurveTo(rx, ry + h, rx, ry + h - r);
+      ctx.lineTo(rx, ry + r);
+      ctx.quadraticCurveTo(rx, ry, rx + r, ry);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#fff";
+      ctx.fillText(labelText, midX, ry + h / 2);
+    }
+
+    ctx.restore();
   }
 };
+
 
      
 
@@ -2437,6 +2494,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
