@@ -1029,104 +1029,31 @@ const notesPlugin = {
     chart.$noteHitZones = [];
 
     ctx.save();
-    ctx.font = "10px sans-serif";
-    ctx.textBaseline = "middle";
+    ctx.font = "11px sans-serif";
+    ctx.textBaseline = "top";
 
     for (const n of notesData) {
       if (n.status !== "active") continue;
+      if (n.type === "avg") continue; // ne gère que les notes simples
 
       const x = xScale.getPixelForValue(n.x);
       const y = yScale.getPixelForValue(n.y);
       if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
 
-      const boxWidth = 90;
-      const boxHeight = 18;
+      // MULTI-LIGNES
+      const lines = String(n.text || n.note || "").split(/\r?\n/);
+      const lh = 14;  // line-height
+      const pad = 6;
 
-      // Trait vertical léger
-      ctx.strokeStyle = n.color || "#ff7043";
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(x, y - boxHeight);
-      ctx.lineTo(x, y + boxHeight);
-      ctx.stroke();
+      const w = Math.max(...lines.map(t => ctx.measureText(t).width)) + pad * 2;
+      const h = lh * lines.length + pad * 2;
 
-      // Rectangle du tag
+      const rx = x + 4;
+      const ry = y - h - 6;
+
+      // Fond arrondi
       ctx.fillStyle = n.color || "#ff7043";
-      ctx.fillRect(x + 6, y - boxHeight / 2, boxWidth, boxHeight);
-
-      // Texte
-      ctx.fillStyle = "#fff";
-const txt = n.text || n.note || "(note vide)";
-ctx.fillText(txt, x + 10, y);
-
-
-      // Hit zone clic
-      chart.$noteHitZones.push({
-        note: n,
-        x1: x + 6,
-        y1: y - boxHeight / 2,
-        x2: x + 6 + boxWidth,
-        y2: y + boxHeight / 2
-      });
-    }
-
-    ctx.restore();
-  }
-};
-
-
-const avgPlugin = {
-  id: "avgPlugin",
-  afterDatasetsDraw(chart) {
-
-    const ctx = chart.ctx;
-    const xScale = chart.scales.x;
-    const yScale = chart.scales.y;
-    if (!xScale || !yScale || !notesData.length) return;
-
-    chart.$avgHitZones = [];
-
-    ctx.save();
-    ctx.font = "11px sans-serif";
-    ctx.textBaseline = "middle";
-
-    for (const n of notesData) {
-      if (n.status !== "active") continue;
-      if (n.type !== "avg") continue;
-
-      const x1 = xScale.getPixelForValue(n.x1);
-      const x2 = xScale.getPixelForValue(n.x2);
-      const pxAvg = yScale.getPixelForValue(n.avg);
-
-      if (!Number.isFinite(x1) || !Number.isFinite(x2) || !Number.isFinite(pxAvg))
-        continue;
-
-      const color = n.color || "#0aa6e8";
-      const midX = (x1 + x2) / 2;
-
-      // === Ligne horizontale moyenne ===
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x1, pxAvg);
-      ctx.lineTo(x2, pxAvg);
-      ctx.stroke();
-
-      // === Fond du tag plein comme les notes ===
-      const labelText = `Moyenne ${n.dataset}\n${n.avg.toFixed(2)}`;
-      const lines = labelText.split("\n");
-      const lh = 15;
-      const padX = 8;
-      const padY = 4;
-
-      const w = Math.max(...lines.map(t => ctx.measureText(t).width)) + padX * 2;
-      const h = lh * lines.length + padY * 2;
-
-      const rx = midX - w / 2;
-      const ry = pxAvg - h - 4;
       const r = 6;
-
-      ctx.fillStyle = color;
       ctx.beginPath();
       ctx.moveTo(rx + r, ry);
       ctx.lineTo(rx + w - r, ry);
@@ -1140,16 +1067,12 @@ const avgPlugin = {
       ctx.closePath();
       ctx.fill();
 
-      // === Texte blanc multi-lignes ===
+      // Texte blanc multilignes
       ctx.fillStyle = "#fff";
-      ctx.textAlign = "center";
+      lines.forEach((t,i)=>ctx.fillText(t, rx + pad, ry + pad + i*lh));
 
-      lines.forEach((t, i) => {
-        ctx.fillText(t, midX, ry + padY + i * lh + lh / 2);
-      });
-
-      // === Hit zone (édition au clic) ===
-      chart.$avgHitZones.push({
+      // Zone cliquable pour édition
+      chart.$noteHitZones.push({
         note: n,
         x1: rx,
         x2: rx + w,
@@ -1157,10 +1080,10 @@ const avgPlugin = {
         y2: ry + h
       });
     }
-
     ctx.restore();
   }
 };
+
 
 
 
@@ -1436,6 +1359,46 @@ canvas.addEventListener("click", (ev) => {
   }
 });
 
+// === DRAG NOTES ===
+canvas.addEventListener("mousedown",(ev)=>{
+  if (!notesData.length) return;
+  const rect = canvas.getBoundingClientRect();
+  const xClick = ev.clientX - rect.left;
+  const yClick = ev.clientY - rect.top;
+
+  for (const z of chart.$noteHitZones || []) {
+    if (
+      xClick>=z.x1 && xClick<=z.x2 &&
+      yClick>=z.y1 && yClick<=z.y2
+    ) {
+      chart.$draggingNote = z.note;
+      return;
+    }
+  }
+});
+
+canvas.addEventListener("mousemove",(ev)=>{
+  if (!chart.$draggingNote) return;
+  const rect = canvas.getBoundingClientRect();
+  const xPix = ev.clientX-rect.left;
+  const yPix = ev.clientY-rect.top;
+  const xScale = chart.scales.x;
+  const yScale = chart.scales.y;
+
+  chart.$draggingNote.x = xScale.getValueForPixel(xPix);
+  chart.$draggingNote.y = yScale.getValueForPixel(yPix);
+  chart.$justDragged = true;
+
+  chart.update('none');
+});
+
+canvas.addEventListener("mouseup",()=>{
+  if(chart.$draggingNote){
+    chart.$draggingNote = null;
+  }
+});
+
+   
 
 // === MODE CALCUL MOYENNE ===
 canvas.addEventListener("click", (ev) => {
@@ -2295,16 +2258,19 @@ function computeAverageAndSave(datasetIndex, x1, x2) {
   const max = Math.max(x1, x2);
 
   const pts = ds.filter(p => p.x >= min && p.x <= max);
-  if (pts.length === 0) {
-    showToast("⚠️ Aucun point dans cette zone.");
+
+  if (!pts.length) {
+    showToast("⚠️ Aucun point sur cette plage.");
     return;
   }
 
-  const avg = pts.reduce((sum, p) => sum + p.y, 0) / pts.length;
+  const avg = pts.reduce((s,p)=>s+p.y,0) / pts.length;
+
   createAverageNote(datasetIndex, min, max, avg);
   showToast("📌 Moyenne calculée !");
   chart.update("none");
 }
+
 
   
 </script>
@@ -2546,6 +2512,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
