@@ -1372,6 +1372,7 @@ canvas.addEventListener('wheel', async (e)=>{
 
 // === Gestion clic sur une note existante ===
 canvas.addEventListener("click", (ev) => {
+  if (avgMode) return;
   if (!notesData.length) return;
 
   if (chart.$justDragged) { 
@@ -1460,54 +1461,75 @@ canvas.addEventListener("mouseup",()=>{
 
    
 
-// === MODE CALCUL MOYENNE ===
+// === MODE MOYENNE (2 clics sur même courbe) ===
 canvas.addEventListener("click", (ev) => {
   if (!avgMode || !chart) return;
 
   const rect = canvas.getBoundingClientRect();
   const xPix = ev.clientX - rect.left;
-  const xValue = chart.scales.x.getValueForPixel(xPix);
+  const pts = chart.getElementsAtEventForMode(ev, "nearest", {intersect:false}, true);
 
-  // 1er point
-  if (!avgStart) {
-    avgStart = { x: xValue, datasetIndex: el.datasetIndex };
-    showToast("🟢 1er x sélectionné. Re-clique pour définir la zone.");
+  if (!pts || !pts.length) {
+    showToast("⚠️ clique sur un point de courbe");
     return;
   }
 
-// === SECOND POINT ===
-avgMode = false;
+  const el = pts[0];
+  const datasetIndex = el.datasetIndex;
+  const xScale = chart.scales.x;
+  const xValue = xScale.getValueForPixel(xPix);
 
-if (datasetIndex !== avgStart.datasetIndex) {
-  showToast("⚠️ Les 2 points doivent être sur la MÊME courbe.");
-  avgStart = null;
-  return;
-}
+  // ——— 1er point ———
+  if (!avgStart) {
+    avgStart = {
+      x: xValue,
+      datasetIndex: datasetIndex
+    };
 
-const ds = chart.data.datasets[datasetIndex].data;
-const min = Math.min(avgStart.x, xValue);
-const max = Math.max(avgStart.x, xValue);
+    // surbrillance courbe
+    chart.data.datasets[datasetIndex].borderWidth = 4;
+    chart.update("none");
 
-const pts = ds.filter(p => p.x >= min && p.x <= max);
-if (!pts.length) {
-  showToast("⚠️ Aucun point dans cette plage.");
-  avgStart = null;
-  return;
-}
+    showToast("🟢 1er point OK • clique sur 2ème point");
+    return;
+  }
 
-const avg = pts.reduce((s,p)=>s+p.y,0) / pts.length;
+  // ——— 2ème point ———
+  avgMode = false;
 
-createAverageNote(datasetIndex, min, max, avg);
-showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
-chart.update("none");
-avgStart = null;
+  // Vérifier même courbe
+  if (datasetIndex !== avgStart.datasetIndex) {
+    showToast("❗️ Les 2 points doivent être sur la MÊME courbe");
+    // reset highlight
+    chart.data.datasets[avgStart.datasetIndex].borderWidth = 2;
+    chart.update("none");
+    avgStart = null;
+    return;
+  }
 
+  const ds = chart.data.datasets[datasetIndex].data;
+  const min = Math.min(avgStart.x, xValue);
+  const max = Math.max(avgStart.x, xValue);
 
-  const avg = computed / found;
-  createAverageNote(0, min, max, avg); // datasetIndex symbolique
-  showToast(`📌 Moyenne sur ${found} points : ${avg.toFixed(2)}`);
+  const ptsAvg = ds.filter(p => p.x >= min && p.x <= max);
+  if (!ptsAvg.length) {
+    showToast("❗️ Aucun point dans cette plage");
+    avgStart = null;
+    return;
+  }
 
+  const avg = ptsAvg.reduce((s,p)=>s+p.y,0) / ptsAvg.length;
+
+  // reset highlight
+  chart.data.datasets[datasetIndex].borderWidth = 2;
+
+  createAverageNote(datasetIndex, min, max, avg);
   chart.update("none");
+
+  showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
+  avgStart = null;
+});
+
 });
 
 
@@ -2576,6 +2598,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
