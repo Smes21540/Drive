@@ -1040,36 +1040,46 @@ const notesPlugin = {
       const y = yScale.getPixelForValue(n.y);
       if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
 
-      // MULTI-LIGNES
-      const lines = String(n.text || n.note || "").split(/\r?\n/);
-      const lh = 14;  // line-height
-      const pad = 6;
+// MULTI-LIGNES
+const lines = String(n.note || "").split(/\r?\n/);
+const lh = 14;
+const padX = 8;
+const padY = 6;
 
-      const w = Math.max(...lines.map(t => ctx.measureText(t).width)) + pad * 2;
-      const h = lh * lines.length + pad * 2;
+// width réelle du texte le + long
+let textWidth = 0;
+for (const t of lines) {
+  const wtxt = ctx.measureText(t).width;
+  if (wtxt > textWidth) textWidth = wtxt;
+}
 
-      const rx = x + 4;
-      const ry = y - h - 6;
+const boxW = textWidth + padX * 2;
+const boxH = lines.length * lh + padY * 2;
 
-      // Fond arrondi
-      ctx.fillStyle = n.color || "#ff7043";
-      const r = 6;
-      ctx.beginPath();
-      ctx.moveTo(rx + r, ry);
-      ctx.lineTo(rx + w - r, ry);
-      ctx.quadraticCurveTo(rx + w, ry, rx + w, ry + r);
-      ctx.lineTo(rx + w, ry + h - r);
-      ctx.quadraticCurveTo(rx + w, ry + h, rx + w - r, ry + h);
-      ctx.lineTo(rx + r, ry + h);
-      ctx.quadraticCurveTo(rx, ry + h, rx, ry + h - r);
-      ctx.lineTo(rx, ry + r);
-      ctx.quadraticCurveTo(rx, ry, rx + r, ry);
-      ctx.closePath();
-      ctx.fill();
+const rx = x + 6;
+const ry = y - boxH - 8;
 
-      // Texte blanc multilignes
-      ctx.fillStyle = "#fff";
-      lines.forEach((t,i)=>ctx.fillText(t, rx + pad, ry + pad + i*lh));
+// fond
+ctx.fillStyle = n.color || "#ff7043";
+ctx.beginPath();
+ctx.moveTo(rx + 6, ry);
+ctx.lineTo(rx + boxW - 6, ry);
+ctx.quadraticCurveTo(rx + boxW, ry, rx + boxW, ry + 6);
+ctx.lineTo(rx + boxW, ry + boxH - 6);
+ctx.quadraticCurveTo(rx + boxW, ry + boxH, rx + boxW - 6, ry + boxH);
+ctx.lineTo(rx + 6, ry + boxH);
+ctx.quadraticCurveTo(rx, ry + boxH, rx, ry + boxH - 6);
+ctx.lineTo(rx, ry + 6);
+ctx.quadraticCurveTo(rx, ry, rx + 6, ry);
+ctx.closePath();
+ctx.fill();
+
+// texte blanc
+ctx.fillStyle = "#fff";
+for (let i = 0; i < lines.length; i++) {
+  ctx.fillText(lines[i], rx + padX, ry + padY + i * lh);
+}
+
 
       // Zone cliquable pour édition
       chart.$noteHitZones.push({
@@ -1410,30 +1420,30 @@ canvas.addEventListener("click", (ev) => {
 
   // 1er point
   if (!avgStart) {
-    avgStart = { x: xValue };
+    avgStart = { x: xValue, datasetIndex: el.datasetIndex };
     showToast("🟢 1er x sélectionné. Re-clique pour définir la zone.");
     return;
   }
 
-  // 2ème point → calcul global par datasets visibles
-  avgMode = false;
-  const x1 = avgStart.x;
-  const x2 = xValue;
-  const min = Math.min(x1, x2);
-  const max = Math.max(x1, x2);
+// second point → même dataset obligatoire
+avgMode = false;
 
-  let computed = 0;
-  let found = 0;
-  let dsName = "(multiple)";
+const pts = chart.data.datasets[avgStart.datasetIndex].data
+  .filter(p => p.x >= Math.min(avgStart.x, xValue) && p.x <= Math.max(avgStart.x, xValue));
 
-  // moyenne calculée sur TOUS les datasets visibles
-  for (const ds of chart.data.datasets) {
-    const pts = ds.data.filter(p => p.x >= min && p.x <= max);
-    if (!pts.length) continue;
-    found += pts.length;
-    computed += pts.reduce((s,p)=>s+p.y,0);
-    dsName = ds.label.replace(" (lissé)","");
-  }
+if (!pts.length) {
+  showToast("⚠️ Aucun point sur cette plage.");
+  avgStart = null;
+  return;
+}
+
+const avg = pts.reduce((s,p)=>s+p.y,0) / pts.length;
+
+createAverageNote(avgStart.datasetIndex, avgStart.x, xValue, avg);
+showToast(`📌 Moyenne: ${avg.toFixed(2)}`);
+chart.update("none");
+avgStart = null;
+
 
   if (!found) {
     showToast("⚠️ Aucun point dans cette zone.");
@@ -1949,14 +1959,15 @@ try {
       // 🔧 Conversion et nettoyage des données avant affichage
 notesData = notes.map(n => ({
   id: n.id || crypto.randomUUID(),
-  x: typeof n.x === "string" ? Number(n.x) || new Date(n.x).getTime() : n.x,
-  y: typeof n.y === "string" ? parseFloat(n.y) : n.y,
-  text: n.note,
+  x: Number(n.x),
+  y: Number(n.y),
+  note: n.note,      // ← c’est CE champ
   author: n.author,
   createdAt: n.createdAt,
   status: n.status || "active",
   color: n.color || colorFromAuthor(n.author || "Anonyme")
 }));
+
 
 
 
@@ -2512,6 +2523,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
