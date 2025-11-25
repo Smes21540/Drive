@@ -1037,41 +1037,44 @@ const notesPlugin = {
 
       const x = xScale.getPixelForValue(n.x);
       const y = yScale.getPixelForValue(n.y);
+
       if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
 
-      const boxWidth = 90;
+      const boxWidth = 80;
       const boxHeight = 18;
+      const pad = 4;
 
-      // Trait vertical léger
-      ctx.strokeStyle = n.color || "#ff7043";
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(x, y - boxHeight);
-      ctx.lineTo(x, y + boxHeight);
-      ctx.stroke();
-
-      // Rectangle du tag
+      // Petit point rond
       ctx.fillStyle = n.color || "#ff7043";
-      ctx.fillRect(x + 6, y - boxHeight / 2, boxWidth, boxHeight);
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
 
-      // Texte
+      // Rectangle à droite
+      const rx = x + 6;
+      const ry = y - boxHeight / 2;
+
+      ctx.fillStyle = n.color || "#ff7043";
+      ctx.fillRect(rx, ry, boxWidth, boxHeight);
+
+      // Texte auteur
       ctx.fillStyle = "#fff";
-      const txt = n.author || "Note";
-      ctx.fillText(txt, x + 10, y);
+      ctx.fillText(n.author || "Note", rx + pad, y);
 
-      // Hit zone clic
+      // Zone de clic
       chart.$noteHitZones.push({
         note: n,
-        x1: x + 6,
-        y1: y - boxHeight / 2,
-        x2: x + 6 + boxWidth,
-        y2: y + boxHeight / 2
+        x1: rx,
+        y1: ry,
+        x2: rx + boxWidth,
+        y2: ry + boxHeight
       });
     }
 
     ctx.restore();
   }
 };
+
 
 
 const avgPlugin = {
@@ -2494,6 +2497,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
