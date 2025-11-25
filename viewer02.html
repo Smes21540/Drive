@@ -366,6 +366,7 @@
     <button id="exportPDF" style="display:none;">📄 Exporter PDF</button>
     <button id="resetZoom" style="display:none;">🔄 Réinitialiser zoom</button>
     <button id="smoothBtn" style="display:none;" title="Active un lissage visuel de la courbe">✨ Lissage OFF</button>
+    <button id="avgModeBtn" style="display:none;" title="Calculer une moyenne entre 2 points">📐 Moyenne</button>
     <button id="toggleZ3" style="display:none;"
         title="Affiche ou masque les événements détectés">🚨 Événements Z3 OFF</button>
 
@@ -458,6 +459,10 @@
   let z3Events = []; // {time: Date, label: string}
   let z3Visible = false;
     let notesVisible = true;
+
+    let avgMode = false;
+let avgStart = null;
+
 
 
   /* ===================== THEME ===================== */
@@ -834,6 +839,10 @@ if (parasiteFilterEnabled) {
 }
 
 
+      
+
+      
+
       // valeurs affichées
       if (smooth) pts = movingAverage(pts, 10);
 
@@ -1007,68 +1016,21 @@ function setZoomSuspended(suspended){
 
     
 const notesPlugin = {
-  id: "notesPlugin",
+  id:"notesPlugin",
   afterDatasetsDraw(chart) {
-    if (!notesData.length) return;
-    if (!notesVisible) return;
+     // … code des notes …
+  }
+};
 
-    const ctx = chart.ctx;
-    const xScale = chart.scales.x;
-    const yScale = chart.scales.y;
-    const canvas = chart.canvas;
+// ==================== AVG LINES PLUGIN ====================
+const avgPlugin = {
+  id: "avgPlugin",
+  afterDatasetsDraw(chart) {
+     // … code des moyennes …
+  }
+};
 
-    ctx.save();
-    ctx.font = "12px Segoe UI";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    // Liste des zones de clic calculées
-    chart.$noteHitZones = [];
-
-    notesData.forEach(n => {
-      if (n.status !== "active") return;
-      const x = xScale.getPixelForValue(n.x);
-      const y = yScale.getPixelForValue(n.y);
-      if (x < xScale.left || x > xScale.right) return;
-      if (y < yScale.top || y > yScale.bottom) return;
-
-      const text = n.text || n.note || "(note vide)";
-
-      // 🌿 Gestion des retours à la ligne automatiques
-      const maxWidth = 160; // largeur max de l’étiquette
-      const words = text.split(" ");
-      const lines = [];
-      let line = "";
-      for (let w of words) {
-        const test = line ? line + " " + w : w;
-        if (ctx.measureText(test).width > maxWidth) {
-          lines.push(line);
-          line = w;
-        } else line = test;
-      }
-      if (line) lines.push(line);
-
-      const paddingX = 8;
-      const paddingY = 4;
-      const boxWidth = Math.min(maxWidth, Math.max(...lines.map(l => ctx.measureText(l).width)) + paddingX * 2);
-      const boxHeight = lines.length * 16 + paddingY * 2;
-
-     const panel = getCSSVar("--panel") || "#fff";
-const noteColor = n.color || colorFromAuthor(n.author || "Anonyme");
-ctx.fillStyle = "rgba(255,255,255,0.85)";
-ctx.strokeStyle = noteColor;
-ctx.lineWidth = 0.5;
-ctx.beginPath();
-ctx.roundRect(x - boxWidth / 2, y - boxHeight / 2, boxWidth, boxHeight, 4);
-ctx.fill();
-ctx.stroke();
-
-// ✏️ Texte sur plusieurs lignes teinté par la couleur de la note
-ctx.fillStyle = noteColor;
-lines.forEach((l, i) => {
-  ctx.fillText(l, x, y - (boxHeight / 2) + paddingY + 8 + i * 14);
-});
-
+     
 
       // 🧭 Sauvegarde zone de clic (pour survol / ouverture)
       chart.$noteHitZones.push({
@@ -1384,7 +1346,14 @@ if (!isNaN(dt.getTime())) {
         y:{title:{display:true,text:'Valeurs'}}
       }
     },
-    plugins:[ChartDataLabels,dayBackgroundPlugin,z3LinesPlugin,notesPlugin]
+    plugins: [
+  ChartDataLabels,
+  dayBackgroundPlugin,
+  z3LinesPlugin,
+  notesPlugin,
+  avgPlugin
+]
+
 
   });
 
@@ -1455,6 +1424,39 @@ canvas.addEventListener("click", (ev) => {
   }
 });
 
+// === MODE CALCUL MOYENNE ===
+canvas.addEventListener("click", (ev) => {
+  if (!avgMode || !chart) return;
+
+  const pts = chart.getElementsAtEventForMode(
+    ev,
+    'nearest',
+    { intersect:false },
+    true
+  );
+
+  if (!pts.length) return;
+
+  const { datasetIndex, index } = pts[0];
+  const ds = chart.data.datasets[datasetIndex];
+  const p = ds.data[index]; // {x,y}
+
+  // 1er point ➜ stockage
+  if (!avgStart) {
+    avgStart = { datasetIndex, x: p.x };
+    showToast("🟢 1er point sélectionné. Choisis le second sur la même courbe.");
+    return;
+  }
+
+  // Vérif courbe différente
+  if (datasetIndex !== avgStart.datasetIndex) {
+    showToast("⚠️ Les 2 points doivent être sur la MÊME courbe !");
+    return;
+  }
+
+  avgMode = false;
+  computeAverageAndSave(avgStart.datasetIndex, avgStart.x, p.x);
+});
 
    
   chart.update();
@@ -1551,6 +1553,9 @@ document.getElementById('toggleNotes').onclick = () => {
   if (chart) chart.update('none');
 };
 
+
+
+    
 // === Parasite filter ON/OFF ===
 document.getElementById("filterParasites").onclick = () => {
   parasiteFilterEnabled = !parasiteFilterEnabled;
@@ -1912,6 +1917,17 @@ pdf.addImage(
     if (!localStorage.getItem("smooth")) localStorage.setItem("smooth","0");
     document.getElementById("smoothBtn").style.display="inline-block";
     document.getElementById("filterParasites").style.display = "inline-block";
+    document.getElementById("avgModeBtn").style.display="inline-block";
+
+// ======================= MODE MOYENNE =======================
+
+document.getElementById("avgModeBtn").onclick = () => {
+  avgMode = true;
+  avgStart = null;
+  showToast("👉 Sélectionne deux points sur la même courbe.");
+};
+
+    
 
     updateSmoothBtnUI();
 
@@ -2134,6 +2150,7 @@ document.getElementById("saveNoteBtn").addEventListener("click", async () => {
 
     const pickedColor = document.getElementById("noteColor")?.value || colorFromAuthor(authorInput.value || "Anonyme");
 
+    
 
     // 🔍 Log des données envoyées au Script Google
     const payload = {
@@ -2190,20 +2207,14 @@ body: new URLSearchParams({
 );
 
 
+
+    
+
     const textRes = await response.text();
     console.log("Réponse serveur:", textRes);
     status.textContent = "✅ Note enregistrée !";
 
-notesData.push({
-  id: crypto.randomUUID(),
-  x: clickedPoint.x,
-  y: clickedPoint.y,
-  text: content,
-  author: authorInput.value || "Anonyme",
-  createdAt: createdAt,
-  status: "active",
-  color: pickedColor
-});
+
 
 
 
@@ -2212,7 +2223,81 @@ notesData.push({
   } catch (err) {
     status.textContent = "⚠️ Erreur : " + err.message;
   }
+
+
+  
 });
+
+/* ===================== MOYENNES EN NOTES ===================== */
+
+function createAverageNote(datasetIndex, x1, x2, avg) {
+  const label = chart.data.datasets[datasetIndex].label.replace(" (lissé)", "");
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  const color = "#0aa6e8";
+
+  const noteObj = {
+    id: id,
+    type: "avg",
+    dataset: label,
+    x1: x1,
+    x2: x2,
+    avg: avg,
+    color: color,
+    createdAt: createdAt,
+    status: "active"
+  };
+
+  notesData.push(noteObj);
+  saveAverageToServer(noteObj);
+}
+
+async function saveAverageToServer(n) {
+  try {
+    await fetch(
+      "https://script.google.com/macros/s/AKfycbz9zcweeyv7GpC4ZCLnw57uVvuHEOWEmfbvnLHVaqZ8Php179viedbf7PX8Vmi8HhTX7Q/exec",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          id: n.id,
+          type: "avg",
+          csvName: baseFileName,
+          folderId: currentFolderId,
+          dossier: currentFolderPath,
+          dataset: n.dataset,
+          x1: n.x1,
+          x2: n.x2,
+          avg: n.avg,
+          color: n.color,
+          createdAt: n.createdAt,
+          status: "active"
+        })
+      }
+    );
+  } catch (err) {
+    showToast("⚠️ Erreur sauvegarde moyenne : " + err.message);
+  }
+}
+
+function computeAverageAndSave(datasetIndex, x1, x2) {
+  const ds = chart.data.datasets[datasetIndex].data;
+  const min = Math.min(x1, x2);
+  const max = Math.max(x1, x2);
+
+  const pts = ds.filter(p => p.x >= min && p.x <= max);
+  if (pts.length === 0) {
+    showToast("⚠️ Aucun point dans cette zone.");
+    return;
+  }
+
+  const avg = pts.reduce((sum, p) => sum + p.y, 0) / pts.length;
+  createAverageNote(datasetIndex, min, max, avg);
+  showToast("📌 Moyenne calculée !");
+  chart.update("none");
+}
+
+  
 </script>
 
 
@@ -2452,6 +2537,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
