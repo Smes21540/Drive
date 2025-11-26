@@ -1278,16 +1278,7 @@ if (!isNaN(dt.getTime())) {
     return true;
   }
 
- function drawChart(){
-    // 🧹 Empêche la duplication des événements sur le canvas
-  const oldCanvas = document.getElementById("myChart");
-  if (oldCanvas) {
-    const newCanvas = oldCanvas.cloneNode(true); // clone sans événements
-    oldCanvas.parentNode.replaceChild(newCanvas, oldCanvas);
-  }
-
-  // 🧠 Maintenant on repart proprement sur ce nouveau canvas
-  const ctx=document.getElementById('myChart').getContext('2d');
+function drawChart(){
 
   const allX=csvData.map(r=>r.__sortKey).filter(v=>Number.isFinite(v));
   const minX=Math.min(...allX), maxX=Math.max(...allX);
@@ -1402,7 +1393,7 @@ if (!isNaN(dt.getTime())) {
   const canvas = chart.canvas;
 
   // auto-load jours au zoom/dézoom/pan
-canvas.addEventListener('wheel', async (e)=>{
+newCanvas.addEventListener('wheel', async (e)=>{
   // 🔕 pas de zoom/autoLoad pendant drag de note
   if (chart.$draggingNote) { e.preventDefault(); return; }
   if (e.ctrlKey) {
@@ -1411,26 +1402,26 @@ canvas.addEventListener('wheel', async (e)=>{
   }
 }, { passive:false });
 
-  canvas.addEventListener('mouseup', async ()=>{
+  newCanvas.addEventListener('mouseup', async ()=>{
     console.log("Détection fin zoom/pan drag");
     await autoLoadDays(chart);
   });
 
   // gestion survol Z3
-  canvas.addEventListener('mousemove', (e)=>{
+  newCanvas.addEventListener('mousemove', (e)=>{
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     chart.$z3Mouse = {x,y};
     chart.update('none');
   });
-  canvas.addEventListener('mouseleave', ()=>{
+  newCanvas.addEventListener('mouseleave', ()=>{
     chart.$z3Mouse = null;
     chart.update('none');
   });
 
 // === Gestion clic sur une note existante ===
-canvas.addEventListener("click", (ev) => {
+newCanvas.addEventListener("click", (ev) => {
   // 🚫 Si le mode moyenne est inactif, on sort
   if (!avgMode) return;
 
@@ -1462,7 +1453,7 @@ canvas.addEventListener("click", (ev) => {
   if (avgState === "second") {
     if (curveId !== avgStart.id) {
       showToast("❗ Les deux points doivent être sur la même courbe.");
-      resetAvgCycle();
+      //resetAvgCycle();
       return;
     }
 
@@ -1471,7 +1462,7 @@ canvas.addEventListener("click", (ev) => {
     const dataset = chart.data.datasets.find(d => d.id === curveId);
     if (!dataset) {
       showToast("❗ Courbe introuvable.");
-      resetAvgCycle();
+      //resetAvgCycle();
       return;
     }
 
@@ -1514,7 +1505,7 @@ canvas.addEventListener("click", (ev) => {
 
 
 // === DRAG NOTES ===
-canvas.addEventListener("mousedown",(ev)=>{
+newCanvas.addEventListener("mousedown",(ev)=>{
   if (!notesData.length) return;
   const rect = canvas.getBoundingClientRect();
   const xClick = ev.clientX - rect.left;
@@ -1531,7 +1522,7 @@ canvas.addEventListener("mousedown",(ev)=>{
   }
 });
 
-canvas.addEventListener("mousemove",(ev)=>{
+newCanvas.addEventListener("mousemove",(ev)=>{
   if (!chart.$draggingNote) return;
   const rect = canvas.getBoundingClientRect();
   const xPix = ev.clientX-rect.left;
@@ -1546,7 +1537,7 @@ canvas.addEventListener("mousemove",(ev)=>{
   chart.update('none');
 });
 
-canvas.addEventListener("mouseup",()=>{
+newCanvas.addEventListener("mouseup",()=>{
   if(chart.$draggingNote){
     chart.$draggingNote = null;
   }
@@ -2593,6 +2584,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
