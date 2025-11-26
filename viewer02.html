@@ -1522,7 +1522,7 @@ canvas.addEventListener("click", (ev) => {
 
   // 1er point
   if (avgState === "first") {
-    avgStart = { dsIndex, x: point.x };
+    avgStart = { label: chart.data.datasets[dsIndex].label, x: point.x };
     avgState = "second";
     chart.data.datasets[dsIndex].borderWidth = 4;
     chart.update("none");
@@ -1532,7 +1532,7 @@ canvas.addEventListener("click", (ev) => {
 
   // 2e point
   if (avgState === "second") {
-    if (dsIndex !== avgStart.dsIndex) {
+    if (chart.data.datasets[dsIndex].label !== avgStart.label) {
       showToast("❗ Les 2 points doivent être sur la MÊME courbe");
       resetAvgCycle();
       return;
@@ -2590,6 +2590,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
