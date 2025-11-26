@@ -1424,11 +1424,54 @@ canvas.addEventListener('wheel', async (e)=>{
     chart.$z3Mouse = {x,y};
     chart.update('none');
   });
+
+// === SURVOL NOTES : curseur main ===
+canvas.addEventListener("mousemove", (ev) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = ev.clientX - rect.left;
+  const y = ev.clientY - rect.top;
+  const zones = chart.$noteHitZones || [];
+
+  let over = false;
+  for (const z of zones) {
+    if (x >= z.x1 && x <= z.x2 && y >= z.y1 && y <= z.y2) {
+      over = true;
+      break;
+    }
+  }
+  chart.canvas.style.cursor = over ? "pointer" : "default";
+});
+
+
+
+   
   canvas.addEventListener('mouseleave', ()=>{
     chart.$z3Mouse = null;
     chart.update('none');
   });
 
+
+// === CLIC SUR UNE NOTE EXISTANTE ===
+canvas.addEventListener("click", (ev) => {
+  if (!chart) return;
+  const zones = chart.$noteHitZones || [];
+  if (!zones.length) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = ev.clientX - rect.left;
+  const y = ev.clientY - rect.top;
+
+  for (const z of zones) {
+    if (x >= z.x1 && x <= z.x2 && y >= z.y1 && y <= z.y2) {
+      showNotePopup(z.note);
+      ev.stopPropagation();
+      ev.preventDefault();
+      return; // 🔥 stop tout (empêche zoom/pan)
+    }
+  }
+});
+
+   
 // === Gestion clic sur une note existante ===
 canvas.addEventListener("click", (ev) => {
   // 🚫 Si le mode moyenne est inactif, on sort
@@ -1525,8 +1568,10 @@ canvas.addEventListener("mousedown",(ev)=>{
       xClick>=z.x1 && xClick<=z.x2 &&
       yClick>=z.y1 && yClick<=z.y2
     ) {
-      chart.$draggingNote = z.note;
-      return;
+chart.$draggingNote = z.note;
+setZoomSuspended(true); // 🧩 suspend le zoom/pan pendant le drag
+return;
+
     }
   }
 });
@@ -1547,8 +1592,11 @@ canvas.addEventListener("mousemove",(ev)=>{
 });
 
 canvas.addEventListener("mouseup",()=>{
-  if(chart.$draggingNote){
-    chart.$draggingNote = null;
+if(chart.$draggingNote){
+  chart.$draggingNote = null;
+  setZoomSuspended(false); // 🧩 réactive le zoom/pan une fois lâché
+}
+
   }
 });
 
@@ -2593,5 +2641,6 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
