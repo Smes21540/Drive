@@ -2304,37 +2304,14 @@ function createAverageNote(datasetIndex, x1, x2, avg) {
     status: "active"
   };
 
+  // 🟢 LOCAL UNIQUEMENT
   notesData.push(noteObj);
-  saveAverageToServer(noteObj);
+
+  if (chart) chart.update("none");
 }
 
-async function saveAverageToServer(n) {
-  try {
-    await fetch(
-      "https://script.google.com/macros/s/AKfycbz9zcweeyv7GpC4ZCLnw57uVvuHEOWEmfbvnLHVaqZ8Php179viedbf7PX8Vmi8HhTX7Q/exec",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          id: n.id,
-          type: "avg",
-          csvName: baseFileName,
-          folderId: currentFolderId,
-          dossier: currentFolderPath,
-          dataset: n.dataset,
-          x1: n.x1,
-          x2: n.x2,
-          avg: n.avg,
-          color: n.color,
-          createdAt: n.createdAt,
-          status: "active"
-        })
-      }
-    );
-  } catch (err) {
-    showToast("⚠️ Erreur sauvegarde moyenne : " + err.message);
-  }
-}
+
+
 
 
 
@@ -2579,6 +2556,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
