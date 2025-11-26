@@ -2330,15 +2330,7 @@ noteBtn.addEventListener("click", () => {
 
 
 
-  setTimeout(() => ping.remove(), 900);
 
-  // 🗒️ Ouvre la popup de saisie
-  coordsDisplay.textContent = `📍 X: ${new Date(xValue).toLocaleString()} | Y: ${yValue.toFixed(2)}`;
-  popup.classList.add("active");
-  txt.value = "";
-  status.textContent = "";
-  txt.focus();
-});
 
 
 // 🟢 Étape 3 : annuler la saisie
@@ -2689,6 +2681,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
