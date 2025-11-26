@@ -1458,6 +1458,8 @@ canvas.addEventListener("mousemove", (ev) => {
 
 // === CLIC SUR UNE NOTE EXISTANTE ===
 canvas.addEventListener("click", (ev) => {
+    // 🚫 Ne pas interférer si on est en mode ajout de note
+  if (chart.$noteMode) return;
   if (!chart) return;
   const zones = chart.$noteHitZones || [];
   if (!zones.length) return;
@@ -1479,6 +1481,10 @@ canvas.addEventListener("click", (ev) => {
    
 // === Gestion clic sur une note existante ===
 canvas.addEventListener("click", (ev) => {
+
+  // 🚫 Si on est en mode ajout de note → on sort
+  if (chart.$noteMode) return;
+  
   // 🚫 Si le mode moyenne est inactif, on sort
   if (!avgMode) return;
 
@@ -2672,6 +2678,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
