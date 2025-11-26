@@ -1461,19 +1461,10 @@ chart.data.datasets[dsIndex].borderWidth = 2;
 // 🟢 🔥 ON STOCKE SIMPLEMENT LES VALEURS
 tempAvg = { dsIndex, min, max, avg };
 
-// Redraw
-chart.update();
-
 showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
 avgStart = null;
+chart.update();
 
-
-
-
-   
-  chart.update();
-  applyAdaptiveTicks();
-}
 
 
 
@@ -2042,61 +2033,7 @@ const waitForChart = setInterval(() => {
     }
   })();
 
-// === TRAIT de MOYENNE TEMPORAIRE ===
-function drawTempAvgLine(dsIndex, x1, x2, avgValue) {
-  if (!chart) return;
 
-  const plugin = {
-    id: "tempAvgRender",
-    afterDatasetsDraw(c) {
-      const { ctx, chartArea, scales:{x,y} } = c;
-
-      // coordonnées pixels
-      const px1 = x.getPixelForValue(x1);
-      const px2 = x.getPixelForValue(x2);
-      const py  = y.getPixelForValue(avgValue);
-
-      ctx.save();
-
-      // ====================
-      //  TRAIT HORIZONTAL
-      // ====================
-      ctx.strokeStyle = "#4CAF50";      // 💚 VERT
-      ctx.lineWidth  = 3;               // épais
-      ctx.beginPath();
-      ctx.moveTo(px1, py);
-      ctx.lineTo(px2, py);
-      ctx.stroke();
-
-      // ====================
-      //  LABEL AU CENTRE
-      // ====================
-      const txt = `AVG ${avgValue.toFixed(2)}`;
-      ctx.font = "bold 13px Arial";
-      const w = ctx.measureText(txt).width + 12;
-      const h = 22;
-
-      const cx = (px1+px2)/2 - w/2;
-      const cy = py - h - 6;
-
-      ctx.fillStyle = "#2e7d32";  // vert foncé
-      ctx.beginPath();
-      ctx.roundRect(cx, cy, w, h, 6);
-      ctx.fill();
-
-      ctx.fillStyle = "#fff";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(txt, (px1+px2)/2, cy + h/2);
-
-      ctx.restore();
-    }
-  };
-
-  // 👉 On écrase l'ancien rendu
-  chart.options.plugins.tempAvgRender = plugin;
-  chart.update();
-}
 
 
 
@@ -2532,6 +2469,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
