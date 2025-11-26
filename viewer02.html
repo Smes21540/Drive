@@ -2068,76 +2068,39 @@ const waitForChart = setInterval(() => {
 
 // === TRAIT de MOYENNE TEMPORAIRE ===
 function drawTempAvgLine(dsIndex, x1, x2, avgValue) {
-  if (!chart || !chart.options) return;
-
-  const layer = {
-    type: "line",
-    id: "temp-avg-" + Date.now(),
-    draw(chartInstance, args, pluginOptions) {
-      const {ctx, chartArea, scales:{x,y}} = chartInstance;
-
-      const px1 = x.getPixelForValue(x1);
-      const px2 = x.getPixelForValue(x2);
-      const py  = y.getPixelForValue(avgValue);
-
-      // — TRAIT VERT —
-      ctx.save();
-      ctx.strokeStyle = "#4CAF50";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(px1, py);
-      ctx.lineTo(px2, py);
-      ctx.stroke();
-
-      // — LABEL —
-      const txt = `AVG ${avgValue.toFixed(2)}`;
-      ctx.font = "12px sans-serif";
-      const w = ctx.measureText(txt).width + 12;
-      const h = 20;
-      const rx = (px1 + px2) / 2 - w/2;
-      const ry = py - 28;
-      ctx.fillStyle = "#3d8e43";   // vert un peu plus foncé
-      ctx.beginPath();
-      ctx.roundRect(rx, ry, w, h, 6);
-      ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(txt, (px1 + px2) / 2, ry + h/2);
-      ctx.restore();
-    }
-  };
-
-function drawTempAvgLine(dsIndex, x1, x2, avgValue) {
   if (!chart) return;
 
-  const layer = {
-    id: "avgTempLayer",
-    afterDatasetsDraw(chartInstance) {
-      const {ctx, chartArea, scales:{x,y}} = chartInstance;
+  // On détruit l’ancien si existant
+  delete chart.options.plugins.tempAvg;
+
+  chart.options.plugins.tempAvg = {
+    id: "tempAvg",
+    afterDatasetsDraw(c) {
+      const { ctx, scales:{x,y} } = c;
 
       const px1 = x.getPixelForValue(x1);
       const px2 = x.getPixelForValue(x2);
       const py  = y.getPixelForValue(avgValue);
 
-      // Ligne verte
       ctx.save();
-      ctx.strokeStyle = "#4CAF50";
+
+      // ===== TRAIT HORIZONTAL =====
+      ctx.strokeStyle = "#4CAF50";    // vert
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(px1, py);
       ctx.lineTo(px2, py);
       ctx.stroke();
 
-      // Label
+      // ===== LABEL =====
       const txt = `AVG ${avgValue.toFixed(2)}`;
       ctx.font = "12px sans-serif";
       const w = ctx.measureText(txt).width + 12;
       const h = 20;
-      const rx = (px1 + px2) / 2 - w/2;
+      const rx = (px1 + px2)/2 - w/2;
       const ry = py - 28;
-      ctx.fillStyle = "#3d8e43";
-      ctx.beginPath();
+
+      ctx.fillStyle = "#3d8e43";  // vert foncé
       ctx.roundRect(rx, ry, w, h, 6);
       ctx.fill();
 
@@ -2145,9 +2108,14 @@ function drawTempAvgLine(dsIndex, x1, x2, avgValue) {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(txt, (px1 + px2)/2, ry + h/2);
+
       ctx.restore();
     }
   };
+
+  chart.update("none");
+}
+
 
   // — On remplace les anciens si existants
   chart.options.plugins.avgTemp = layer;
@@ -2584,5 +2552,6 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
