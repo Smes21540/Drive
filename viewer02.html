@@ -1081,79 +1081,6 @@ const notesPlugin = {
 
 
 
-const avgPlugin = {
-  id: "avgPlugin",
-  afterDatasetsDraw(chart) {
-    if (!notesVisible || !notesData.length) return;
-
-    const ctx = chart.ctx;
-    const xScale = chart.scales.x;
-    const yScale = chart.scales.y;
-
-    if (!xScale || !yScale) return;
-
-    chart.$avgHitZones = [];
-    ctx.save();
-    ctx.font = "12px sans-serif";
-    ctx.textBaseline = "middle";
-
-    for (const n of notesData) {
-      if (n.type !== "avg" || n.status !== "active") continue;
-
-      const x1 = xScale.getPixelForValue(n.x1);
-      const x2 = xScale.getPixelForValue(n.x2);
-      const midX = (x1 + x2) / 2;
-
-      // ligne horizontale
-      const y = yScale.getPixelForValue(n.avg);
-      ctx.strokeStyle = n.color || "#0aa6e8";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x1, y);
-      ctx.lineTo(x2, y);
-      ctx.stroke();
-
-      // texte
-      const text = `AVG ${n.avg.toFixed(2)}`;
-      const w = ctx.measureText(text).width + 12;
-      const h = 20;
-      const rx = midX - w / 2;
-      const ry = y - 28;
-
-      ctx.fillStyle = n.color || "#0aa6e8";
-      ctx.beginPath();
-      ctx.roundRect(rx, ry, w, h, 6);
-      ctx.fill();
-
-      ctx.fillStyle = "#fff";
-      ctx.fillText(text, midX, ry + h / 2);
-
-      // ZONE CLIQUABLE
-      chart.$avgHitZones.push({
-        note: n,
-        x1: rx,
-        x2: rx + w,
-        y1: ry,
-        y2: ry + h
-      });
-    }
-    ctx.restore();
-  }
-};
-
-
-
-     
-
-
-
-
-
-
-
-
-
-
 
   async function loadZ3IfAvailable(){
     z3Events = [];
@@ -1325,13 +1252,13 @@ if (!isNaN(dt.getTime())) {
         y:{title:{display:true,text:'Valeurs'}}
       }
     },
-    plugins: [
+plugins: [
   ChartDataLabels,
   dayBackgroundPlugin,
   z3LinesPlugin,
-  notesPlugin,
-  avgPlugin
+  notesPlugin
 ]
+
 
 
   });
@@ -2117,10 +2044,7 @@ function drawTempAvgLine(dsIndex, x1, x2, avgValue) {
 }
 
 
-  // — On remplace les anciens si existants
-  chart.options.plugins.avgTemp = layer;
-  chart.update();
-}
+
 
 
 
@@ -2552,6 +2476,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
