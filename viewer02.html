@@ -1372,86 +1372,59 @@ canvas.addEventListener("click", (ev) => {
   if (avgMode) return;
   if (!notesData.length) return;
 
-  if (chart.$justDragged) { 
-    chart.$justDragged = false; 
-    return; 
-  }
-
   const rect = canvas.getBoundingClientRect();
   const xClick = ev.clientX - rect.left;
   const yClick = ev.clientY - rect.top;
-  const xScale = chart.scales.x;
-  const yScale = chart.scales.y;
 
-  // === DÉTECTION DES MOYENNES ===
-  if (chart.$avgHitZones) {
-    for (const z of chart.$avgHitZones) {
-      if (
-        xClick >= z.x1 && xClick <= z.x2 &&
-        yClick >= z.y1 && yClick <= z.y2
-      ) {
-        showNotePopup(z.note);
-        return;
-      }
+  // 1️⃣ clic sur label moyenne
+  for (const z of chart.$avgHitZones || []) {
+    if (xClick >= z.x1 && xClick <= z.x2 && yClick >= z.y1 && yClick <= z.y2) {
+      showNotePopup(z.note);
+      return;
     }
   }
 
-  // === DÉTECTION DES NOTES CLASSIQUES ===
-  let nearest = null;
-  let minDist = 18;
-
-  for (const n of notesData) {
-    if (n.status !== "active") continue;
-    const x = xScale.getPixelForValue(n.x);
-    const y = yScale.getPixelForValue(n.y);
-    const d = Math.hypot(x - xClick, y - yClick);
-    if (d < minDist) {
-      nearest = n;
-      minDist = d;
+  // 2️⃣ clic sur bulle note
+  for (const z of chart.$noteHitZones || []) {
+    if (xClick >= z.x1 && xClick <= z.x2 && yClick >= z.y1 && yClick <= z.y2) {
+      showNotePopup(z.note);
+      return;
     }
-  }
-
-  if (nearest) {
-    showNotePopup(nearest);
   }
 });
 
 
+
 // ========== DRAG NOTE ==========
 canvas.addEventListener("mousedown", ev => {
-  if (!notesVisible) return;
-  if (!notesData.length) return;
-
-  const rect = canvas.getBoundingClientRect();
-  const x = ev.clientX - rect.left;
-  const y = ev.clientY - rect.top;
-
   for (const z of chart.$noteHitZones || []) {
-    if (x >= z.x1 && x <= z.x2 && y >= z.y1 && y <= z.y2) {
+    if (
+      ev.offsetX >= z.x1 && ev.offsetX <= z.x2 &&
+      ev.offsetY >= z.y1 && ev.offsetY <= z.y2
+    ) {
+      chart.$dragNote = z.note;
       setZoomSuspended(true);
-      chart.$draggingNote = z.note;
       return;
     }
   }
 });
 
 canvas.addEventListener("mousemove", ev => {
-  if (!chart.$draggingNote) return;
-  const rect = canvas.getBoundingClientRect();
-  const x = ev.clientX - rect.left;
-  const y = ev.clientY - rect.top;
-
-  chart.$draggingNote.x = chart.scales.x.getValueForPixel(x);
-  chart.$draggingNote.y = chart.scales.y.getValueForPixel(y);
+  if (!chart.$dragNote) return;
+  const sX = chart.scales.x;
+  const sY = chart.scales.y;
+  chart.$dragNote.x = sX.getValueForPixel(ev.offsetX);
+  chart.$dragNote.y = sY.getValueForPixel(ev.offsetY);
   chart.update("none");
 });
 
 canvas.addEventListener("mouseup", () => {
-  if (chart.$draggingNote) {
-    chart.$draggingNote = null;
-    setZoomSuspended(false);
-  }
+  if (!chart.$dragNote) return;
+  chart.$dragNote = null;
+  setZoomSuspended(false);
+  chart.$justDragged = true;
 });
+
 
 
    
@@ -2135,12 +2108,52 @@ function drawTempAvgLine(dsIndex, x1, x2, avgValue) {
     }
   };
 
-  // Retirer anciens temporaires
-  chart._avgTempLayers = chart._avgTempLayers || [];
-  chart._avgTempLayers.forEach(l => chart.removePlugin(l));
-  chart._avgTempLayers = [layer];
+function drawTempAvgLine(dsIndex, x1, x2, avgValue) {
+  if (!chart) return;
 
-  chart.addPlugin(layer);
+  const layer = {
+    id: "avgTempLayer",
+    afterDatasetsDraw(chartInstance) {
+      const {ctx, chartArea, scales:{x,y}} = chartInstance;
+
+      const px1 = x.getPixelForValue(x1);
+      const px2 = x.getPixelForValue(x2);
+      const py  = y.getPixelForValue(avgValue);
+
+      // Ligne verte
+      ctx.save();
+      ctx.strokeStyle = "#4CAF50";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px1, py);
+      ctx.lineTo(px2, py);
+      ctx.stroke();
+
+      // Label
+      const txt = `AVG ${avgValue.toFixed(2)}`;
+      ctx.font = "12px sans-serif";
+      const w = ctx.measureText(txt).width + 12;
+      const h = 20;
+      const rx = (px1 + px2) / 2 - w/2;
+      const ry = py - 28;
+      ctx.fillStyle = "#3d8e43";
+      ctx.beginPath();
+      ctx.roundRect(rx, ry, w, h, 6);
+      ctx.fill();
+
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(txt, (px1 + px2)/2, ry + h/2);
+      ctx.restore();
+    }
+  };
+
+  // — On remplace les anciens si existants
+  chart.options.plugins.avgTemp = layer;
+  chart.update();
+}
+
 }
 
 
@@ -2357,7 +2370,8 @@ popup.innerHTML = `
       <input type="color" id="noteColorEdit" value="${note.color || colorFromAuthor(note.author || "Anonyme")}">
     </label>
     <hr>
-    <p style="white-space:pre-wrap;">${note.text || note.note}</p>
+   <textarea id="noteTextEdit" style="width:100%;height:120px;">${note.note}</textarea>
+
     <div style="text-align:right;margin-top:10px;display:flex;gap:6px;justify-content:flex-end;">
       <button id="updateNoteBtn" style="background:#1976d2;color:white;border:none;border-radius:6px;padding:6px 12px;">Mettre à jour</button>
       <button id="deleteNoteBtn" style="background:#d84315;color:white;border:none;border-radius:6px;padding:6px 12px;">Supprimer</button>
@@ -2570,4 +2584,5 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
