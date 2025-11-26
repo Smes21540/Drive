@@ -1523,44 +1523,60 @@ canvas.addEventListener("click", (ev) => {
   const dsIndex = el.datasetIndex;
   const point = chart.data.datasets[dsIndex].data[el.index];
 
-  // 1er point
-  if (avgState === "first") {
-    avgStart = { label: chart.data.datasets[dsIndex].label, x: point.x };
-    avgState = "second";
-    chart.data.datasets[dsIndex].borderWidth = 4;
-    chart.update("none");
-    showToast("👉 Maintenant clique le DEUXIÈME point.");
+// 1er point
+if (avgState === "first") {
+  avgStart = {
+    label: chart.data.datasets[dsIndex].label.replace(" (lissé)", ""),
+    x: point.x
+  };
+  avgState = "second";
+
+  chart.data.datasets[dsIndex].borderWidth = 4;
+  chart.update("none");
+  showToast("👉 Maintenant clique le DEUXIÈME point.");
+  return;
+}
+
+// 2e point
+if (avgState === "second") {
+
+  const clickedLabel = chart.data.datasets[dsIndex].label.replace(" (lissé)", "");
+
+  // même courbe ?
+  if (clickedLabel !== avgStart.label) {
+    showToast("❗ Les 2 points doivent être sur la MÊME courbe");
+    resetAvgCycle();
     return;
   }
 
-  // 2e point
-  if (avgState === "second") {
-    if (chart.data.datasets[dsIndex].label !== avgStart.label) {
-      showToast("❗ Les 2 points doivent être sur la MÊME courbe");
-      resetAvgCycle();
-      return;
-    }
+  // retrouve le dataset affiché (pas par index)
+  const ds = chart.data.datasets.find(
+    d => d.label.replace(" (lissé)", "") === avgStart.label
+  );
 
-    const ds = chart.data.datasets[dsIndex].raw || chart.data.datasets[dsIndex].data;
-    const min = Math.min(avgStart.x, point.x);
-    const max = Math.max(avgStart.x, point.x);
-    const ptsAvg = ds.filter(p => p.x >= min && p.x <= max);
+  const min = Math.min(avgStart.x, point.x);
+  const max = Math.max(avgStart.x, point.x);
 
-    if (!ptsAvg.length) {
-      showToast("❗ Aucun point trouvé dans cette plage");
-      resetAvgCycle();
-      return;
-    }
+  const ptsAvg = ds.data.filter(p => p.x >= min && p.x <= max);
 
-    const avg = ptsAvg.reduce((s,p)=>s+p.y,0) / ptsAvg.length;
-    createAverageNote(dsIndex, min, max, avg);
-
-    chart.data.datasets[dsIndex].borderWidth = 2;
-    chart.update("none");
-
-    showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
+  if (!ptsAvg.length) {
+    showToast("❗ Aucun point trouvé dans cette plage");
     resetAvgCycle();
+    return;
   }
+
+  const avg = ptsAvg.reduce((s,p)=>s + p.y, 0) / ptsAvg.length;
+
+  // on stocke la note moyenne avec le LABEL (pas DSI)
+  createAverageNote(avgStart.label, min, max, avg);
+
+  chart.data.datasets[dsIndex].borderWidth = 2;
+  chart.update("none");
+
+  showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
+  resetAvgCycle();
+}
+
 });
 
 
@@ -2595,6 +2611,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
