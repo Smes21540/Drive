@@ -453,6 +453,7 @@
   let customColors = {}; // mémorise les couleurs choisies par label
   let initialMin = null, initialMax = null;
 
+let tempAvg = null;
 
 
   // Z3
@@ -1079,6 +1080,49 @@ const notesPlugin = {
   }
 };
 
+const tempAvgPlugin = {
+  id: "tempAvgPlugin",
+  afterDatasetsDraw(chart) {
+    if (!tempAvg) return;
+
+    const {ctx, scales:{x,y}} = chart;
+    const {min, max, avg} = tempAvg;
+
+    const px1 = x.getPixelForValue(min);
+    const px2 = x.getPixelForValue(max);
+    const py  = y.getPixelForValue(avg);
+
+    ctx.save();
+
+    // --- Ligne verte ---
+    ctx.strokeStyle = "#4CAF50";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(px1, py);
+    ctx.lineTo(px2, py);
+    ctx.stroke();
+
+    // --- Label ---
+    const txt = `AVG ${avg.toFixed(2)}`;
+    ctx.font = "bold 13px sans-serif";
+    const w = ctx.measureText(txt).width + 14;
+    const h = 22;
+    const rx = (px1+px2)/2 - w/2;
+    const ry = py - h - 6;
+
+    ctx.fillStyle = "#2e7d32";
+    ctx.beginPath();
+    ctx.roundRect(rx, ry, w, h, 6);
+    ctx.fill();
+
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(txt, (px1+px2)/2, ry + h/2);
+
+    ctx.restore();
+  }
+};
 
 
 
@@ -1256,8 +1300,10 @@ plugins: [
   ChartDataLabels,
   dayBackgroundPlugin,
   z3LinesPlugin,
-  notesPlugin
+  notesPlugin,
+  tempAvgPlugin
 ]
+
 
 
 
@@ -1385,39 +1431,42 @@ canvas.addEventListener("click", (ev) => {
     return;
   }
 
-  // === 2ème clic ===
-  avgMode = false;
+// === 2ème clic ===
+avgMode = false;
 
-  if (dsIndex !== avgStart.dsIndex) {
-    showToast("❗️ Les deux points doivent être sur la même courbe.");
-    chart.data.datasets[avgStart.dsIndex].borderWidth = 2;
-    chart.update("none");
-    avgStart = null;
-    return;
-  }
-
-  const ds = chart.data.datasets[dsIndex].data;
-  const min = Math.min(avgStart.x, xValue);
-  const max = Math.max(avgStart.x, xValue);
-  const ptsAvg = ds.filter(p => p.x >= min && p.x <= max);
-
-  if (!ptsAvg?.length) {
-    showToast("⚠️ Aucun point dans cette plage.");
-    chart.data.datasets[avgStart.dsIndex].borderWidth = 2;
-    chart.update("none");
-    avgStart = null;
-    return;
-  }
-
-  const avg = ptsAvg.reduce((s,p)=>s+p.y,0) / ptsAvg.length;
-  chart.data.datasets[dsIndex].borderWidth = 2;
-
-  drawTempAvgLine(dsIndex, min, max, avg);
-  chart.update("none");
-
-  showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
+if (dsIndex !== avgStart.dsIndex) {
+  showToast("❗️ Les deux points doivent être sur la même courbe.");
+  chart.data.datasets[avgStart.dsIndex].borderWidth = 2;
+  chart.update('none');
   avgStart = null;
-});
+  return;
+}
+
+const ds = chart.data.datasets[dsIndex].data;
+const min = Math.min(avgStart.x, xValue);
+const max = Math.max(avgStart.x, xValue);
+const ptsAvg = ds.filter(p => p.x >= min && p.x <= max);
+
+if (!ptsAvg?.length) {
+  showToast("⚠️ Aucun point dans cette plage.");
+  chart.data.datasets[avgStart.dsIndex].borderWidth = 2;
+  chart.update('none');
+  avgStart = null;
+  return;
+}
+
+const avg = ptsAvg.reduce((s,p)=>s+p.y,0) / ptsAvg.length;
+chart.data.datasets[dsIndex].borderWidth = 2;
+
+// 🟢 🔥 ON STOCKE SIMPLEMENT LES VALEURS
+tempAvg = { dsIndex, min, max, avg };
+
+// Redraw
+chart.update();
+
+showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
+avgStart = null;
+
 
 
 
@@ -2483,6 +2532,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
