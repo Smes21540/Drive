@@ -857,24 +857,24 @@ function filterParasites(points) {
     const smooth = localStorage.getItem("smooth") === "1";
     return currentY.map((yCol,i)=>{
       // valeurs brutes
-      let pts = csvData.map(r=> {
-        const x = r.__sortKey;
-        const y = r[yCol];
-        return (Number.isFinite(x) && typeof y === 'number') ? {x,y} : null;
-      }).filter(Boolean);
+// Valeurs brutes immuables
+const rawPts = csvData.map(r => {
+  const x = r.__sortKey;
+  const y = r[yCol];
+  return (Number.isFinite(x) && typeof y === 'number') ? {x,y} : null;
+}).filter(Boolean);
 
-      // 🔍 Filtre parasites
+// Copie pour display
+let pts = [...rawPts];
+
 if (parasiteFilterEnabled) {
   pts = filterParasites(pts);
 }
 
+if (smooth) {
+  pts = movingAverage(pts, 10);
+}
 
-      
-
-      
-
-      // valeurs affichées
-      if (smooth) pts = movingAverage(pts, 10);
 
 const baseLabel = yCol; // la "clé" toujours sans (lissé)
 const savedColor = customColors[baseLabel];
@@ -882,16 +882,16 @@ const c = savedColor || colors[i % colors.length];
 
 return {
   label: baseLabel + (smooth ? " (lissé)" : ""),
-  data: pts,
-  borderColor: c,
-  backgroundColor: c,
+  data: pts,          // données affichées (filtrées / lissées / etc)
+  raw: rawPts,        // données brutes (originales, immuables)
+  borderColor: color,
+  backgroundColor: color,
+  pointRadius: 2,
   borderWidth: 2,
-  fill: false,
   tension: 0,
-  pointRadius: 0,
-  pointHoverRadius: 5,
-  pointHitRadius: 8
+  hidden: false,
 };
+
 
     });
   }
@@ -2595,6 +2595,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
