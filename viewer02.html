@@ -1099,11 +1099,16 @@ const notesPlugin = {
       ctx.roundRect(rx, ry, boxW, boxH, 6);
       ctx.fill();
 
-      // texte
-      ctx.fillStyle = "#fff";
-      for (let i = 0; i < lines.length; i++) {
-        ctx.fillText(lines[i], rx + padX, ry + padY + i * lh);
-      }
+// 🔹 Texte centré horizontalement et verticalement
+ctx.fillStyle = "#fff";
+ctx.textAlign = "center";
+ctx.textBaseline = "middle";
+
+for (let i = 0; i < lines.length; i++) {
+  const lineY = ry + boxH / 2 + (i - (lines.length - 1) / 2) * lh;
+  ctx.fillText(lines[i], rx + boxW / 2, lineY);
+}
+
 
       // ZONE CLIQUABLE POUR EDIT
       chart.$noteHitZones.push({
@@ -2641,6 +2646,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
