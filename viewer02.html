@@ -1510,6 +1510,74 @@ canvas.addEventListener("mouseup",()=>{
    
 
 canvas.addEventListener("click", (ev) => {
+  if (avgState === "idle") return;
+  if (!chart) return;
+
+  const pts = chart.getElementsAtEventForMode(ev, "nearest", {intersect:false}, true);
+  if (!pts || !pts.length) {
+    showToast("⚠️ clique sur un point");
+    return;
+  }
+
+  const el = pts[0];
+  const dsIndex = el.datasetIndex;
+  const point = chart.data.datasets[dsIndex].data[el.index];
+
+// 1er point
+if (avgState === "first") {
+  avgStart = {
+    label: chart.data.datasets[dsIndex].label.replace(" (lissé)", ""),
+    x: point.x
+  };
+  avgState = "second";
+
+  chart.data.datasets[dsIndex].borderWidth = 4;
+  chart.update("none");
+  showToast("👉 Maintenant clique le DEUXIÈME point.");
+  return;
+}
+
+// 2e point
+if (avgState === "second") {
+
+  const clickedLabel = chart.data.datasets[dsIndex].label.replace(" (lissé)", "");
+
+  // même courbe ?
+  if (clickedLabel !== avgStart.label) {
+    showToast("❗ Les 2 points doivent être sur la MÊME courbe");
+    resetAvgCycle();
+    return;
+  }
+
+  // retrouve le dataset affiché (pas par index)
+  const ds = chart.data.datasets.find(
+    d => d.label.replace(" (lissé)", "") === avgStart.label
+  );
+
+  const min = Math.min(avgStart.x, point.x);
+  const max = Math.max(avgStart.x, point.x);
+
+  const ptsAvg = ds.data.filter(p => p.x >= min && p.x <= max);
+
+  if (!ptsAvg.length) {
+    showToast("❗ Aucun point trouvé dans cette plage");
+    resetAvgCycle();
+    return;
+  }
+
+  const avg = ptsAvg.reduce((s,p)=>s + p.y, 0) / ptsAvg.length;
+
+  // on stocke la note moyenne avec le LABEL (pas DSI)
+  createAverageNote(avgStart.label, min, max, avg);
+
+  chart.data.datasets[dsIndex].borderWidth = 2;
+  chart.update("none");
+
+  showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
+  resetAvgCycle();
+}
+
+});
 
 
 
@@ -1518,7 +1586,7 @@ canvas.addEventListener("click", (ev) => {
   applyAdaptiveTicks();
    resetAvgCycle();
 
-});
+}
 
 
 
@@ -2540,8 +2608,6 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
-
-
 
 
 
