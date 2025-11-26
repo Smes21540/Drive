@@ -882,15 +882,16 @@ const c = savedColor || colors[i % colors.length];
 
 return {
   label: baseLabel + (smooth ? " (lissé)" : ""),
-  data: pts,          // données affichées (filtrées / lissées / etc)
-  raw: rawPts,        // données brutes (originales, immuables)
-  borderColor: color,
-  backgroundColor: color,
+  data: pts,
+  raw: rawPts,
+  borderColor: c,
+  backgroundColor: c,
   pointRadius: 2,
   borderWidth: 2,
   tension: 0,
   hidden: false,
 };
+
 
 
     });
@@ -2595,6 +2596,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
