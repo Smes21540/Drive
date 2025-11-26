@@ -1420,8 +1420,7 @@ canvas.addEventListener('wheel', async (e)=>{
 
 // === Gestion clic sur une note existante ===
 canvas.addEventListener("click", (ev) => {
-  if (avgState !== "idle") return;
-  if (!notesData.length) return;
+    if (!notesData.length) return;
 
   if (chart.$justDragged) { 
     chart.$justDragged = false; 
@@ -2148,6 +2147,43 @@ document.getElementById("myChart").addEventListener("click", (ev) => {
   // Conversion pixels → valeurs logiques du graphe
   const xValue = xScale.getValueForPixel(xPix);
   const yValue = yScale.getValueForPixel(yPix);
+
+
+// === MODE MOYENNE : clics successifs ===
+if (avgState === "first") {
+  avgStart = xValue;
+  avgState = "second";
+  showToast("📏 Sélectionne le DEUXIÈME point");
+  return;
+}
+
+if (avgState === "second") {
+  const xEnd = xValue;
+
+  const datasets = chart.data.datasets;
+  datasets.forEach(ds => {
+    const raw = ds.data.filter(p => p.x >= avgStart && p.x <= xEnd);
+    if (!raw.length) return;
+
+    const avg = raw.reduce((s,p)=>s+p.y,0) / raw.length;
+
+    createAverageNote(
+      ds.label.replace(" (lissé)", ""),
+      avgStart,
+      xEnd,
+      avg
+    );
+  });
+
+  showToast("📐 Moyenne calculée !");
+  highlightAvgBtn(false);
+  avgState = "idle";
+  avgStart = null;
+  chart.update("none");
+  return;
+}
+
+  
   clickedPoint = { x: xValue, y: yValue };
   chart.$noteMode = false;
 
@@ -2533,6 +2569,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
