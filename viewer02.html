@@ -1579,13 +1579,8 @@ if (avgState === "second") {
   resetAvgCycle();
 }
 
-    const avg = ptsAvg.reduce((s,p)=>s+p.y,0) / ptsAvg.length;
 
-    createAverageNote(baseId, min, max, avg);
-
-    showToast(`📌 Moyenne : ${avg.toFixed(2)}`);
-    resetAvgCycle();
-  }
+  
 });
 
 
@@ -2622,6 +2617,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
