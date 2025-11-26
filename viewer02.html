@@ -462,6 +462,7 @@
 
 let avgState = "idle";  // idle | first | second
 let avgStart = null;
+   let avgMode = false; 
 
 
   // Z3
@@ -559,10 +560,12 @@ function colorFromAuthor(name){
 }
 
 function resetAvgCycle() {
+  avgMode = false;
   avgState = "idle";
   avgStart = null;
   highlightAvgBtn(false);
 }
+
 
 
 function highlightAvgBtn(active) {
@@ -881,6 +884,7 @@ const savedColor = customColors[baseLabel];
 const c = savedColor || colors[i % colors.length];
 
 return {
+  id: yCol,
   label: baseLabel + (smooth ? " (lissé)" : ""),
   data: pts,
   borderColor: c,
@@ -1315,7 +1319,7 @@ if (!isNaN(dt.getTime())) {
           onClick:(e,legendItem)=>{
             const datasetIndex = legendItem.datasetIndex;
             const ds = chart.data.datasets[datasetIndex];
-            const baseLabel = ds.label.replace(" (lissé)", "");
+            const baseId = ds.id;
             const picker = document.getElementById('colorPicker');
             picker.oninput = (ev)=>{
               const newColor = ev.target.value;
@@ -1510,74 +1514,80 @@ canvas.addEventListener("mouseup",()=>{
    
 
 canvas.addEventListener("click", (ev) => {
-  if (avgState === "idle") return;
+  // si on n'est pas en mode moyenne → on sort
+  if (!avgMode) return;
+
+  ev.stopPropagation();
+  ev.preventDefault();
+
   if (!chart) return;
 
   const pts = chart.getElementsAtEventForMode(ev, "nearest", {intersect:false}, true);
   if (!pts || !pts.length) {
-    showToast("⚠️ clique sur un point");
+    showToast("⚠️ Clique sur un point existant.");
     return;
   }
 
   const el = pts[0];
-  const dsIndex = el.datasetIndex;
-  const point = chart.data.datasets[dsIndex].data[el.index];
+  const ds = chart.data.datasets[el.datasetIndex];
+  const point = ds.data[el.index];
+  const baseId = ds.id || ds.label.replace(" (lissé)", "");
 
-// 1er point
-if (avgState === "first") {
-  avgStart = {
-    label: chart.data.datasets[dsIndex].label.replace(" (lissé)", ""),
-    x: point.x
-  };
-  avgState = "second";
+  // ---- PREMIER POINT ----
+  if (avgState === "first") {
+    avgStart = { id: baseId, x: point.x };
+    avgState = "second";
 
-  chart.data.datasets[dsIndex].borderWidth = 4;
-  chart.update("none");
-  showToast("👉 Maintenant clique le DEUXIÈME point.");
-  return;
-}
-
-// 2e point
-if (avgState === "second") {
-
-  const clickedLabel = chart.data.datasets[dsIndex].label.replace(" (lissé)", "");
-
-  // même courbe ?
-  if (clickedLabel !== avgStart.label) {
-    showToast("❗ Les 2 points doivent être sur la MÊME courbe");
-    resetAvgCycle();
+    showToast("👉 Sélectionne le DEUXIÈME point sur la MÊME courbe.");
     return;
   }
 
-  // retrouve le dataset affiché (pas par index)
-  const ds = chart.data.datasets.find(
-    d => d.label.replace(" (lissé)", "") === avgStart.label
-  );
+  // ---- DEUXIÈME POINT ----
+if (avgState === "second") {
+
+  if (baseId !== avgStart.id) {
+    showToast("❗ Les 2 points doivent être sur la MÊME courbe.");
+    resetAvgCycle();
+    return;
+  }
 
   const min = Math.min(avgStart.x, point.x);
   const max = Math.max(avgStart.x, point.x);
 
-  const ptsAvg = ds.data.filter(p => p.x >= min && p.x <= max);
+  // 👍 On récupère la courbe UNIQUEMENT par id
+  const dataset = chart.data.datasets.find(d => d.id === avgStart.id);
 
-  if (!ptsAvg.length) {
-    showToast("❗ Aucun point trouvé dans cette plage");
+  if (!dataset) {
+    showToast("❗ Impossible de retrouver la courbe.");
     resetAvgCycle();
     return;
   }
 
-  const avg = ptsAvg.reduce((s,p)=>s + p.y, 0) / ptsAvg.length;
+  const ptsAvg = dataset.data.filter(p => p.x >= min && p.x <= max);
 
-  // on stocke la note moyenne avec le LABEL (pas DSI)
-  createAverageNote(avgStart.label, min, max, avg);
+  if (!ptsAvg.length) {
+    showToast("❗ Aucun point entre ces 2 positions.");
+    resetAvgCycle();
+    return;
+  }
 
-  chart.data.datasets[dsIndex].borderWidth = 2;
-  chart.update("none");
+  const avg = ptsAvg.reduce((s,p)=>s+p.y,0) / ptsAvg.length;
 
-  showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
+  createAverageNote(avgStart.id, min, max, avg);
+
+  showToast(`📌 Moyenne : ${avg.toFixed(2)}`);
   resetAvgCycle();
 }
 
+    const avg = ptsAvg.reduce((s,p)=>s+p.y,0) / ptsAvg.length;
+
+    createAverageNote(baseId, min, max, avg);
+
+    showToast(`📌 Moyenne : ${avg.toFixed(2)}`);
+    resetAvgCycle();
+  }
 });
+
 
 
 
@@ -2048,11 +2058,15 @@ pdf.addImage(
 
 document.getElementById("avgModeBtn").onclick = () => {
   if (!chart) return;
+
+  avgMode = true;       // <--- activation
   avgState = "first";
   avgStart = null;
-  highlightAvgBtn(true); // couleur/clignotement (voir plus bas)
-  showToast("🟢 Sélectionne le PREMIER point");
+
+  highlightAvgBtn(true);
+  showToast("🟢 Sélectionne le PREMIER point sur une courbe.");
 };
+
 
 
     
@@ -2608,6 +2622,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
