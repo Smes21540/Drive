@@ -1048,7 +1048,8 @@ function setZoomSuspended(suspended){
 const notesPlugin = {
   id: "notesPlugin",
   afterDatasetsDraw(chart) {
-   if (!notesData.length) return;
+   if (!notesVisible || !notesData.length) return;
+
 
 
     const ctx = chart.ctx;
@@ -1118,7 +1119,9 @@ const notesPlugin = {
 const avgPlugin = {
   id: "avgPlugin",
   afterDatasetsDraw(chart) {
-    if (!notesVisible || !notesData.length) return;
+     
+ if (!notesData.length) return;
+
 
     const ctx = chart.ctx;
     const xScale = chart.scales.x;
@@ -2590,6 +2593,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
