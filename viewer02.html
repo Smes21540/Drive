@@ -2029,53 +2029,23 @@ try {
       const notes = JSON.parse(jsonText);
       console.log("✅ Notes chargées :", notes);
 
-// === 🔧 Conversion compatible notes classiques & moyennes ===
-notesData = notes.map(n => {
+      // 🔧 Conversion et nettoyage des données avant affichage
+notesData = notes.map(n => ({
+  id: n.id || crypto.randomUUID(),
+  x: Number(n.x),
+  y: Number(n.y),
+  note: n.note,      // ← c’est CE champ
+  author: n.author,
+  createdAt: n.createdAt,
+  status: n.status || "active",
+  color: n.color || colorFromAuthor(n.author || "Anonyme")
+}));
 
-  // 🟦 Cas MOYENNE
-  if (n.type === "avg") {
-    return {
-      id: n.id || crypto.randomUUID(),
-      type: "avg",
-      dataset: n.dataset || "",
-      x1: Number(n.x1),
-      x2: Number(n.x2),
-      avg: Number(n.avg),
-      color: n.color || "#0aa6e8",
-      createdAt: n.createdAt,
-      status: n.status || "active"
-    };
-  }
 
-  // 🟠 Cas NOTE normale
-  const xVal = typeof n.x === "string"
-    ? Number(n.x) || new Date(n.x).getTime()
-    : n.x;
-  const yVal = typeof n.y === "string"
-    ? parseFloat(n.y)
-    : n.y;
 
-  return {
-    id: n.id || crypto.randomUUID(),
-    type: "note",
-    x: xVal,
-    y: yVal,
-    note: n.note || n.text || "",
-    author: n.author,
-    createdAt: n.createdAt,
-    status: n.status || "active",
-    color: n.color || colorFromAuthor(n.author || "Anonyme")
-  };
-});
 
-// === 🧹 Filtrage selon type ===
-notesData = notesData.filter(n => {
-  if (n.type === "avg") {
-    return Number.isFinite(n.x1) && Number.isFinite(n.x2) && Number.isFinite(n.avg);
-  }
-  return Number.isFinite(n.x) && Number.isFinite(n.y);
-});
-
+      // 🧹 On garde uniquement les notes valides
+      notesData = notesData.filter(n => Number.isFinite(n.x) && Number.isFinite(n.y));
 
       console.log("📊 Notes prêtes à afficher :", notesData);
 
@@ -2387,15 +2357,6 @@ function showNotePopup(note) {
     ? new Date(note.createdAt).toLocaleString()
     : "Date inconnue";
 
-const mainText =
-  note.type === "avg"
-    ? `Moyenne ${note.dataset ? "(" + note.dataset + ") " : ""}: ${
-        note.avg != null ? Number(note.avg).toFixed(2) : "?"
-      }`
-    : (note.text || note.note || "");
-
-
-  
 popup.innerHTML = `
   <div style="background:#fff;padding:20px;border-radius:10px;max-width:420px;">
     <h3>🗒️ Note</h3>
@@ -2405,7 +2366,7 @@ popup.innerHTML = `
       <input type="color" id="noteColorEdit" value="${note.color || colorFromAuthor(note.author || "Anonyme")}">
     </label>
     <hr>
-    <p style="white-space:pre-wrap;">${mainText}</p>
+    <p style="white-space:pre-wrap;">${note.text || note.note}</p>
     <div style="text-align:right;margin-top:10px;display:flex;gap:6px;justify-content:flex-end;">
       <button id="updateNoteBtn" style="background:#1976d2;color:white;border:none;border-radius:6px;padding:6px 12px;">Mettre à jour</button>
       <button id="deleteNoteBtn" style="background:#d84315;color:white;border:none;border-radius:6px;padding:6px 12px;">Supprimer</button>
@@ -2618,68 +2579,3 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
