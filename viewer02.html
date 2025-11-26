@@ -1546,77 +1546,8 @@ canvas.addEventListener("mouseup",()=>{
   }
 });
 
-   
+ 
 
-canvas.addEventListener("click", (ev) => {
-  // si on n'est pas en mode moyenne → on sort
-  if (!avgMode) return;
-
-  ev.stopPropagation();
-  ev.preventDefault();
-
-  if (!chart) return;
-
-  const pts = chart.getElementsAtEventForMode(ev, "nearest", {intersect:false}, true);
-  if (!pts || !pts.length) {
-    showToast("⚠️ Clique sur un point existant.");
-    return;
-  }
-
-  const el = pts[0];
-  const ds = chart.data.datasets[el.datasetIndex];
-  const point = ds.data[el.index];
-  const baseId = ds.id || ds.label.replace(" (lissé)", "");
-
-  // ---- PREMIER POINT ----
-  if (avgState === "first") {
-    avgStart = { id: baseId, x: point.x };
-    avgState = "second";
-
-    showToast("👉 Sélectionne le DEUXIÈME point sur la MÊME courbe.");
-    return;
-  }
-
-  // ---- DEUXIÈME POINT ----
-if (avgState === "second") {
-
-  if (baseId !== avgStart.id) {
-    showToast("❗ Les 2 points doivent être sur la MÊME courbe.");
-    resetAvgCycle();
-    return;
-  }
-
-  const min = Math.min(avgStart.x, point.x);
-  const max = Math.max(avgStart.x, point.x);
-
-  // 👍 On récupère la courbe UNIQUEMENT par id
-  const dataset = chart.data.datasets.find(d => d.id === avgStart.id);
-
-  if (!dataset) {
-    showToast("❗ Impossible de retrouver la courbe.");
-    resetAvgCycle();
-    return;
-  }
-
-  const ptsAvg = dataset.data.filter(p => p.x >= min && p.x <= max);
-
-  if (!ptsAvg.length) {
-    showToast("❗ Aucun point entre ces 2 positions.");
-    resetAvgCycle();
-    return;
-  }
-
-  const avg = ptsAvg.reduce((s,p)=>s+p.y,0) / ptsAvg.length;
-
-  createAverageNote(avgStart.id, min, max, avg);
-
-  showToast(`📌 Moyenne : ${avg.toFixed(2)}`);
-  resetAvgCycle();
-}
-
-
-  
-});
 
   // Nettoyage complet du mode moyenne à chaque redessin
   notesData = notesData.filter(n => n.type !== "avg");
@@ -2656,6 +2587,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
