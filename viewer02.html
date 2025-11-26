@@ -6,7 +6,7 @@
   <!-- === PARTIE 1 : DOCTYPE + HEAD (Librairies) === -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Courbes 1.3</title>
+  <title>Courbes</title>
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌽</text></svg>">
 
@@ -453,7 +453,6 @@
   let customColors = {}; // mémorise les couleurs choisies par label
   let initialMin = null, initialMax = null;
 
-let tempAvg = null;
 
 
   // Z3
@@ -1024,55 +1023,59 @@ const notesPlugin = {
     const ctx = chart.ctx;
     const xScale = chart.scales.x;
     const yScale = chart.scales.y;
+
     if (!xScale || !yScale) return;
 
     chart.$noteHitZones = [];
     ctx.save();
-    ctx.font = "12px sans-serif";
+    ctx.font = "11px sans-serif";
     ctx.textBaseline = "top";
 
     for (const n of notesData) {
       if (n.status !== "active") continue;
       if (n.type === "avg") continue;
 
-      const px = xScale.getPixelForValue(n.x);
-      const py = yScale.getPixelForValue(n.y);
-      if (!Number.isFinite(px) || !Number.isFinite(py)) continue;
+      const x = xScale.getPixelForValue(n.x);
+      const y = yScale.getPixelForValue(n.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
 
+      // MULTI-LIGNES
       const lines = String(n.note || "").split(/\r?\n/);
+      const lh = 14;
       const padX = 8;
       const padY = 6;
-      const lineH = 15;
 
-      let wMax = 0;
+      let textW = 0;
       for (const l of lines) {
         const w = ctx.measureText(l).width;
-        if (w > wMax) wMax = w;
+        if (w > textW) textW = w;
       }
 
-      const boxW = wMax + padX * 2;
-      const boxH = lineH * lines.length + padY * 2;
+      const boxW = textW + padX * 2;
+      const boxH = lines.length * lh + padY * 2;
 
-      const bx = px + 6;
-      const by = py - boxH - 6;
+      const rx = x + 6;
+      const ry = y - boxH - 8;
 
-      // FOND = couleur note
-      ctx.fillStyle = n.color || "#FF7043";
+      // fond couleur complète
+      ctx.fillStyle = n.color || "#ff7043";
       ctx.beginPath();
-      ctx.roundRect(bx, by, boxW, boxH, 6);
+      ctx.roundRect(rx, ry, boxW, boxH, 6);
       ctx.fill();
 
+      // texte
       ctx.fillStyle = "#fff";
       for (let i = 0; i < lines.length; i++) {
-        ctx.fillText(lines[i], bx + padX, by + padY + i * lineH);
+        ctx.fillText(lines[i], rx + padX, ry + padY + i * lh);
       }
 
+      // ZONE CLIQUABLE POUR EDIT
       chart.$noteHitZones.push({
         note: n,
-        x1: bx,
-        x2: bx + boxW,
-        y1: by,
-        y2: by + boxH
+        x1: rx,
+        x2: rx + boxW,
+        y1: ry,
+        y2: ry + boxH
       });
     }
 
@@ -1080,49 +1083,78 @@ const notesPlugin = {
   }
 };
 
-const tempAvgPlugin = {
-  id: "tempAvgPlugin",
+
+const avgPlugin = {
+  id: "avgPlugin",
   afterDatasetsDraw(chart) {
-    if (!tempAvg) return;
+    if (!notesVisible || !notesData.length) return;
 
-    const {ctx, scales:{x,y}} = chart;
-    const {min, max, avg} = tempAvg;
+    const ctx = chart.ctx;
+    const xScale = chart.scales.x;
+    const yScale = chart.scales.y;
 
-    const px1 = x.getPixelForValue(min);
-    const px2 = x.getPixelForValue(max);
-    const py  = y.getPixelForValue(avg);
+    if (!xScale || !yScale) return;
 
+    chart.$avgHitZones = [];
     ctx.save();
-
-    // --- Ligne verte ---
-    ctx.strokeStyle = "#4CAF50";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(px1, py);
-    ctx.lineTo(px2, py);
-    ctx.stroke();
-
-    // --- Label ---
-    const txt = `AVG ${avg.toFixed(2)}`;
-    ctx.font = "bold 13px sans-serif";
-    const w = ctx.measureText(txt).width + 14;
-    const h = 22;
-    const rx = (px1+px2)/2 - w/2;
-    const ry = py - h - 6;
-
-    ctx.fillStyle = "#2e7d32";
-    ctx.beginPath();
-    ctx.roundRect(rx, ry, w, h, 6);
-    ctx.fill();
-
-    ctx.fillStyle = "#fff";
-    ctx.textAlign = "center";
+    ctx.font = "12px sans-serif";
     ctx.textBaseline = "middle";
-    ctx.fillText(txt, (px1+px2)/2, ry + h/2);
 
+    for (const n of notesData) {
+      if (n.type !== "avg" || n.status !== "active") continue;
+
+      const x1 = xScale.getPixelForValue(n.x1);
+      const x2 = xScale.getPixelForValue(n.x2);
+      const midX = (x1 + x2) / 2;
+
+      // ligne horizontale
+      const y = yScale.getPixelForValue(n.avg);
+      ctx.strokeStyle = n.color || "#0aa6e8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x1, y);
+      ctx.lineTo(x2, y);
+      ctx.stroke();
+
+      // texte
+      const text = `AVG ${n.avg.toFixed(2)}`;
+      const w = ctx.measureText(text).width + 12;
+      const h = 20;
+      const rx = midX - w / 2;
+      const ry = y - 28;
+
+      ctx.fillStyle = n.color || "#0aa6e8";
+      ctx.beginPath();
+      ctx.roundRect(rx, ry, w, h, 6);
+      ctx.fill();
+
+      ctx.fillStyle = "#fff";
+      ctx.fillText(text, midX, ry + h / 2);
+
+      // ZONE CLIQUABLE
+      chart.$avgHitZones.push({
+        note: n,
+        x1: rx,
+        x2: rx + w,
+        y1: ry,
+        y2: ry + h
+      });
+    }
     ctx.restore();
   }
 };
+
+
+
+     
+
+
+
+
+
+
+
+
 
 
 
@@ -1296,19 +1328,17 @@ if (!isNaN(dt.getTime())) {
         y:{title:{display:true,text:'Valeurs'}}
       }
     },
-plugins: [
+    plugins: [
   ChartDataLabels,
   dayBackgroundPlugin,
   z3LinesPlugin,
   notesPlugin,
-  tempAvgPlugin
+  avgPlugin
 ]
 
 
-
-
   });
-  }
+
   // === Tous les listeners regroupés ===
   const canvas = chart.canvas;
 
@@ -1345,127 +1375,166 @@ canvas.addEventListener("click", (ev) => {
   if (avgMode) return;
   if (!notesData.length) return;
 
+  if (chart.$justDragged) { 
+    chart.$justDragged = false; 
+    return; 
+  }
+
+  const rect = canvas.getBoundingClientRect();
+  const xClick = ev.clientX - rect.left;
+  const yClick = ev.clientY - rect.top;
+  const xScale = chart.scales.x;
+  const yScale = chart.scales.y;
+
+  // === DÉTECTION DES MOYENNES ===
+  if (chart.$avgHitZones) {
+    for (const z of chart.$avgHitZones) {
+      if (
+        xClick >= z.x1 && xClick <= z.x2 &&
+        yClick >= z.y1 && yClick <= z.y2
+      ) {
+        showNotePopup(z.note);
+        return;
+      }
+    }
+  }
+
+  // === DÉTECTION DES NOTES CLASSIQUES ===
+  let nearest = null;
+  let minDist = 18;
+
+  for (const n of notesData) {
+    if (n.status !== "active") continue;
+    const x = xScale.getPixelForValue(n.x);
+    const y = yScale.getPixelForValue(n.y);
+    const d = Math.hypot(x - xClick, y - yClick);
+    if (d < minDist) {
+      nearest = n;
+      minDist = d;
+    }
+  }
+
+  if (nearest) {
+    showNotePopup(nearest);
+  }
+});
+
+
+// === DRAG NOTES ===
+canvas.addEventListener("mousedown",(ev)=>{
+  if (!notesData.length) return;
   const rect = canvas.getBoundingClientRect();
   const xClick = ev.clientX - rect.left;
   const yClick = ev.clientY - rect.top;
 
-  // 1️⃣ clic sur label moyenne
-  for (const z of chart.$avgHitZones || []) {
-    if (xClick >= z.x1 && xClick <= z.x2 && yClick >= z.y1 && yClick <= z.y2) {
-      showNotePopup(z.note);
-      return;
-    }
-  }
-
-  // 2️⃣ clic sur bulle note
-  for (const z of chart.$noteHitZones || []) {
-    if (xClick >= z.x1 && xClick <= z.x2 && yClick >= z.y1 && yClick <= z.y2) {
-      showNotePopup(z.note);
-      return;
-    }
-  }
-});
-
-
-
-// ========== DRAG NOTE ==========
-canvas.addEventListener("mousedown", ev => {
   for (const z of chart.$noteHitZones || []) {
     if (
-      ev.offsetX >= z.x1 && ev.offsetX <= z.x2 &&
-      ev.offsetY >= z.y1 && ev.offsetY <= z.y2
+      xClick>=z.x1 && xClick<=z.x2 &&
+      yClick>=z.y1 && yClick<=z.y2
     ) {
-      chart.$dragNote = z.note;
-      setZoomSuspended(true);
+      chart.$draggingNote = z.note;
       return;
     }
   }
 });
 
-canvas.addEventListener("mousemove", ev => {
-  if (!chart.$dragNote) return;
-  const sX = chart.scales.x;
-  const sY = chart.scales.y;
-  chart.$dragNote.x = sX.getValueForPixel(ev.offsetX);
-  chart.$dragNote.y = sY.getValueForPixel(ev.offsetY);
-  chart.update("none");
-});
+canvas.addEventListener("mousemove",(ev)=>{
+  if (!chart.$draggingNote) return;
+  const rect = canvas.getBoundingClientRect();
+  const xPix = ev.clientX-rect.left;
+  const yPix = ev.clientY-rect.top;
+  const xScale = chart.scales.x;
+  const yScale = chart.scales.y;
 
-canvas.addEventListener("mouseup", () => {
-  if (!chart.$dragNote) return;
-  chart.$dragNote = null;
-  setZoomSuspended(false);
+  chart.$draggingNote.x = xScale.getValueForPixel(xPix);
+  chart.$draggingNote.y = yScale.getValueForPixel(yPix);
   chart.$justDragged = true;
+
+  chart.update('none');
 });
 
-
+canvas.addEventListener("mouseup",()=>{
+  if(chart.$draggingNote){
+    chart.$draggingNote = null;
+  }
+});
 
    
 
-// === MODE MOYENNE (temporaire, sans sauvegarde) ===
+// === MODE MOYENNE (2 clics sur même courbe) ===
 canvas.addEventListener("click", (ev) => {
   if (!avgMode || !chart) return;
 
   const rect = canvas.getBoundingClientRect();
   const xPix = ev.clientX - rect.left;
+  const pts = chart.getElementsAtEventForMode(ev, "nearest", {intersect:false}, true);
 
-  const pts = chart.getElementsAtEventForMode(ev, "nearest", { intersect:false }, true);
-  if (!pts?.length) {
-    showToast("⚠️ Clique sur un point de la courbe.");
+  if (!pts || !pts.length) {
+    showToast("⚠️ clique sur un point de courbe");
     return;
   }
 
   const el = pts[0];
-  const dsIndex = el.datasetIndex;
+  const datasetIndex = el.datasetIndex;
   const xScale = chart.scales.x;
   const xValue = xScale.getValueForPixel(xPix);
 
-  // === 1er clic ===
+  // ——— 1er point ———
   if (!avgStart) {
-    avgStart = { dsIndex, x: xValue };
+    avgStart = {
+      x: xValue,
+      datasetIndex: datasetIndex
+    };
 
-    // ➤ PETIT +1px d'épaisseur
-    chart.data.datasets[dsIndex].borderWidth = 3;
+    // surbrillance courbe
+    chart.data.datasets[datasetIndex].borderWidth = 4;
     chart.update("none");
-    showToast("🟢 Premier point OK — clique sur un second point");
+
+    showToast("🟢 1er point OK • clique sur 2ème point");
     return;
   }
 
-// === 2ème clic ===
-avgMode = false;
+  // ——— 2ème point ———
+  avgMode = false;
 
-if (dsIndex !== avgStart.dsIndex) {
-  showToast("❗️ Les deux points doivent être sur la même courbe.");
-  chart.data.datasets[avgStart.dsIndex].borderWidth = 2;
-  chart.update('none');
+  // Vérifier même courbe
+  if (datasetIndex !== avgStart.datasetIndex) {
+    showToast("❗️ Les 2 points doivent être sur la MÊME courbe");
+    // reset highlight
+    chart.data.datasets[avgStart.datasetIndex].borderWidth = 2;
+    chart.update("none");
+    avgStart = null;
+    return;
+  }
+
+  const ds = chart.data.datasets[datasetIndex].data;
+  const min = Math.min(avgStart.x, xValue);
+  const max = Math.max(avgStart.x, xValue);
+
+  const ptsAvg = ds.filter(p => p.x >= min && p.x <= max);
+  if (!ptsAvg.length) {
+    showToast("❗️ Aucun point dans cette plage");
+    avgStart = null;
+    return;
+  }
+
+  const avg = ptsAvg.reduce((s,p)=>s+p.y,0) / ptsAvg.length;
+
+  // reset highlight
+  chart.data.datasets[datasetIndex].borderWidth = 2;
+
+  createAverageNote(datasetIndex, min, max, avg);
+  chart.update("none");
+
+  showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
   avgStart = null;
-  return;
-}
-
-const ds = chart.data.datasets[dsIndex].data;
-const min = Math.min(avgStart.x, xValue);
-const max = Math.max(avgStart.x, xValue);
-const ptsAvg = ds.filter(p => p.x >= min && p.x <= max);
-
-if (!ptsAvg?.length) {
-  showToast("⚠️ Aucun point dans cette plage.");
-  chart.data.datasets[avgStart.dsIndex].borderWidth = 2;
-  chart.update('none');
-  avgStart = null;
-  return;
-}
-
-const avg = ptsAvg.reduce((s,p)=>s+p.y,0) / ptsAvg.length;
-chart.data.datasets[dsIndex].borderWidth = 2;
-
-// 🟢 🔥 ON STOCKE SIMPLEMENT LES VALEURS
-tempAvg = { dsIndex, min, max, avg };
-
-showToast(`📌 Moyenne = ${avg.toFixed(2)}`);
-avgStart = null;
-chart.update();
-
 });
+
+
+   
+  chart.update();
+  applyAdaptiveTicks();
+}
 
 
 
@@ -2036,13 +2105,6 @@ const waitForChart = setInterval(() => {
 
 
 
-
-
-
-
-
-
-
     
   </script>
 
@@ -2224,7 +2286,55 @@ document.getElementById("saveNoteBtn").addEventListener("click", async () => {
 
 /* ===================== MOYENNES EN NOTES ===================== */
 
+function createAverageNote(datasetIndex, x1, x2, avg) {
+  const label = chart.data.datasets[datasetIndex].label.replace(" (lissé)", "");
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  const color = "#0aa6e8";
 
+  const noteObj = {
+    id: id,
+    type: "avg",
+    dataset: label,
+    x1: x1,
+    x2: x2,
+    avg: avg,
+    color: color,
+    createdAt: createdAt,
+    status: "active"
+  };
+
+  notesData.push(noteObj);
+  saveAverageToServer(noteObj);
+}
+
+async function saveAverageToServer(n) {
+  try {
+    await fetch(
+      "https://script.google.com/macros/s/AKfycbz9zcweeyv7GpC4ZCLnw57uVvuHEOWEmfbvnLHVaqZ8Php179viedbf7PX8Vmi8HhTX7Q/exec",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          id: n.id,
+          type: "avg",
+          csvName: baseFileName,
+          folderId: currentFolderId,
+          dossier: currentFolderPath,
+          dataset: n.dataset,
+          x1: n.x1,
+          x2: n.x2,
+          avg: n.avg,
+          color: n.color,
+          createdAt: n.createdAt,
+          status: "active"
+        })
+      }
+    );
+  } catch (err) {
+    showToast("⚠️ Erreur sauvegarde moyenne : " + err.message);
+  }
+}
 
 
 
@@ -2256,8 +2366,7 @@ popup.innerHTML = `
       <input type="color" id="noteColorEdit" value="${note.color || colorFromAuthor(note.author || "Anonyme")}">
     </label>
     <hr>
-   <textarea id="noteTextEdit" style="width:100%;height:120px;">${note.note}</textarea>
-
+    <p style="white-space:pre-wrap;">${note.text || note.note}</p>
     <div style="text-align:right;margin-top:10px;display:flex;gap:6px;justify-content:flex-end;">
       <button id="updateNoteBtn" style="background:#1976d2;color:white;border:none;border-radius:6px;padding:6px 12px;">Mettre à jour</button>
       <button id="deleteNoteBtn" style="background:#d84315;color:white;border:none;border-radius:6px;padding:6px 12px;">Supprimer</button>
@@ -2470,6 +2579,61 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
