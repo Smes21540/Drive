@@ -1424,32 +1424,67 @@ canvas.addEventListener('wheel', async (e)=>{
 
 // === Gestion clic sur une note existante ===
 canvas.addEventListener("click", (ev) => {
-  if (avgState !== "idle") return;
-  if (!notesData.length) return;
+  // 🚫 Si le mode moyenne est inactif, on sort
+  if (!avgMode) return;
 
-  if (chart.$justDragged) { 
-    chart.$justDragged = false; 
-    return; 
+  ev.stopPropagation();
+  ev.preventDefault();
+
+  if (!chart) return;
+
+  const pts = chart.getElementsAtEventForMode(ev, "nearest", { intersect: false }, true);
+  if (!pts || !pts.length) {
+    showToast("⚠️ Clique sur un point existant.");
+    return;
   }
 
-  const rect = canvas.getBoundingClientRect();
-  const xClick = ev.clientX - rect.left;
-  const yClick = ev.clientY - rect.top;
-  const xScale = chart.scales.x;
-  const yScale = chart.scales.y;
+  const el = pts[0];
+  const ds = chart.data.datasets[el.datasetIndex];
+  const point = ds.data[el.index];
+  const curveId = ds.id; // identifiant stable
 
-  // === DÉTECTION DES MOYENNES ===
-  if (chart.$avgHitZones) {
-    for (const z of chart.$avgHitZones) {
-      if (
-        xClick >= z.x1 && xClick <= z.x2 &&
-        yClick >= z.y1 && yClick <= z.y2
-      ) {
-        showNotePopup(z.note);
-        return;
-      }
+  // 🟢 Premier clic
+  if (avgState === "first") {
+    avgStart = { id: curveId, x: point.x };
+    avgState = "second";
+    showToast(`🟡 Premier point sélectionné sur "${curveId}". Choisis le second.`);
+    return;
+  }
+
+  // 🟢 Deuxième clic
+  if (avgState === "second") {
+    if (curveId !== avgStart.id) {
+      showToast("❗ Les deux points doivent être sur la même courbe.");
+      resetAvgCycle();
+      return;
     }
+
+    const min = Math.min(avgStart.x, point.x);
+    const max = Math.max(avgStart.x, point.x);
+    const dataset = chart.data.datasets.find(d => d.id === curveId);
+    if (!dataset) {
+      showToast("❗ Courbe introuvable.");
+      resetAvgCycle();
+      return;
+    }
+
+    const ptsAvg = dataset.data.filter(p => p.x >= min && p.x <= max);
+    if (!ptsAvg.length) {
+      showToast("❗ Aucun point entre ces deux positions.");
+      resetAvgCycle();
+      return;
+    }
+
+    const avg = ptsAvg.reduce((s, p) => s + p.y, 0) / ptsAvg.length;
+    createAverageNote(curveId, min, max, avg);
+
+    showToast(`📐 Moyenne : ${avg.toFixed(2)}`);
+
+    // 🔹 reset complet immédiatement après affichage
+    resetAvgCycle();
   }
+});
+
 
   // === DÉTECTION DES NOTES CLASSIQUES ===
   let nearest = null;
@@ -1583,7 +1618,9 @@ if (avgState === "second") {
   
 });
 
-
+  // Nettoyage complet du mode moyenne à chaque redessin
+  notesData = notesData.filter(n => n.type !== "avg");
+  resetAvgCycle();
 
 
    
@@ -1600,13 +1637,15 @@ if (avgState === "second") {
   document.getElementById('backBtn').onclick=()=>window.close();
 
   // Auto-affichage du graphique dès qu'une case Y est cochée/décochée
-  document.getElementById("yColumnsContainer").addEventListener("change", () => {
-    currentX = document.getElementById('xColumn').value;
-    currentY = Array.from(document.querySelectorAll("#yColumnsContainer input:checked")).map(cb => cb.value);
-    if (currentY.length) {
-      drawChart();
-    }
-  });
+document.getElementById("yColumnsContainer").addEventListener("change", () => {
+  resetAvgCycle(); // 🧹 Réinitialiser le mode moyenne proprement à chaque changement de courbe
+  currentX = document.getElementById('xColumn').value;
+  currentY = Array.from(document.querySelectorAll("#yColumnsContainer input:checked")).map(cb => cb.value);
+  if (currentY.length) {
+    drawChart();
+  }
+});
+
 
   // Ctrl+clic → changer la couleur du dataset le plus proche
   const colorPickerEl = document.getElementById('colorPicker');
@@ -2617,6 +2656,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
