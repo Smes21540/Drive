@@ -1279,7 +1279,14 @@ if (!isNaN(dt.getTime())) {
   }
 
  function drawChart(){
-  if(!csvData.length||!timeField||!currentY.length) return;
+    // 🧹 Empêche la duplication des événements sur le canvas
+  const oldCanvas = document.getElementById("myChart");
+  if (oldCanvas) {
+    const newCanvas = oldCanvas.cloneNode(true); // clone sans événements
+    oldCanvas.parentNode.replaceChild(newCanvas, oldCanvas);
+  }
+
+  // 🧠 Maintenant on repart proprement sur ce nouveau canvas
   const ctx=document.getElementById('myChart').getContext('2d');
 
   const allX=csvData.map(r=>r.__sortKey).filter(v=>Number.isFinite(v));
@@ -2586,6 +2593,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
