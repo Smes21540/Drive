@@ -1596,14 +1596,40 @@ canvas.addEventListener("mousemove",(ev)=>{
   chart.update('none');
 });
 
-canvas.addEventListener("mouseup",()=>{
-if(chart.$draggingNote){
-  chart.$draggingNote = null;
-  setZoomSuspended(false); // 🧩 réactive le zoom/pan une fois lâché
-}
+canvas.addEventListener("mouseup", async () => {
+  if (chart.$draggingNote) {
+    const n = chart.$draggingNote;
+    chart.$draggingNote = null;
+    setZoomSuspended(false); // 🧩 réactive le zoom/pan une fois lâché
 
-  
+    try {
+      // 🔹 envoi des nouvelles coordonnées au script Google
+      const resp = await fetch(
+        "https://script.google.com/macros/s/AKfycbz9zcweeyv7GpC4ZCLnw57uVvuHEOWEmfbvnLHVaqZ8Php179viedbf7PX8Vmi8HhTX7Q/exec",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            status: "update",
+            folderId: localStorage.getItem("lastFolderId"),
+            csvName: baseFileName,
+            createdAt: n.createdAt,
+            x: n.x,
+            y: n.y,
+            color: n.color || colorFromAuthor(n.author || "Anonyme")
+          })
+        }
+      );
+
+      console.log("📤 Position mise à jour :", await resp.text());
+      showToast("📍 Position mise à jour !");
+    } catch (err) {
+      console.error("⚠️ Erreur MAJ position :", err);
+      showToast("❌ Erreur mise à jour");
+    }
+  }
 });
+
 
  
 
@@ -2646,6 +2672,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
