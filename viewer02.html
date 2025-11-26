@@ -2341,29 +2341,26 @@ document.getElementById("saveNoteBtn").addEventListener("click", async () => {
 
 /* ===================== MOYENNES EN NOTES ===================== */
 
-function createAverageNote(datasetIndex, x1, x2, avg) {
-  const label = chart.data.datasets[datasetIndex].label.replace(" (lissé)", "");
+function createAverageNote(label, x1, x2, avg) {
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
-  const color = "#0aa6e8";
 
   const noteObj = {
-    id: id,
+    id,
     type: "avg",
-    dataset: label,
-    x1: x1,
-    x2: x2,
-    avg: avg,
-    color: color,
-    createdAt: createdAt,
+    dataset: label,   // <— l’identité de la courbe
+    x1,
+    x2,
+    avg,
+    color: "#0aa6e8",
+    createdAt,
     status: "active"
   };
 
-  // 🟢 LOCAL UNIQUEMENT
   notesData.push(noteObj);
-
   if (chart) chart.update("none");
 }
+
 
 
 
@@ -2611,6 +2608,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
