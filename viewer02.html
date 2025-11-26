@@ -1997,51 +1997,58 @@ const waitForChart = setInterval(() => {
 function drawTempAvgLine(dsIndex, x1, x2, avgValue) {
   if (!chart) return;
 
-  // On détruit l’ancien si existant
-  delete chart.options.plugins.tempAvg;
-
-  chart.options.plugins.tempAvg = {
-    id: "tempAvg",
+  const plugin = {
+    id: "tempAvgRender",
     afterDatasetsDraw(c) {
-      const { ctx, scales:{x,y} } = c;
+      const { ctx, chartArea, scales:{x,y} } = c;
 
+      // coordonnées pixels
       const px1 = x.getPixelForValue(x1);
       const px2 = x.getPixelForValue(x2);
       const py  = y.getPixelForValue(avgValue);
 
       ctx.save();
 
-      // ===== TRAIT HORIZONTAL =====
-      ctx.strokeStyle = "#4CAF50";    // vert
-      ctx.lineWidth = 2;
+      // ====================
+      //  TRAIT HORIZONTAL
+      // ====================
+      ctx.strokeStyle = "#4CAF50";      // 💚 VERT
+      ctx.lineWidth  = 3;               // épais
       ctx.beginPath();
       ctx.moveTo(px1, py);
       ctx.lineTo(px2, py);
       ctx.stroke();
 
-      // ===== LABEL =====
+      // ====================
+      //  LABEL AU CENTRE
+      // ====================
       const txt = `AVG ${avgValue.toFixed(2)}`;
-      ctx.font = "12px sans-serif";
+      ctx.font = "bold 13px Arial";
       const w = ctx.measureText(txt).width + 12;
-      const h = 20;
-      const rx = (px1 + px2)/2 - w/2;
-      const ry = py - 28;
+      const h = 22;
 
-      ctx.fillStyle = "#3d8e43";  // vert foncé
-      ctx.roundRect(rx, ry, w, h, 6);
+      const cx = (px1+px2)/2 - w/2;
+      const cy = py - h - 6;
+
+      ctx.fillStyle = "#2e7d32";  // vert foncé
+      ctx.beginPath();
+      ctx.roundRect(cx, cy, w, h, 6);
       ctx.fill();
 
       ctx.fillStyle = "#fff";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(txt, (px1 + px2)/2, ry + h/2);
+      ctx.fillText(txt, (px1+px2)/2, cy + h/2);
 
       ctx.restore();
     }
   };
 
-  chart.update("none");
+  // 👉 On écrase l'ancien rendu
+  chart.options.plugins.tempAvgRender = plugin;
+  chart.update();
 }
+
 
 
 
@@ -2476,6 +2483,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
