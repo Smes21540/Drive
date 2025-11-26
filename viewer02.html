@@ -1118,19 +1118,32 @@ const avgPlugin = {
       ctx.stroke();
 
       // texte
-      const text = `AVG ${n.avg.toFixed(2)}`;
-      const w = ctx.measureText(text).width + 12;
-      const h = 20;
-      const rx = midX - w / 2;
-      const ry = y - 28;
+// Texte centré
+const text = `Valeur moyenne : ${n.avg.toFixed(1)}`;
+ctx.font = "13px sans-serif";
 
-      ctx.fillStyle = n.color || "#0aa6e8";
-      ctx.beginPath();
-      ctx.roundRect(rx, ry, w, h, 6);
-      ctx.fill();
+// Mesure largeur texte
+const textW = ctx.measureText(text).width;
 
-      ctx.fillStyle = "#fff";
-      ctx.fillText(text, midX, ry + h / 2);
+// Taille du cadre
+const padX = 10;
+const padY = 6;
+const boxW = textW + padX * 2;
+const boxH = 22 + padY * 2;
+
+// Rectangle
+const rx = midX - boxW / 2;
+const ry = y - boxH / 2;
+
+ctx.fillStyle = n.color;
+ctx.fillRect(rx, ry, boxW, boxH);
+
+// Texte centré
+ctx.fillStyle = "#fff";
+ctx.textAlign = "center";
+ctx.textBaseline = "middle";
+ctx.fillText(text, midX, ry + boxH / 2);
+
 
       // ZONE CLIQUABLE
       chart.$avgHitZones.push({
@@ -2557,6 +2570,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
