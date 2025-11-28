@@ -2529,14 +2529,20 @@ popup.querySelector("#deleteNoteBtn").onclick = async () => {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
-            id: note.id || "",
-            folderId: localStorage.getItem("lastFolderId"),
-            csvName: baseFileName,
-            note: note.note || note.text,
-            x: note.x,
-            y: note.y,
-            status: "inactive"
-          })
+  id: note.id || "",
+  csvName: baseFileName,
+  fileId: baseFileId,
+  folderId: localStorage.getItem("lastFolderId") || "",
+  author: note.author || "Anonyme",
+  note: note.note || "",
+  x: note.x,
+  y: note.y,
+  createdAt: note.createdAt,
+  status: "inactive",
+  dossier: currentFolderPath || "",
+  color: note.color || colorFromAuthor(note.author || "Anonyme")
+})
+
         }
       );
 
@@ -2678,6 +2684,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
