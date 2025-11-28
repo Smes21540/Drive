@@ -2495,14 +2495,20 @@ popup.querySelector("#updateNoteBtn").onclick = async () => {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
-          status: "update",
-          folderId: localStorage.getItem("lastFolderId"),
-          csvName: baseFileName,
-          createdAt: note.createdAt,
-          x: note.x,
-          y: note.y,
-          color: newColor
-        })
+  id: note.id || "",
+  csvName: baseFileName,
+  fileId: baseFileId,
+  folderId: localStorage.getItem("lastFolderId") || "",
+  author: note.author || "Anonyme",
+  note: noteInput.value || note.note || "",
+  x: note.x,
+  y: note.y,
+  createdAt: note.createdAt,
+  status: "active",
+  dossier: currentFolderPath || "",
+  color: note.color || colorFromAuthor(note.author || "Anonyme")
+})
+
       }
     );
     console.log("Update color:", await resp.text());
@@ -2684,6 +2690,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
