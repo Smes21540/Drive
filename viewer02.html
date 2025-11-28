@@ -2495,20 +2495,14 @@ popup.querySelector("#updateNoteBtn").onclick = async () => {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
-  id: note.id || "",
-  csvName: baseFileName,
-  fileId: baseFileId,
-  folderId: localStorage.getItem("lastFolderId") || "",
-  author: note.author || "Anonyme",
-  note: noteInput.value || note.note || "",
-  x: note.x,
-  y: note.y,
-  createdAt: note.createdAt,
-  status: "active",
-  dossier: currentFolderPath || "",
-  color: note.color || colorFromAuthor(note.author || "Anonyme")
-})
-
+          status: "update",
+          folderId: localStorage.getItem("lastFolderId"),
+          csvName: baseFileName,
+          createdAt: note.createdAt,
+          x: note.x,
+          y: note.y,
+          color: newColor
+        })
       }
     );
     console.log("Update color:", await resp.text());
@@ -2523,49 +2517,47 @@ popup.querySelector("#updateNoteBtn").onclick = async () => {
   popup.querySelector("#closeNoteBtn").onclick = () => popup.remove();
 
   // 🔹 Supprimer (status → inactive)
-popup.querySelector("#deleteNoteBtn").onclick = async () => {
-  showConfirm("Confirmer la suppression de cette note ?", async () => {
-    try {
-      // 💥 effet rouge visuel
-      showPointEffect(note.x, note.y, "rgba(220,0,0,0.6)");
+  popup.querySelector("#deleteNoteBtn").onclick = async () => {
+showConfirm("Confirmer la suppression de cette note ?", async () => {
+  try {
+    // 💥 effet rouge visuel
+    showPointEffect(note.x, note.y, "rgba(220,0,0,0.6)");
 
-      const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbz9zcweeyv7GpC4ZCLnw57uVvuHEOWEmfbvnLHVaqZ8Php179viedbf7PX8Vmi8HhTX7Q/exec",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-  id: note.id || "",
+    const response = await fetch(
+      "https://script.google.com/macros/s/AKfycbz9zcweeyv7GpC4ZCLnw57uVvuHEOWEmfbvnLHVaqZ8Php179viedbf7PX8Vmi8HhTX7Q/exec",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+body: new URLSearchParams({
+  id: note.id || "",                             // 🆔 identifiant pour mise à jour
+  folderId: localStorage.getItem("lastFolderId"), // ✅ on revient au bon dossier !
   csvName: baseFileName,
-  fileId: baseFileId,
-  folderId: localStorage.getItem("lastFolderId") || "",
-  author: note.author || "Anonyme",
-  note: note.note || "",
+  note: note.text || note.note,
   x: note.x,
   y: note.y,
-  createdAt: note.createdAt,
-  status: "inactive",
-  dossier: currentFolderPath || "",
-  color: note.color || colorFromAuthor(note.author || "Anonyme")
+  status: "inactive"
 })
 
-        }
-      );
 
-      console.log("Réponse suppression :", await response.text());
 
-      note.status = "inactive";
-      popup.remove();
+      }
+    );
 
-      notesData = notesData.filter(n => n.status === "active");
-      if (chart) chart.update("none");
-    } catch (err) {
-      showToast("Erreur suppression : " + err.message);
-    }
-  });
-};
+    console.log("Réponse suppression :", await response.text());
 
+    note.status = "inactive";
+    popup.remove();
+
+    notesData = notesData.filter(n => n.status === "active");
+    if (chart) chart.update("none");
+  } catch (err) {
+    showToast("Erreur suppression : " + err.message);
+  }
+});
+
+  };
 }
+
 
 // === 📢 Petit système de notification flottante (remplace alert) ===
 function showToast(message, duration = 4000) {
@@ -2690,6 +2682,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
