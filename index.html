@@ -2452,6 +2452,55 @@ if (last) {
 }
 
 };
+
+
+<script>
+function clearBrowserCache() {
+  if (confirm('🧽 Vider le cache local du navigateur ?')) {
+    try {
+      // Vide localStorage et sessionStorage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Vide les caches de service workers (si présents)
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          for (let name of names) caches.delete(name);
+        });
+      }
+
+      alert('✅ Cache local vidé.\nLa page va être rechargée.');
+      location.reload(true);
+    } catch (err) {
+      console.error('Erreur pendant le nettoyage du cache :', err);
+      alert('Erreur pendant le nettoyage du cache.');
+    }
+  }
+}
 </script>
+
+
+  
+</script>
+
+
+<!-- Bouton caché pour vider le cache navigateur -->
+<button id="clearCacheBtn" 
+  onclick="clearBrowserCache()" 
+  style="position:fixed;bottom:10px;left:10px;
+  opacity:1;
+background:#ffd54f;
+border-radius:50%;
+box-shadow:0 0 6px rgba(0,0,0,0.2);
+
+  ;width:25px;height:25px;cursor:pointer;z-index:2000;">
+  🧽
+</button>
+
+
+
+
+  
 </body>
 </html>
+
