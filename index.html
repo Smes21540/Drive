@@ -575,7 +575,6 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 </div>
 
 <!-- Bouton secret + menu thèmes -->
-<div id="secretBtn" title=" "></div>
 <div id="themeMenu">
   <span class="closeMenu" onclick="closeThemeMenu()">❌</span>
   <h3>Choisir un thème</h3>
@@ -584,7 +583,12 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   <button onclick="setTheme('green')">Vert</button>
   <button onclick="setTheme('purple')">Violet</button>
   <button onclick="setTheme('bordeaux')">Bordeaux</button>
+  <hr>
+  <button onclick="if(confirm('Effacer tout le cache local ?')){localStorage.clear();location.reload();}">
+    🧽 Vider le cache
+  </button>
 </div>
+
 
 <script>
 /* ----------- Config Drive ----------- */
@@ -2455,4 +2459,5 @@ if (last) {
 </script>
 </body>
 </html>
+
 
