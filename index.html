@@ -2454,15 +2454,17 @@ if (last) {
 };
 
 
+<!-- === FIN DE TON SCRIPT PRINCIPAL === -->
+</script>
+
+<!-- === Fonction de nettoyage du cache === -->
 <script>
 function clearBrowserCache() {
   if (confirm('🧽 Vider le cache local du navigateur ?')) {
     try {
-      // Vide localStorage et sessionStorage
       localStorage.clear();
       sessionStorage.clear();
 
-      // Vide les caches de service workers (si présents)
       if ('caches' in window) {
         caches.keys().then(names => {
           for (let name of names) caches.delete(name);
@@ -2479,28 +2481,20 @@ function clearBrowserCache() {
 }
 </script>
 
-
-  
-</script>
-
-
-<!-- Bouton caché pour vider le cache navigateur -->
-<button id="clearCacheBtn" 
-  onclick="clearBrowserCache()" 
+<!-- === Bouton caché de vidage du cache === -->
+<button id="clearCacheBtn"
+  onclick="clearBrowserCache()"
   style="position:fixed;bottom:10px;left:10px;
   opacity:1;
-background:#ffd54f;
-border-radius:50%;
-box-shadow:0 0 6px rgba(0,0,0,0.2);
-
-  ;width:25px;height:25px;cursor:pointer;z-index:2000;">
+  background:#ffd54f;
+  border-radius:50%;
+  box-shadow:0 0 6px rgba(0,0,0,0.2);
+  width:25px;height:25px;cursor:pointer;z-index:2000;">
   🧽
 </button>
 
-
-
-
-  
 </body>
 </html>
+
+
 
