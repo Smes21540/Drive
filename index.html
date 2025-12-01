@@ -2594,20 +2594,23 @@ function clearBrowserCache() {
 </div>
 
 <script>
-fetch("/.netlify/functions/visits")
+fetch("https://smes21540.netlify.app/.netlify/functions/visits")
   .then(r => r.json())
   .then(d => {
     const el = document.getElementById("visitCounter");
     el.textContent = `👁️ ${d.visits} visite${d.visits > 1 ? "s" : ""} cette semaine`;
   })
-  .catch(() => {
+  .catch(err => {
+    console.error("Erreur compteur:", err);
     document.getElementById("visitCounter").textContent = "👁️ --";
   });
 </script>
 
 
+
 </body>
 </html>
+
 
 
 
