@@ -3,11 +3,9 @@ import fs from "fs";
 
 export async function handler(event) {
   const FILE = "/tmp/visits.json";
-
-  // Récupérer l'IP du visiteur (transmise par Netlify)
   const ip = event.headers["x-nf-client-connection-ip"] || "inconnue";
 
-  // Charger les données existantes (ou un objet vide)
+  // Charger les données existantes
   let data = {};
   try {
     if (fs.existsSync(FILE)) {
@@ -17,17 +15,16 @@ export async function handler(event) {
     console.warn("⚠️ Lecture compteur échouée :", e);
   }
 
-  // Calcul de la semaine courante
+  // Calcul semaine courante
   const now = new Date();
   const year = now.getFullYear();
   const oneJan = new Date(year, 0, 1);
   const week = Math.ceil((((now - oneJan) / 86400000) + oneJan.getDay() + 1) / 7);
   const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
 
-  // 👇 Si ce n'est PAS ton IP → incrément
+  // Incrément si ce n'est pas toi
   if (ip !== "88.164.133.142") {
     data[weekKey] = (data[weekKey] || 0) + 1;
-
     try {
       fs.writeFileSync(FILE, JSON.stringify(data), "utf8");
     } catch (e) {
@@ -35,13 +32,25 @@ export async function handler(event) {
     }
   }
 
-  // 🔸 Si ton IP : juste renvoyer le compteur sans l'incrémenter
   const visits = data[weekKey] || 0;
   const info = ip === "88.164.133.142" ? "(admin non compté)" : "";
 
+  // ✅ CORS autorise GitHub Pages
+  const headers = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "https://smes21540.github.io",
+    "Access-Control-Allow-Methods": "GET, OPTIONS"
+  };
+
+  // Réponse aux requêtes CORS preflight
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers, body: "OK" };
+  }
+
+  // Réponse normale
   return {
     statusCode: 200,
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ week: weekKey, visits, ip, info })
   };
 }
