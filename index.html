@@ -1228,17 +1228,23 @@ if (folderName.toLowerCase().includes("consommation gaz")) {
     excelBtn.style.display  = "none";
 }
 
-// === Pastilles totales GAZ ===
-const excelBtnGaz = document.getElementById("exportExcelGazBtn");
-if (excelBtnGaz && !document.querySelector(".gaz-summary")) {
-  const summaryDiv = document.createElement("div");
-  summaryDiv.className = "gaz-summary";
-  summaryDiv.innerHTML = `
-    <span class="gaz-total gaz-total-m3" title="Total m³ calculé">m³ total: --</span>
-    <span class="gaz-total gaz-total-kwh" title="Total kWh calculé">kWh total: --</span>
-  `;
-  excelBtnGaz.insertAdjacentElement("afterend", summaryDiv);
+// === Pastilles totales GAZ (visibles uniquement en "Consommation Gaz") ===
+const existingSummary = document.querySelector(".gaz-summary");
+if (folderName.toLowerCase().includes("consommation gaz")) {
+  if (!existingSummary) {
+    const excelBtnGaz = document.getElementById("exportExcelGazBtn");
+    const summaryDiv = document.createElement("div");
+    summaryDiv.className = "gaz-summary";
+    summaryDiv.innerHTML = `
+      <span class="gaz-total gaz-total-m3" title="Total m³ calculé">m³ total: --</span>
+      <span class="gaz-total gaz-total-kwh" title="Total kWh calculé">kWh total: --</span>
+    `;
+    excelBtnGaz.insertAdjacentElement("afterend", summaryDiv);
+  }
+} else if (existingSummary) {
+  existingSummary.remove();
 }
+
 
 
 // 🔍 Prépare la liste des dates ayant un JSON "actif"
@@ -2520,6 +2526,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
