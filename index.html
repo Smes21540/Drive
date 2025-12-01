@@ -483,7 +483,7 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   padding: 5px 12px;
   border-radius: 20px;
   font-weight: bold;
-  font-size: 13px;
+  font-size: 14px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   color: #3e2723;
 }
@@ -1220,19 +1220,17 @@ downloadBtn.style.display="inline-block";
 const exportBtn = document.getElementById("exportCsvBtn");
 const excelBtn  = document.getElementById("exportExcelGazBtn");
 
-if (folderName.toLowerCase().includes("consommation gaz")) {
-    exportBtn.style.display = "inline-block";
-    excelBtn.style.display  = "inline-block";
-} else {
-    exportBtn.style.display = "none";
-    excelBtn.style.display  = "none";
-}
 
-// === Pastilles totales GAZ (visibles uniquement en "Consommation Gaz") ===
-const existingSummary = document.querySelector(".gaz-summary");
+
+// === Gestion affichage boutons et pastilles GAZ ===
 if (folderName.toLowerCase().includes("consommation gaz")) {
-  if (!existingSummary) {
-    const excelBtnGaz = document.getElementById("exportExcelGazBtn");
+  exportBtn.style.display = "inline-block";
+  excelBtn.style.display  = "inline-block";
+
+  // --- Création des pastilles totales GAZ si absentes ---
+  const excelBtnGaz = document.getElementById("exportExcelGazBtn");
+  const existingSummary = document.querySelector(".gaz-summary");
+  if (excelBtnGaz && !existingSummary) {
     const summaryDiv = document.createElement("div");
     summaryDiv.className = "gaz-summary";
     summaryDiv.innerHTML = `
@@ -1241,9 +1239,16 @@ if (folderName.toLowerCase().includes("consommation gaz")) {
     `;
     excelBtnGaz.insertAdjacentElement("afterend", summaryDiv);
   }
-} else if (existingSummary) {
-  existingSummary.remove();
+} else {
+  // --- Masquage des boutons GAZ ---
+  exportBtn.style.display = "none";
+  excelBtn.style.display  = "none";
+
+  // --- Suppression des pastilles totales GAZ ---
+  const existingSummary = document.querySelector(".gaz-summary");
+  if (existingSummary) existingSummary.remove();
 }
+
 
 
 
@@ -1650,6 +1655,12 @@ if (
       if (!isFinite(tonnage)) tonnage = 0;
       tr.dataset.tonnage = Number(tonnage.toFixed(1));
 
+
+
+updateGazTotals();
+
+
+      
     } catch (err) {
       console.warn("Erreur GAZ:", err);
     }
@@ -2429,13 +2440,20 @@ document.getElementById("exportExcelGazBtn").addEventListener("click", function 
 
 
 
-// === Totaux globaux GAZ ===
-setTimeout(() => {
+
+
+
+// === Fonction de cumul global des GAZ ===
+function updateGazTotals() {
+  const totalM3Span = document.querySelector(".gaz-total-m3");
+  const totalKwhSpan = document.querySelector(".gaz-total-kwh");
+  if (!totalM3Span || !totalKwhSpan) return; // pas de pastilles visibles
+
   let totalM3 = 0;
   let totalKwh = 0;
 
-  document.querySelectorAll("#csvTable tbody tr").forEach(tr => {
-    const btns = tr.querySelectorAll(".gaz-group .gaz-btn");
+  document.querySelectorAll(".gaz-group").forEach(group => {
+    const btns = group.querySelectorAll(".gaz-btn");
     if (btns.length >= 2) {
       const m3Text = btns[1].textContent.replace(/[^\d.]/g, "");
       const kwhText = btns[0].textContent.replace(/[^\d.]/g, "");
@@ -2446,14 +2464,9 @@ setTimeout(() => {
     }
   });
 
-  const totalM3Span = document.querySelector(".gaz-total-m3");
-  const totalKwhSpan = document.querySelector(".gaz-total-kwh");
-
-  if (totalM3Span) totalM3Span.textContent = `m³ total: ${totalM3.toFixed(1)}`;
-  if (totalKwhSpan) totalKwhSpan.textContent = `kWh total: ${Math.round(totalKwh).toLocaleString("fr-FR")}`;
-}, 1000);
-
-
+  totalM3Span.textContent = `m³ total: ${totalM3.toFixed(1)}`;
+  totalKwhSpan.textContent = `kWh total: ${Math.round(totalKwh).toLocaleString("fr-FR")}`;
+}
 
 
   
@@ -2526,6 +2539,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
