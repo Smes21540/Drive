@@ -1448,123 +1448,144 @@ if(f.name.toLowerCase().endsWith('.csv')){
   }
 }
 
-(async () => {
-  try {
-    const res = await fetch(
-      `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`
-    );
+// === CONSOMMATION GAZ : calcul kWh + durée réelle ===
+if (
+  ENABLE_GAZ_CALC &&
+  folderName.toLowerCase().includes("consommation gaz") &&
+  f.name.toLowerCase().endsWith(".csv")
+) {
 
-    const text = await res.text();
-    const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+  // 🟡 Groupe de 4 boutons d'affichage
+  html += `
+    <div class="gaz-group">
+      <button class="gaz-btn" title="kWh consommés sur la journée" disabled>⏳ kWh...</button>
+      <button class="gaz-btn" title="m³ consommés sur la journée" disabled>m³...</button>
+      <button class="gaz-btn" title="Durée de fonctionnement brûleur(s)" disabled>⏱ Temps...</button>
+      <button class="gaz-btn gaz-small" title="Consommation moyenne sur la journée" disabled>--</button>
+    </div>
+  `;
 
-    let diffMinutes = 0;
-    let diffKwh = 0;
-    let diffM3 = 0;
+  (async () => {
+    try {
+      const res = await fetch(
+        `https://smes21540.netlify.app/.netlify/functions/drive?id=${f.id}&name=${encodeURIComponent(f.name)}&site=Smes_Acces`
+      );
 
-    if (lines.length > 2) {
-      const firstCols = lines[1].split(",");
-      const lastCols  = lines[lines.length - 1].split(",");
+      const text = await res.text();
+      const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
 
-      // --- 1️⃣ kWh ---
-      const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
-      const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
-      if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
+      let diffMinutes = 0;
+      let diffKwh = 0;
+      let diffM3 = 0;
 
-      // --- 2️⃣ m³ (indépendant du kWh) ---
-      const m3First = parseFloat(firstCols[4].replace(/"/g,""));
-      const m3Last  = parseFloat(lastCols[4].replace(/"/g,""));
-      if (isFinite(m3First) && isFinite(m3Last)) diffM3 = m3Last - m3First;
+      if (lines.length > 2) {
+        const firstCols = lines[1].split(",");
+        const lastCols  = lines[lines.length - 1].split(",");
 
-      // --- 3️⃣ durée (en minutes) ---
-      let active = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const prev = lines[i - 1].split(",");
-        const curr = lines[i].split(",");
-        const kPrev = parseFloat(prev[2].replace(/"/g,""));
-        const kCurr = parseFloat(curr[2].replace(/"/g,""));
-        if (isFinite(kPrev) && isFinite(kCurr) && kCurr > kPrev) active++;
+        // --- 1️⃣ Calcul KWh ---
+        const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
+        const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
+        if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
+
+        // --- 2️⃣ Calcul m³ (indépendant du kWh) ---
+        const m3First = parseFloat(firstCols[4].replace(/"/g,""));
+        const m3Last  = parseFloat(lastCols[4].replace(/"/g,""));
+        if (isFinite(m3First) && isFinite(m3Last)) diffM3 = m3Last - m3First;
+
+        // --- 3️⃣ Calcul durée (minutes actives) ---
+        let active = 0;
+        for (let i = 1; i < lines.length; i++) {
+          const prev = lines[i - 1].split(",");
+          const curr = lines[i].split(",");
+          const kPrev = parseFloat(prev[2].replace(/"/g,""));
+          const kCurr = parseFloat(curr[2].replace(/"/g,""));
+          if (isFinite(kPrev) && isFinite(kCurr) && kCurr > kPrev) active++;
+        }
+        diffMinutes = active;
       }
-      diffMinutes = active;
-    }
 
-    const H = String(Math.floor(diffMinutes / 60)).padStart(2,"0");
-    const M = String(diffMinutes % 60).padStart(2,"0");
-    const dureeFormatee = `${H}:${M}`;
+      const H = String(Math.floor(diffMinutes / 60)).padStart(2,"0");
+      const M = String(diffMinutes % 60).padStart(2,"0");
+      const dureeFormatee = `${H}:${M}`;
 
-    const btns = tdAction.querySelectorAll(".gaz-btn");
-    const btnKwh    = btns[0];
-    const btnM3     = btns[1];
-    const btnHeures = btns[2];
-    const btnAvg    = btns[3];
+      const btns = tdAction.querySelectorAll(".gaz-btn");
+      const btnKwh    = btns[0];
+      const btnM3     = btns[1];
+      const btnHeures = btns[2];
+      const btnAvg    = btns[3];
 
-    // ============================
-    // 🔸 Affichage m³ en premier
-    // ============================
-    btnM3.textContent = diffM3.toFixed(1) + " m³";
-    btnM3.style.background = "linear-gradient(180deg, #fff59d, #fbc02d)";
-    btnM3.style.color = "#5d4037";
+      // ============================
+      // 🔸 Affichage m³ (indépendant)
+      // ============================
+      btnM3.textContent = diffM3.toFixed(1) + " m³";
+      btnM3.style.background = "linear-gradient(180deg, #fff59d, #fbc02d)";
+      btnM3.style.color = "#5d4037";
+      btnM3.style.minWidth = "120px";
 
-    // ============================
-    // 🔸 kWh avec gestion d'erreurs
-    // ============================
-    const rounded = Math.round(diffKwh);
-    if (rounded < 0 || rounded > 400000) {
-      btnKwh.textContent = "ERREUR";
-      btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
-      btnKwh.style.color = "#fff";
-    } else if (rounded === 0) {
-      btnKwh.textContent = "0 kWh";
-      btnKwh.style.background = "linear-gradient(180deg, #e0e0e0, #bdbdbd)";
-      btnKwh.style.color = "#555";
-    } else {
-      const padded = String(rounded).padStart(7, " ");
-      btnKwh.textContent = `${padded} kWh`;
-      btnKwh.style.background = "linear-gradient(180deg, #ffd54f, #ffb300)";
-      btnKwh.style.color = "#3e2723";
-    }
-
-    // ============================
-    // 🔸 Durée
-    // ============================
-    btnHeures.textContent = `⏱ ${dureeFormatee}`;
-    btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
-    btnHeures.style.color = "#0d47a1";
-
-    // ============================
-    // 🔸 Moyenne kWh/h
-    // ============================
-    const hours = diffMinutes / 60;
-    if (hours > 0 && rounded > 0 && rounded < 400000) {
-      const avg = rounded / hours;
-      if (avg < 1000) {
-        btnAvg.textContent = "ERREUR";
-        btnAvg.style.background = "#ff8a80";
-        btnAvg.style.color = "#b71c1c";
+      // ============================
+      // 🔸 Affichage kWh + erreurs
+      // ============================
+      const rounded = Math.round(diffKwh);
+      if (rounded < 0 || rounded > 400000) {
+        btnKwh.textContent = "ERREUR";
+        btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
+        btnKwh.style.color = "#fff";
+      } else if (rounded === 0) {
+        btnKwh.textContent = "0 kWh";
+        btnKwh.style.background = "linear-gradient(180deg, #e0e0e0, #bdbdbd)";
+        btnKwh.style.color = "#555";
       } else {
-        btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
-        btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
-        btnAvg.style.color = "#01579b";
+        const padded = String(rounded).padStart(7, " ");
+        btnKwh.textContent = `${padded} kWh`;
+        btnKwh.style.background = "linear-gradient(180deg, #ffd54f, #ffb300)";
+        btnKwh.style.color = "#3e2723";
+        btnKwh.style.minWidth = "120px";
       }
-    } else {
-      btnAvg.textContent = "--";
-      btnAvg.style.background = "#eee";
-      btnAvg.style.color = "#999";
+
+      // ============================
+      // 🔸 Durée de chauffe
+      // ============================
+      btnHeures.textContent = `⏱ ${dureeFormatee}`;
+      btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
+      btnHeures.style.color = "#0d47a1";
+      btnHeures.style.minWidth = "120px";
+
+      // ============================
+      // 🔸 Moyenne kWh/h
+      // ============================
+      const hours = diffMinutes / 60;
+      if (hours > 0 && rounded > 0 && rounded < 400000) {
+        const avg = rounded / hours;
+        if (avg < 1000) {
+          btnAvg.textContent = "ERREUR";
+          btnAvg.style.background = "#ff8a80";
+          btnAvg.style.color = "#b71c1c";
+        } else {
+          btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
+          btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
+          btnAvg.style.color = "#01579b";
+        }
+      } else {
+        btnAvg.textContent = "--";
+        btnAvg.style.background = "#eee";
+        btnAvg.style.color = "#999";
+      }
+
+      // ============================
+      // 🔸 TONNAGE (toujours calculé)
+      // ============================
+      const dateStr = tdDate.textContent.split(" ")[0];
+      const fullPath = localStorage.getItem("lastFolderPath") || "";
+      const siteRoot = fullPath.split("/")[0];
+      let tonnage = await getTonnageForDate(siteRoot, dateStr);
+      if (!isFinite(tonnage)) tonnage = 0;
+      tr.dataset.tonnage = Number(tonnage.toFixed(1));
+
+    } catch (err) {
+      console.warn("Erreur GAZ:", err);
     }
-
-    // ============================
-    // 🔸 TONNAGE (toujours calculé)
-    // ============================
-    const dateStr = tdDate.textContent.split(" ")[0];
-    const fullPath = localStorage.getItem("lastFolderPath") || "";
-    const siteRoot = fullPath.split("/")[0];
-    let tonnage = await getTonnageForDate(siteRoot, dateStr);
-    if (!isFinite(tonnage)) tonnage = 0;
-    tr.dataset.tonnage = Number(tonnage.toFixed(1));
-
-  } catch (err) {
-    console.warn("Erreur GAZ:", err);
-  }
-})();
+  })();
+}
 
 
 
@@ -2411,6 +2432,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
