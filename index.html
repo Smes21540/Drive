@@ -2594,7 +2594,7 @@ function clearBrowserCache() {
 </div>
 
 <script>
-fetch("https://smes21540.netlify.app/.netlify/functions/visits")
+fetch("https://smes21540.netlify.app/.netlify/functions/visits?site=Drive")
   .then(r => r.json())
   .then(d => {
     const el = document.getElementById("visitCounter");
@@ -2610,6 +2610,7 @@ fetch("https://smes21540.netlify.app/.netlify/functions/visits")
 
 </body>
 </html>
+
 
 
 
