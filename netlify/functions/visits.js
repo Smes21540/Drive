@@ -4,24 +4,10 @@ import fs from "fs";
 export async function handler(event) {
   const FILE = "/tmp/visits.json";
 
-  // Récupération IP du visiteur (Netlify la met dans ce header)
+  // Récupérer l'IP du visiteur (transmise par Netlify)
   const ip = event.headers["x-nf-client-connection-ip"] || "inconnue";
 
-  // 👇 IGNORER TON IP
-  if (ip === "88.164.133.142") {
-    console.log("🧠 Visite ignorée (Kevin - IP admin)");
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        week: "",
-        visits: "(admin non compté)",
-        ip
-      })
-    };
-  }
-
-  // Lecture du cache temporaire
+  // Charger les données existantes (ou un objet vide)
   let data = {};
   try {
     if (fs.existsSync(FILE)) {
@@ -31,28 +17,31 @@ export async function handler(event) {
     console.warn("⚠️ Lecture compteur échouée :", e);
   }
 
-  // Calcul semaine en cours
+  // Calcul de la semaine courante
   const now = new Date();
   const year = now.getFullYear();
   const oneJan = new Date(year, 0, 1);
   const week = Math.ceil((((now - oneJan) / 86400000) + oneJan.getDay() + 1) / 7);
-  const weekKey = `${year}-W${String(week).padStart(2,"0")}`;
+  const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
 
-  // Incrément
-  data[weekKey] = (data[weekKey] || 0) + 1;
+  // 👇 Si ce n'est PAS ton IP → incrément
+  if (ip !== "88.164.133.142") {
+    data[weekKey] = (data[weekKey] || 0) + 1;
 
-  // Sauvegarde sur /tmp
-  try {
-    fs.writeFileSync(FILE, JSON.stringify(data), "utf8");
-  } catch (e) {
-    console.warn("⚠️ Écriture compteur échouée :", e);
+    try {
+      fs.writeFileSync(FILE, JSON.stringify(data), "utf8");
+    } catch (e) {
+      console.warn("⚠️ Écriture compteur échouée :", e);
+    }
   }
 
-  // Retourne le total
+  // 🔸 Si ton IP : juste renvoyer le compteur sans l'incrémenter
+  const visits = data[weekKey] || 0;
+  const info = ip === "88.164.133.142" ? "(admin non compté)" : "";
+
   return {
     statusCode: 200,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ week: weekKey, visits: data[weekKey], ip })
+    body: JSON.stringify({ week: weekKey, visits, ip, info })
   };
 }
-
