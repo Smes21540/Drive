@@ -1579,12 +1579,28 @@ if (
       }
 
       // ============================
-      // 🔸 Affichage m³
-      // ============================
-      btnM3.textContent = diffM3.toFixed(1) + " m³";
-      btnM3.style.background = "linear-gradient(180deg, #fff59d, #fbc02d)";
-      btnM3.style.color = "#5d4037";
-      btnM3.style.minWidth = "120px";
+// 🔸 Affichage m³ avec dégradé dynamique selon la valeur
+btnM3.textContent = diffM3.toFixed(1) + " m³";
+btnM3.style.minWidth = "125px";
+btnM3.style.color = "#5d4037";
+
+// Couleurs de base (de jaune → rouge)
+const minM3 = 1000;
+const maxM3 = 5000;
+let ratio = (diffM3 - minM3) / (maxM3 - minM3);
+ratio = Math.max(0, Math.min(1, ratio)); // clamp entre 0 et 1
+
+// Interpolation entre jaune (255,245,157) et rouge (255,112,67)
+const r1 = 255, g1 = 245, b1 = 157; // jaune
+const r2 = 255, g2 = 112, b2 = 67;  // rouge
+const r = Math.round(r1 + (r2 - r1) * ratio);
+const g = Math.round(g1 + (g2 - g1) * ratio);
+const b = Math.round(b1 + (b2 - b1) * ratio);
+const color1 = `rgb(${r},${g},${b})`;
+const color2 = `rgb(${Math.max(r-20,0)},${Math.max(g-20,0)},${Math.max(b-20,0)})`;
+
+btnM3.style.background = `linear-gradient(180deg, ${color1}, ${color2})`;
+
 
       // ============================
       // 🔸 Calcul du kWh (avec correction si anormal)
@@ -2539,6 +2555,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
