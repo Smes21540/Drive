@@ -1477,22 +1477,23 @@ if (
       let diffMinutes = 0;
       let diffKwh = 0;
       let diffM3 = 0;
+      let kwhEstime = false;
 
       if (lines.length > 2) {
         const firstCols = lines[1].split(",");
         const lastCols  = lines[lines.length - 1].split(",");
 
-        // --- 1️⃣ Calcul KWh ---
+        // --- 1️⃣ Calcul KWh brut ---
         const kFirst = parseFloat(firstCols[2].replace(/"/g,""));
         const kLast  = parseFloat(lastCols[2].replace(/"/g,""));
         if (isFinite(kFirst) && isFinite(kLast)) diffKwh = kLast - kFirst;
 
-        // --- 2️⃣ Calcul m³ (indépendant du kWh) ---
+        // --- 2️⃣ Calcul m³ ---
         const m3First = parseFloat(firstCols[4].replace(/"/g,""));
         const m3Last  = parseFloat(lastCols[4].replace(/"/g,""));
         if (isFinite(m3First) && isFinite(m3Last)) diffM3 = m3Last - m3First;
 
-        // --- 3️⃣ Calcul durée (minutes actives) ---
+        // --- 3️⃣ Durée de fonctionnement ---
         let active = 0;
         for (let i = 1; i < lines.length; i++) {
           const prev = lines[i - 1].split(",");
@@ -1523,27 +1524,38 @@ if (
       btnM3.style.minWidth = "120px";
 
       // ============================
-      // 🔸 Affichage kWh + erreurs
+      // 🔸 Calcul & affichage du kWh
       // ============================
-      const rounded = Math.round(diffKwh);
+      let rounded = Math.round(diffKwh);
+
       if (rounded < 0 || rounded > 400000) {
-        btnKwh.textContent = "ERREUR";
-        btnKwh.style.background = "linear-gradient(180deg, #ffccbc, #d32f2f)";
-        btnKwh.style.color = "#fff";
-      } else if (rounded === 0) {
+        // ⚙️ Correction via m³ * 32.3
+        rounded = Math.round(diffM3 * 32.3);
+        kwhEstime = true;
+      }
+
+      if (rounded === 0) {
         btnKwh.textContent = "0 kWh";
         btnKwh.style.background = "linear-gradient(180deg, #e0e0e0, #bdbdbd)";
         btnKwh.style.color = "#555";
       } else {
         const padded = String(rounded).padStart(7, " ");
         btnKwh.textContent = `${padded} kWh`;
-        btnKwh.style.background = "linear-gradient(180deg, #ffd54f, #ffb300)";
-        btnKwh.style.color = "#3e2723";
-        btnKwh.style.minWidth = "120px";
+
+        if (kwhEstime) {
+          // 🟦 Bleu = valeur estimée
+          btnKwh.style.background = "linear-gradient(180deg, #bbdefb, #42a5f5)";
+          btnKwh.style.color = "#0d47a1";
+        } else {
+          // 🟡 Jaune normal
+          btnKwh.style.background = "linear-gradient(180deg, #ffd54f, #ffb300)";
+          btnKwh.style.color = "#3e2723";
+        }
       }
+      btnKwh.style.minWidth = "120px";
 
       // ============================
-      // 🔸 Durée de chauffe
+      // 🔸 Durée
       // ============================
       btnHeures.textContent = `⏱ ${dureeFormatee}`;
       btnHeures.style.background = "linear-gradient(180deg, #bbdefb, #64b5f6)";
@@ -1554,7 +1566,7 @@ if (
       // 🔸 Moyenne kWh/h
       // ============================
       const hours = diffMinutes / 60;
-      if (hours > 0 && rounded > 0 && rounded < 400000) {
+      if (hours > 0 && rounded > 0) {
         const avg = rounded / hours;
         if (avg < 1000) {
           btnAvg.textContent = "ERREUR";
@@ -1562,8 +1574,13 @@ if (
           btnAvg.style.color = "#b71c1c";
         } else {
           btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
-          btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
-          btnAvg.style.color = "#01579b";
+          if (kwhEstime) {
+            btnAvg.style.background = "linear-gradient(180deg, #c5cae9, #7986cb)";
+            btnAvg.style.color = "#1a237e";
+          } else {
+            btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
+            btnAvg.style.color = "#01579b";
+          }
         }
       } else {
         btnAvg.textContent = "--";
@@ -2432,6 +2449,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
