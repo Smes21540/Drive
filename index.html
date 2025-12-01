@@ -472,6 +472,33 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 }
 
 
+.gaz-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 20px;
+}
+
+.gaz-total {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 13px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  color: #3e2723;
+}
+
+.gaz-total-m3 {
+  background: linear-gradient(180deg, #fff59d, #fbc02d);
+}
+
+.gaz-total-kwh {
+  background: linear-gradient(180deg, #ffd54f, #ffb300);
+}
+
+
+
+  
 
 </style>
 
@@ -519,6 +546,22 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
     <button id="exportCsvBtn" style="display:none;" title="Voir les barres graphiques de consommation par jour">Graphique</button>
     <button id="exportExcelGazBtn" style="display:none;" title="Exporter les données en Excel (kWh, m³, durée, tonnage)">Export Excel</button>
 
+
+// === Pastilles totales GAZ ===
+const excelBtnGaz = document.getElementById("exportExcelGazBtn");
+if (excelBtnGaz && !document.querySelector(".gaz-summary")) {
+  const summaryDiv = document.createElement("div");
+  summaryDiv.className = "gaz-summary";
+  summaryDiv.innerHTML = `
+    <span class="gaz-total gaz-total-m3" title="Total m³ calculé">m³ total: --</span>
+    <span class="gaz-total gaz-total-kwh" title="Total kWh calculé">kWh total: --</span>
+  `;
+  excelBtnGaz.insertAdjacentElement("afterend", summaryDiv);
+}
+
+
+
+    
 
   </div>
 
@@ -2379,6 +2422,35 @@ document.getElementById("exportExcelGazBtn").addEventListener("click", function 
 
 
 
+// === Totaux globaux GAZ ===
+setTimeout(() => {
+  let totalM3 = 0;
+  let totalKwh = 0;
+
+  document.querySelectorAll("#csvTable tbody tr").forEach(tr => {
+    const btns = tr.querySelectorAll(".gaz-group .gaz-btn");
+    if (btns.length >= 2) {
+      const m3Text = btns[1].textContent.replace(/[^\d.]/g, "");
+      const kwhText = btns[0].textContent.replace(/[^\d.]/g, "");
+      const m3 = parseFloat(m3Text);
+      const kwh = parseFloat(kwhText);
+      if (isFinite(m3)) totalM3 += m3;
+      if (isFinite(kwh)) totalKwh += kwh;
+    }
+  });
+
+  const totalM3Span = document.querySelector(".gaz-total-m3");
+  const totalKwhSpan = document.querySelector(".gaz-total-kwh");
+
+  if (totalM3Span) totalM3Span.textContent = `m³ total: ${totalM3.toFixed(1)}`;
+  if (totalKwhSpan) totalKwhSpan.textContent = `kWh total: ${Math.round(totalKwh).toLocaleString("fr-FR")}`;
+}, 1000);
+
+
+
+
+  
+
 /* ----------- Init ----------- */
 window.onload=()=>{
   updateNetworkStatus();
@@ -2447,6 +2519,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
