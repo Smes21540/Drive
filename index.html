@@ -1564,6 +1564,42 @@ if (
       const M = String(diffMinutes % 60).padStart(2,"0");
       const dureeFormatee = `${H}:${M}`;
 
+
+
+/********************************************************************************************
+ * ⚠️⚠️⚠️ BLOC DE CORRECTION TEMPORAIRE - FICHIERS CSV CORROMPUS ⚠️⚠️⚠️
+ * -----------------------------------------------------------------------------------------
+ * Les jours suivants contiennent des données fausses (décalées d’un jour) :
+ *   - 21/09
+ *   - 28/09
+ *   - 05/10
+ *   - 12/10
+ *   - 19/10
+ * On force ces jours à zéro (0 m³, 0 kWh, 0 durée).
+ * À SUPPRIMER LORSQUE LES CSV SERONT CORRIGÉS SUR LE DRIVE.
+ ********************************************************************************************/
+
+try {
+  const dateStr = tdDate.textContent.split(" ")[0];
+  const badDates = ["21/09", "28/09", "05/10", "12/10", "19/10"];
+
+  if (badDates.some(d => dateStr.includes(d))) {
+    console.warn("⚠️ Fichier CSV corrompu détecté :", dateStr, "→ valeurs forcées à 0");
+    diffKwh = 0;
+    diffM3 = 0;
+    diffMinutes = 0;
+  }
+} catch (err) {
+  console.warn("Erreur dans le bloc de correction CSV:", err);
+}
+
+/********************************************************************************************
+ * ⚠️⚠️⚠️ FIN DU BLOC DE CORRECTION TEMPORAIRE - À SUPPRIMER PLUS TARD ⚠️⚠️⚠️
+ ********************************************************************************************/
+
+
+
+      
       const btns = tdAction.querySelectorAll(".gaz-btn");
       const btnKwh    = btns[0];
       const btnM3     = btns[1];
@@ -2555,6 +2591,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
