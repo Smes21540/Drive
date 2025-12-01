@@ -2584,20 +2584,31 @@ function clearBrowserCache() {
 }
 </script>
 
-<!-- === Bouton caché de vidage du cache === -->
-<button id="clearCacheBtn"
-  onclick="clearBrowserCache()"
+<div id="visitCounter"
   style="position:fixed;bottom:10px;left:10px;
-  opacity:1;
-  background:#ffd54f;
-  border-radius:50%;
+  background:#ffd54f;color:#5d4037;
+  border-radius:12px;padding:4px 10px;
   box-shadow:0 0 6px rgba(0,0,0,0.2);
-  width:25px;height:25px;cursor:pointer;z-index:2000;">
-  🧽
-</button>
+  font-size:12px;font-weight:bold;z-index:2000;">
+  👁️ Chargement...
+</div>
+
+<script>
+fetch("/.netlify/functions/visits")
+  .then(r => r.json())
+  .then(d => {
+    const el = document.getElementById("visitCounter");
+    el.textContent = `👁️ ${d.visits} visite${d.visits > 1 ? "s" : ""} cette semaine`;
+  })
+  .catch(() => {
+    document.getElementById("visitCounter").textContent = "👁️ --";
+  });
+</script>
+
 
 </body>
 </html>
+
 
 
 
