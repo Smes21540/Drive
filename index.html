@@ -1516,7 +1516,15 @@ if (
       const btnAvg    = btns[3];
 
       // ============================
-      // 🔸 Affichage m³ (indépendant)
+      // 🔸 Si aucune activité : on masque tout
+      // ============================
+      if ((diffM3 === 0 || !isFinite(diffM3)) && (diffKwh === 0 || !isFinite(diffKwh))) {
+        btns.forEach(b => b.style.display = "none");
+        return;
+      }
+
+      // ============================
+      // 🔸 Affichage m³
       // ============================
       btnM3.textContent = diffM3.toFixed(1) + " m³";
       btnM3.style.background = "linear-gradient(180deg, #fff59d, #fbc02d)";
@@ -1528,29 +1536,21 @@ if (
       // ============================
       let rounded = Math.round(diffKwh);
 
+      // 🧩 Correction si kWh anormal
       if (rounded < 0 || rounded > 400000) {
-        // ⚙️ Correction via m³ * 32.3
         rounded = Math.round(diffM3 * 32.3);
         kwhEstime = true;
       }
 
-      if (rounded === 0) {
-        btnKwh.textContent = "0 kWh";
-        btnKwh.style.background = "linear-gradient(180deg, #e0e0e0, #bdbdbd)";
-        btnKwh.style.color = "#555";
-      } else {
-        const padded = String(rounded).padStart(7, " ");
-        btnKwh.textContent = `${padded} kWh`;
+      const padded = String(rounded).padStart(7, " ");
+      btnKwh.textContent = `${padded} kWh`;
 
-        if (kwhEstime) {
-          // 🟦 Bleu = valeur estimée
-          btnKwh.style.background = "linear-gradient(180deg, #bbdefb, #42a5f5)";
-          btnKwh.style.color = "#0d47a1";
-        } else {
-          // 🟡 Jaune normal
-          btnKwh.style.background = "linear-gradient(180deg, #ffd54f, #ffb300)";
-          btnKwh.style.color = "#3e2723";
-        }
+      if (kwhEstime) {
+        btnKwh.style.background = "linear-gradient(180deg, #bbdefb, #42a5f5)";
+        btnKwh.style.color = "#0d47a1";
+      } else {
+        btnKwh.style.background = "linear-gradient(180deg, #ffd54f, #ffb300)";
+        btnKwh.style.color = "#3e2723";
       }
       btnKwh.style.minWidth = "120px";
 
@@ -1563,24 +1563,33 @@ if (
       btnHeures.style.minWidth = "120px";
 
       // ============================
-      // 🔸 Moyenne kWh/h
+      // 🔸 Moyenne kWh/h (avec correction)
       // ============================
       const hours = diffMinutes / 60;
+      let avg = 0;
+      let moyenneEstimee = false;
+
       if (hours > 0 && rounded > 0) {
-        const avg = rounded / hours;
+        avg = rounded / hours;
+
         if (avg < 1000) {
-          btnAvg.textContent = "ERREUR";
-          btnAvg.style.background = "#ff8a80";
-          btnAvg.style.color = "#b71c1c";
+          // Correction via m³
+          rounded = Math.round(diffM3 * 32.3);
+          avg = rounded / hours;
+          moyenneEstimee = true;
+          kwhEstime = true;
+        }
+
+        btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
+
+        if (kwhEstime || moyenneEstimee) {
+          btnAvg.style.background = "linear-gradient(180deg, #c5cae9, #7986cb)";
+          btnAvg.style.color = "#1a237e";
+          btnKwh.style.background = "linear-gradient(180deg, #bbdefb, #42a5f5)";
+          btnKwh.style.color = "#0d47a1";
         } else {
-          btnAvg.textContent = `${avg.toFixed(1)} kWh/h`;
-          if (kwhEstime) {
-            btnAvg.style.background = "linear-gradient(180deg, #c5cae9, #7986cb)";
-            btnAvg.style.color = "#1a237e";
-          } else {
-            btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
-            btnAvg.style.color = "#01579b";
-          }
+          btnAvg.style.background = "linear-gradient(180deg, #e1f5fe, #81d4fa)";
+          btnAvg.style.color = "#01579b";
         }
       } else {
         btnAvg.textContent = "--";
@@ -1589,7 +1598,7 @@ if (
       }
 
       // ============================
-      // 🔸 TONNAGE (toujours calculé)
+      // 🔸 TONNAGE
       // ============================
       const dateStr = tdDate.textContent.split(" ")[0];
       const fullPath = localStorage.getItem("lastFolderPath") || "";
@@ -2449,6 +2458,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
