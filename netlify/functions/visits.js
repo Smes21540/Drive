@@ -34,7 +34,7 @@ export async function handler(event) {
   if (typeof data !== "object" || data === null) data = {};
 
   // --- Incrément si ce n’est pas ton IP admin ---
-  if (ip !== "88.164.133.142") {
+  if (ip !== "88.164.133.143") {
     data[weekKey] = (data[weekKey] || 0) + 1;
     data.lastUpdate = new Date().toISOString();
   }
