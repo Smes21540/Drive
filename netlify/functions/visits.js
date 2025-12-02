@@ -1,95 +1,58 @@
 import fetch from "node-fetch";
 
 export async function handler(event) {
-  const token = process.env.GITHUB_TOKEN;
-  const path = "visits.json";
-  const repo = "smes21540/Drive"; // ⚠️ Mets ton vrai dépôt central (celui où sera stocké visits.json)
-
-  // site = nom passé dans l’URL ?site=Drive
-  const site = event.queryStringParameters.site || "Default";
-
-  // --- CORS : autoriser GitHub Pages + Netlify ---
-  const allowedOrigins = [
-    "https://smes21540.github.io",
-    "https://smes21540.github.io/Drive",
-    "https://smes21540.github.io/Oxyane",
-    "https://smes21540.github.io/Invivo_St_Usage",
-    "https://smes21540.netlify.app"
-  ];
-  const origin = event.headers.origin || "";
-  const corsOrigin = allowedOrigins.find(o => origin.startsWith(o))
-    ? origin
-    : "https://smes21540.github.io";
-
-  const headers = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": corsOrigin,
-    "Access-Control-Allow-Methods": "GET, OPTIONS"
-  };
-
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers, body: "OK" };
-  }
-
-  // 🔹 IP pour exclure l’admin
-  const ip = event.headers["x-nf-client-connection-ip"] || "inconnue";
-  const isAdmin = ip === "88.164.133.142";
-
   try {
-    // 1️⃣ Lire le fichier visits.json depuis GitHub
-    const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const { site = "default", add = "1" } = event.queryStringParameters;
+    const increment = parseInt(add, 10) || 1;
+
+    const repo = "smes21540/visits-data"; // dépôt GitHub cible
+    const path = `${site}.json`;           // un fichier JSON par site
+    const token = process.env.GITHUB_TOKEN;
+
+    // 1️⃣ Lire le fichier actuel
+    const resGet = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+      headers: { Authorization: `Bearer ${token}`, "User-Agent": "NetlifyFunction" },
     });
-    if (!getRes.ok) throw new Error(`Erreur lecture GitHub (${getRes.status})`);
+    const jsonGet = await resGet.json();
+    let count = 0, sha = null;
 
-    const getData = await getRes.json();
-    const sha = getData.sha;
-    const content = Buffer.from(getData.content, "base64").toString("utf8");
-    const data = JSON.parse(content || "{}");
+    if (jsonGet.content) {
+      const data = JSON.parse(Buffer.from(jsonGet.content, "base64").toString());
+      count = data.visits || 0;
+      sha = jsonGet.sha;
+    }
 
-    // 2️⃣ Semaine courante
-    const now = new Date();
-    const year = now.getFullYear();
-    const week = Math.ceil((((now - new Date(year, 0, 1)) / 86400000) + new Date(year, 0, 1).getDay() + 1) / 7);
-    const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
+    // 2️⃣ Mettre à jour
+    count += increment;
 
-    // 3️⃣ Initialiser le site si absent
-    if (!data[site]) data[site] = {};
-    if (!data[site][weekKey]) data[site][weekKey] = 0;
+    const newContent = Buffer.from(JSON.stringify({ visits: count }, null, 2)).toString("base64");
 
-    // 4️⃣ Incrémenter uniquement si ce n’est pas l’admin
-    if (!isAdmin) data[site][weekKey]++;
-
-    // 5️⃣ Sauvegarde sur GitHub
-    const updatedContent = Buffer.from(JSON.stringify(data, null, 2)).toString("base64");
-    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+    // 3️⃣ Commit unique
+    await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
+        "User-Agent": "NetlifyFunction",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        message: `Update visits for ${site} (${weekKey})`,
-        content: updatedContent,
+        message: `Update visits for ${site}`,
+        content: newContent,
         sha,
+        branch: "main",
       }),
     });
-    if (!putRes.ok) throw new Error(`Erreur écriture GitHub (${putRes.status})`);
-
-    const visits = data[site][weekKey];
-    const info = isAdmin ? "(admin non compté)" : "";
 
     return {
       statusCode: 200,
-      headers,
-      body: JSON.stringify({ site, week: weekKey, visits, info })
+      body: JSON.stringify({ site, visits: count }),
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
+      },
     };
   } catch (err) {
-    console.error("❌ Erreur visits.js:", err);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: "Erreur compteur" })
-    };
+    console.error("Erreur visits.js :", err);
+    return { statusCode: 500, body: "Erreur interne" };
   }
 }
