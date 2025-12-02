@@ -4,43 +4,45 @@ import fetch from "node-fetch";
 export async function handler(event) {
   const params = new URLSearchParams(event.queryStringParameters || {});
   const site = params.get("site") || "Default";
+  const fileName = `visits_${site}.json`;
 
-  // Ton endpoint Drive Netlify
+  // ton proxy existant
   const DRIVE_URL = "https://smes21540.netlify.app/.netlify/functions/drive";
+  const ip = event.headers["x-nf-client-connection-ip"] || "inconnue";
 
-  // Calcul de la semaine courante
+  // --- Calcul semaine en cours ---
   const now = new Date();
   const year = now.getFullYear();
   const oneJan = new Date(year, 0, 1);
   const week = Math.ceil((((now - oneJan) / 86400000) + oneJan.getDay() + 1) / 7);
   const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
 
-  const ip = event.headers["x-nf-client-connection-ip"] || "inconnue";
-
-  // Nom du fichier sur le Drive
-  const fileName = `visits_${site}.json`;
-
-  // Lire le fichier existant
+  // --- Lecture du fichier JSON existant sur le Drive ---
   let data = {};
   try {
     const res = await fetch(`${DRIVE_URL}?file=${fileName}&site=Smes_Acces`);
-    if (res.ok) data = await res.json();
+    if (res.ok) {
+      data = await res.json();
+    } else {
+      console.warn(`Aucun fichier ${fileName} trouvé, création...`);
+    }
   } catch (e) {
     console.warn("⚠️ Lecture Drive échouée :", e);
   }
 
-  // Si pas de fichier ou format incorrect
+  // --- Si pas de contenu JSON valide, on initialise ---
   if (typeof data !== "object" || data === null) data = {};
 
-  // Incrément si ce n’est pas ton IP
+  // --- Incrément si ce n’est pas ton IP admin ---
   if (ip !== "88.164.133.142") {
     data[weekKey] = (data[weekKey] || 0) + 1;
+    data.lastUpdate = new Date().toISOString();
   }
 
   const visits = data[weekKey] || 0;
   const info = ip === "88.164.133.142" ? "(admin non compté)" : "";
 
-  // Sauvegarder le nouveau JSON sur le Drive
+  // --- Sauvegarde du JSON mis à jour dans le Drive ---
   try {
     await fetch(`${DRIVE_URL}?file=${fileName}&site=Smes_Acces`, {
       method: "POST",
@@ -51,7 +53,7 @@ export async function handler(event) {
     console.warn("⚠️ Sauvegarde Drive échouée :", e);
   }
 
-  // Réponse CORS
+  // --- CORS multi-sites ---
   const origin = event.headers.origin || "";
   const allowed = [
     "https://smes21540.github.io",
@@ -74,9 +76,16 @@ export async function handler(event) {
     return { statusCode: 200, headers, body: "OK" };
   }
 
+  // --- Réponse finale ---
   return {
     statusCode: 200,
     headers,
-    body: JSON.stringify({ site, week: weekKey, visits, info })
+    body: JSON.stringify({
+      site,
+      week: weekKey,
+      visits,
+      lastUpdate: data.lastUpdate || null,
+      info
+    })
   };
 }
