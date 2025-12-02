@@ -514,19 +514,29 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   height: 35vh;
 
   background: url("img/smes_footer.png") left bottom no-repeat;
-  background-size: cover; /* <<< essentiel */
-
+  background-size: contain; /* image adaptée à l’espace */
   pointer-events: none;
 
-  /* NO z-index */
-
-  mask-image: linear-gradient(to top,
+  mask-image: linear-gradient(
+      to top,
       rgba(0,0,0,1) 80%,
-      rgba(0,0,0,0) 100%);
-  -webkit-mask-image: linear-gradient(to top,
+      rgba(0,0,0,0) 100%
+  );
+  -webkit-mask-image: linear-gradient(
+      to top,
       rgba(0,0,0,1) 80%,
       rgba(0,0,0,0) 100%);
 }
+
+/* --- image affichée UNIQUEMENT si thème orange --- */
+#smes-footer-bg {
+  display: none;
+}
+
+body[data-theme="orange"] #smes-footer-bg {
+  display: block;
+}
+
 
 
 
@@ -2069,6 +2079,7 @@ function closeThemeMenu(){ document.getElementById("themeMenu").style.display="n
 
 /* ----------- Thèmes + persistance (+ lignes du tableau) ----------- */
 function setTheme(theme){
+  document.body.setAttribute("data-theme", theme);
   const r=document.documentElement;
   const logo=document.getElementById("mainLogo");
   logo.style.display=(theme==="orange")?"block":"none";
@@ -2631,6 +2642,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
