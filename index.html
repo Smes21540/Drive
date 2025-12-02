@@ -2593,40 +2593,53 @@ function clearBrowserCache() {
   👁️ Chargement...
 </div>
 
+<div id="visitCounter"
+  style="position:fixed;bottom:10px;left:10px;
+  background:#ffd54f;color:#5d4037;
+  border-radius:12px;padding:4px 10px;
+  box-shadow:0 0 6px rgba(0,0,0,0.2);
+  font-size:12px;font-weight:bold;z-index:2000;">
+  👁️ Chargement...
+</div>
+
 <script>
 (async function compteurVisites() {
   const el = document.getElementById("visitCounter");
-  const fileName = "visits.json";
-  const folderId = "18QkQPyCZxTCAaoz_qd1wAelmQbSE4ex8"; // dossier racine Drive
-  const site = "Smes_Acces";
+  const folderId = "18QkQPyCZxTCAaoz_qd1wAelmQbSE4ex8"; // ID du dossier racine Drive
+  const site = "Smes_Acces"; // ton identifiant Netlify/Drive habituel
+  const file = "visits.json";
   const driveUrl = "https://smes21540.netlify.app/.netlify/functions/drive";
 
   try {
-    // --- Lecture du JSON existant via ton proxy Netlify ---
-    let data = {};
-    const res = await fetch(`${driveUrl}?id=${folderId}&file=${fileName}&site=${site}`);
+    // --- 1️⃣ Lecture du JSON existant ---
+    let data = { note: 0 };
+    const readUrl = `${driveUrl}?id=${folderId}&name=${file}&site=${site}`;
+    const res = await fetch(readUrl);
     if (res.ok) {
       const text = await res.text();
-      if (text.trim()) data = JSON.parse(text);
+      try {
+        data = JSON.parse(text || "{}");
+      } catch {
+        data = { note: 0 };
+      }
     }
 
-    // --- Incrément du compteur ---
-    if (typeof data.note !== "number") data.note = 0;
-    data.note++;
+    // --- 2️⃣ Incrément ---
+    data.note = (parseInt(data.note) || 0) + 1;
 
-    // --- Sauvegarde via Netlify (même format que Viewer02) ---
+    // --- 3️⃣ Sauvegarde du JSON ---
     const body = new URLSearchParams({
       id: folderId,
       site,
-      file: fileName,
+      name: file,
       content: JSON.stringify(data)
     });
+    const write = await fetch(driveUrl, { method: "POST", body });
+    if (!write.ok) throw new Error("Erreur d’écriture Drive");
 
-    const resWrite = await fetch(driveUrl, { method: "POST", body });
-    if (!resWrite.ok) throw new Error("Échec écriture Drive");
-
-    // --- Affichage ---
+    // --- 4️⃣ Affichage ---
     el.textContent = `👁️ ${data.note} visite${data.note > 1 ? "s" : ""}`;
+
   } catch (err) {
     console.error("Erreur compteur Drive :", err);
     el.textContent = "👁️ --";
@@ -2643,8 +2656,10 @@ function clearBrowserCache() {
 
 
 
+
 </body>
 </html>
+
 
 
 
