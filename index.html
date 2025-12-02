@@ -500,34 +500,36 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 
 
 
-/* === Fond illustration SMES en bas === */
+/* === Fond illustration SMES attachée à la sidebar === */
+#sidebar {
+  position: relative;
+  overflow: hidden;
+}
+
 #smes-footer-bg {
-  position: fixed;
+  position: absolute;
   bottom: 0;
   left: 0;
-
-  width: 50vw;              /* moitié de l’écran → zone dossiers */
-  height: 40vh;
-
+  width: 100%;               /* largeur = largeur du panneau dossiers */
+  height: 35vh;              /* hauteur visible */
   background: url("img/smes_footer.png") left bottom no-repeat;
   background-size: contain;
-
   pointer-events: none;
   z-index: -1;
 
+  /* dégradé propre */
   mask-image: linear-gradient(
-      to top right,
-      rgba(0,0,0,1) 20%,
-      rgba(0,0,0,0) 80%
+      to top,
+      rgba(0,0,0,1) 30%,
+      rgba(0,0,0,0) 90%
   );
   -webkit-mask-image: linear-gradient(
-      to top right,
-      rgba(0,0,0,1) 20%,
-      rgba(0,0,0,0) 80%
+      to top,
+      rgba(0,0,0,1) 30%,
+      rgba(0,0,0,0) 90%
   );
-
-  opacity: 0.92;
 }
+
 
 
 
@@ -2620,7 +2622,12 @@ function clearBrowserCache() {
 </script>
 
 
-<div id="smes-footer-bg"></div>
+<div id="smes-foote<div id="sidebar">
+  <div id="smes-footer-bg"></div>
+  <h2><span>🌽</span>Sites / Séchoirs</h2>
+  <ul id="folderTree"></ul>
+</div>
+r-bg"></div>
 
 
 
@@ -2628,6 +2635,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
