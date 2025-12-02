@@ -1,62 +1,61 @@
 // netlify/functions/visits.js
-import fetch from "node-fetch";
+import fs from "fs";
 
 export async function handler(event) {
   const params = new URLSearchParams(event.queryStringParameters || {});
-  const site = params.get("site") || "Default"; // ex: Drive, Oxyane...
-  const fileName = "visits.json"; // toujours le même nom
-  const DRIVE_URL = "https://smes21540.netlify.app/.netlify/functions/drive";
-  const folder = site; // dossier courant sur le Drive
+  const site = params.get("site") || "Default"; // nom du projet
+  const FILE = `/tmp/visits_${site}.json`;
 
-  // 🔹 Lecture du fichier existant sur le Drive
-  let data = {};
-  try {
-    const res = await fetch(`${DRIVE_URL}?file=${fileName}&site=${folder}`);
-    if (res.ok) {
-      data = await res.json();
-    } else {
-      console.log(`Aucun fichier ${fileName} trouvé — il sera créé.`);
-    }
-  } catch (e) {
-    console.warn("⚠️ Erreur lecture Drive :", e);
-  }
+  const ip = event.headers["x-nf-client-connection-ip"] || "inconnue";
 
-  // 🔹 Si pas de contenu valide, on initialise
-  if (typeof data !== "object" || data === null) data = {};
-  if (typeof data.note !== "number") data.note = 0;
-
-  // 🔹 Incrémentation de la note
-  data.note++;
-  data.lastUpdate = new Date().toISOString();
-
-  // 🔹 Sauvegarde du nouveau JSON sur le Drive
-  try {
-    await fetch(`${DRIVE_URL}?file=${fileName}&site=${folder}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-  } catch (e) {
-    console.warn("⚠️ Erreur écriture Drive :", e);
-  }
-
-  // 🔹 Réponse CORS autorisant tes sites
-  const origin = event.headers.origin || "";
-  const allowed = [
+  // Domaines autorisés (tous tes GitHub Pages + ton Netlify)
+  const allowedOrigins = [
     "https://smes21540.github.io",
     "https://smes21540.github.io/Drive",
     "https://smes21540.github.io/Oxyane",
     "https://smes21540.github.io/Invivo_St_Usage",
     "https://smes21540.netlify.app"
   ];
-  const corsOrigin = allowed.find(o => origin.startsWith(o))
+  const origin = event.headers.origin || "";
+  const corsOrigin = allowedOrigins.find(o => origin.startsWith(o))
     ? origin
     : "https://smes21540.github.io";
 
+  // Charger le compteur correspondant
+  let data = {};
+  try {
+    if (fs.existsSync(FILE)) {
+      data = JSON.parse(fs.readFileSync(FILE, "utf8"));
+    }
+  } catch (e) {
+    console.warn(`⚠️ Lecture compteur ${site} échouée :`, e);
+  }
+
+  // Calcul semaine courante
+  const now = new Date();
+  const year = now.getFullYear();
+  const oneJan = new Date(year, 0, 1);
+  const week = Math.ceil((((now - oneJan) / 86400000) + oneJan.getDay() + 1) / 7);
+  const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
+
+  // Incrément si ce n’est pas ton IP
+  if (ip !== "88.164.133.142") {
+    data[weekKey] = (data[weekKey] || 0) + 1;
+    try {
+      fs.writeFileSync(FILE, JSON.stringify(data), "utf8");
+    } catch (e) {
+      console.warn(`⚠️ Écriture compteur ${site} échouée :`, e);
+    }
+  }
+
+  const visits = data[weekKey] || 0;
+  const info = ip === "88.164.133.142" ? "(admin non compté)" : "";
+
+  // CORS
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": corsOrigin,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+    "Access-Control-Allow-Methods": "GET, OPTIONS"
   };
 
   if (event.httpMethod === "OPTIONS") {
@@ -66,6 +65,6 @@ export async function handler(event) {
   return {
     statusCode: 200,
     headers,
-    body: JSON.stringify({ site, note: data.note, lastUpdate: data.lastUpdate })
+    body: JSON.stringify({ site, week: weekKey, visits, ip, info })
   };
 }
