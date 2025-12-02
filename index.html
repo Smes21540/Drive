@@ -2596,36 +2596,35 @@ function clearBrowserCache() {
 <script>
 (async function compteurVisites() {
   const el = document.getElementById("visitCounter");
-  const folderId = "172S-K-sQ-Zx943COAwawPPMMR6gG_cjk";
   const fileName = "visits.json";
+  const folderId = localStorage.getItem("lastFolderId");
   const site = "Smes_Acces";
   const driveUrl = "https://smes21540.netlify.app/.netlify/functions/drive";
 
   try {
-    // Lecture
+    // --- Lecture du JSON existant (exactement comme Viewer02) ---
     let data = {};
-    const res = await fetch(`${driveUrl}?folderId=${folderId}&fileName=${fileName}&site=${site}`);
+    const res = await fetch(`${driveUrl}?id=${folderId}&file=${fileName}&site=${site}`);
     if (res.ok) {
       const text = await res.text();
       if (text.trim()) data = JSON.parse(text);
     }
 
-    // Incrément
+    // --- Incrément ---
     if (typeof data.note !== "number") data.note = 0;
     data.note++;
-    data.updatedAt = new Date().toISOString();
 
-    // Écriture (le même format que les notes)
+    // --- Sauvegarde (même format que Viewer02) ---
     const body = new URLSearchParams({
-      folderId,
-      fileName,
+      id: folderId,
       site,
+      file: fileName,
       content: JSON.stringify(data)
     });
 
-    const resWrite = await fetch(driveUrl, { method: "POST", body });
-    if (!resWrite.ok) throw new Error("Échec écriture Drive");
+    await fetch(driveUrl, { method: "POST", body });
 
+    // --- Affichage ---
     el.textContent = `👁️ ${data.note} visite${data.note > 1 ? "s" : ""}`;
   } catch (err) {
     console.error("Erreur compteur Drive :", err);
@@ -2639,8 +2638,10 @@ function clearBrowserCache() {
 
 
 
+
 </body>
 </html>
+
 
 
 
