@@ -2596,29 +2596,34 @@ function clearBrowserCache() {
 <script>
 (async function compteurVisites() {
   const el = document.getElementById("visitCounter");
+
+  // 🧭 URL directe de ton Apps Script (la même que Viewer02)
+  const driveUrl = "https://script.google.com/macros/s/AKfycbxv9fU4eQZ_5aVqX3WnXXXXXXX/exec"; 
+  // ⚠️ Remplace ici par ton VRAI lien Apps Script
+
   const fileName = "visits.json";
-  const folderId = "18QkQPyCZxTCAaoz_qd1wAelmQbSE4ex8"; // même dossier que Viewer02
+  const folderId = "18QkQPyCZxTCAaoz_qd1wAelmQbSE4ex8"; // dossier racine Drive
   const site = "Smes_Acces";
-  const driveUrl = "https://smes21540.netlify.app/.netlify/functions/drive";
 
   try {
-    // Lecture du JSON (identique Viewer02)
+    // --- Lecture du JSON existant (comme Viewer02) ---
     let data = {};
-    const res = await fetch(`${driveUrl}?id=${folderId}&file=${fileName}&site=${site}`);
+    const res = await fetch(`${driveUrl}?id=${folderId}&file=${fileName}&site=${site}&mode=read`);
     if (res.ok) {
       const text = await res.text();
       if (text.trim()) data = JSON.parse(text);
     }
 
-    // Incrément du compteur
+    // --- Incrément du compteur ---
     if (typeof data.note !== "number") data.note = 0;
     data.note++;
 
-    // Écriture Drive
+    // --- Sauvegarde dans Drive ---
     const body = new URLSearchParams({
       id: folderId,
-      site,
       file: fileName,
+      site,
+      mode: "write",
       content: JSON.stringify(data)
     });
     const resWrite = await fetch(driveUrl, { method: "POST", body });
@@ -2639,8 +2644,10 @@ function clearBrowserCache() {
 
 
 
+
 </body>
 </html>
+
 
 
 
