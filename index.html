@@ -505,27 +505,30 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
   position: fixed;
   bottom: 0;
   left: 0;
-  width: 100vw;            /* couvre toute la largeur */
-  height: 35vh;            /* hauteur raisonnable */
-  background: url("img/smes_footer.png") center bottom no-repeat;
-  background-size: contain; /* garde les proportions */
-  pointer-events: none;     /* ne bloque aucun clic */
-  z-index: -1;              /* derrière tout le contenu */
 
-  /* Effet fondu vers le haut */
+  width: 50vw;              /* moitié de l’écran → zone dossiers */
+  height: 40vh;
+
+  background: url("img/smes_footer.png") left bottom no-repeat;
+  background-size: contain;
+
+  pointer-events: none;
+  z-index: -1;
+
   mask-image: linear-gradient(
-      to top,
-      rgba(0,0,0,1) 35%,
+      to top right,
+      rgba(0,0,0,1) 20%,
       rgba(0,0,0,0) 80%
   );
   -webkit-mask-image: linear-gradient(
-      to top,
-      rgba(0,0,0,1) 35%,
+      to top right,
+      rgba(0,0,0,1) 20%,
       rgba(0,0,0,0) 80%
   );
 
   opacity: 0.92;
 }
+
 
 
 
@@ -2625,6 +2628,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
