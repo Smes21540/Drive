@@ -2594,23 +2594,28 @@ function clearBrowserCache() {
 </div>
 
 <script>
-fetch("https://smes21540.netlify.app/.netlify/functions/visits?site=Invivo_St_Usage")
-  .then(r => r.json())
-  .then(d => {
-    const el = document.getElementById("visitCounter");
-    el.textContent = `👁️ ${d.visits} visite${d.visits > 1 ? "s" : ""} cette semaine`;
-  })
-  .catch(err => {
+(async () => {
+  const el = document.getElementById("visitCounter");
+  const site = "Oxyane"; // ⚠️ change selon le site
+
+  try {
+    const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/visits?site=${site}`);
+    const d = await res.json();
+    el.textContent = `👁️ ${d.visits} visite${d.visits > 1 ? "s" : ""} cette semaine ${d.info || ""}`;
+  } catch (err) {
     console.error("Erreur compteur:", err);
-    document.getElementById("visitCounter").textContent = "👁️ --";
-  });
+    el.textContent = "👁️ --";
+  }
+})();
 </script>
+
 
 
 
 
 </body>
 </html>
+
 
 
 
