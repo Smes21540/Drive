@@ -2596,40 +2596,45 @@ function clearBrowserCache() {
 <script>
 (async function compteurVisites() {
   const el = document.getElementById("visitCounter");
-  const folderId = localStorage.getItem("lastFolderId") || "root"; // dossier courant ou racine
-  const fileName = "visits.json";
-  const site = "Smes_Acces"; // correspond à ton paramètre site côté proxy
+  const folderId = localStorage.getItem("lastFolderId") || "1CqYRsyzABUc8QnIi_zdFVjodbCVYeQ1r"; // ton dossier Drive racine
+  const site = "Smes_Acces";
   const driveUrl = "https://smes21540.netlify.app/.netlify/functions/drive";
+  const fileName = "visits.json";
 
   try {
-    // 🔹 Lecture du fichier existant sur le Drive
+    // 🔹 1. Lecture du fichier existant (format que ton script accepte)
     let data = {};
-    const readUrl = `${driveUrl}?id=${folderId}&file=${fileName}&mode=read&site=${site}`;
+    const readUrl = `${driveUrl}?id=${folderId}&name=${fileName}&site=${site}`;
     const res = await fetch(readUrl);
     if (res.ok) {
       const text = await res.text();
       if (text.trim()) data = JSON.parse(text);
     }
 
-    // 🔹 Incrémentation ou initialisation
+    // 🔹 2. Incrémentation
     if (typeof data.note !== "number") data.note = 0;
     data.note++;
     data.updatedAt = new Date().toISOString();
 
-    // 🔹 Sauvegarde sur Drive (ton script Google le créera s’il n’existe pas)
+    // 🔹 3. Écriture du fichier via le même Apps Script
     const writeBody = new URLSearchParams({
-      mode: "write",
-      site: site,
-      file: fileName,
       id: folderId,
+      site: site,
+      name: fileName,
       content: JSON.stringify(data)
     });
 
-    await fetch(driveUrl, { method: "POST", body: writeBody });
+    const writeRes = await fetch(driveUrl, {
+      method: "POST",
+      body: writeBody
+    });
 
+    if (!writeRes.ok) throw new Error("Échec écriture Drive");
+
+    // 🔹 4. Affichage
     el.textContent = `👁️ ${data.note} visite${data.note > 1 ? "s" : ""}`;
   } catch (err) {
-    console.error("Erreur compteur :", err);
+    console.error("Erreur compteur Drive :", err);
     el.textContent = "👁️ --";
   }
 })();
@@ -2638,8 +2643,10 @@ function clearBrowserCache() {
 
 
 
+
 </body>
 </html>
+
 
 
 
