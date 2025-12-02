@@ -1,40 +1,40 @@
 // netlify/functions/visits.js
 import fetch from "node-fetch";
 
+const TOKEN = process.env.GITHUB_TOKEN;
+
 export async function handler(event) {
   const params = new URLSearchParams(event.queryStringParameters || {});
-  const site = params.get("site") || "Default";
-  const fileName = `visits_${site}.json`;
+  const site = params.get("site") || "Drive"; // nom du projet
+  const repo = `smes21540/${site}`;           // dépôt GitHub correspondant
+  const file = `visits_${site}.json`;         // fichier de stockage
 
-  // ton proxy existant
-  const DRIVE_URL = "https://smes21540.netlify.app/.netlify/functions/drive";
-  const ip = event.headers["x-nf-client-connection-ip"] || "inconnue";
-
-  // --- Calcul semaine en cours ---
   const now = new Date();
   const year = now.getFullYear();
   const oneJan = new Date(year, 0, 1);
   const week = Math.ceil((((now - oneJan) / 86400000) + oneJan.getDay() + 1) / 7);
   const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
+  const ip = event.headers["x-nf-client-connection-ip"] || "inconnue";
 
-  // --- Lecture du fichier JSON existant sur le Drive ---
+  // --- Étape 1 : lire le fichier sur GitHub ---
+  const apiUrl = `https://api.github.com/repos/${repo}/contents/${file}`;
   let data = {};
+  let sha = null;
   try {
-    const res = await fetch(`${DRIVE_URL}?file=${fileName}&site=Smes_Acces`);
-    if (res.ok) {
-      data = await res.json();
-    } else {
-      console.warn(`Aucun fichier ${fileName} trouvé, création...`);
+    const res = await fetch(apiUrl, { headers: { Authorization: `token ${TOKEN}` } });
+    const json = await res.json();
+    if (json.content) {
+      data = JSON.parse(Buffer.from(json.content, "base64").toString("utf8"));
+      sha = json.sha;
     }
   } catch (e) {
-    console.warn("⚠️ Lecture Drive échouée :", e);
+    console.warn("⚠️ Lecture GitHub échouée :", e);
   }
 
-  // --- Si pas de contenu JSON valide, on initialise ---
   if (typeof data !== "object" || data === null) data = {};
 
-  // --- Incrément si ce n’est pas ton IP admin ---
-  if (ip !== "88.164.133.144") {
+  // --- Étape 2 : incrément si ce n’est pas ton IP admin ---
+  if (ip !== "88.164.133.145") {
     data[weekKey] = (data[weekKey] || 0) + 1;
     data.lastUpdate = new Date().toISOString();
   }
@@ -42,18 +42,26 @@ export async function handler(event) {
   const visits = data[weekKey] || 0;
   const info = ip === "88.164.133.142" ? "(admin non compté)" : "";
 
-  // --- Sauvegarde du JSON mis à jour dans le Drive ---
+  // --- Étape 3 : envoyer la mise à jour sur GitHub ---
+  const newContent = Buffer.from(JSON.stringify(data, null, 2)).toString("base64");
   try {
-    await fetch(`${DRIVE_URL}?file=${fileName}&site=Smes_Acces`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
+    await fetch(apiUrl, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: `update visits ${weekKey}`,
+        content: newContent,
+        sha
+      })
     });
   } catch (e) {
-    console.warn("⚠️ Sauvegarde Drive échouée :", e);
+    console.warn("⚠️ Écriture GitHub échouée :", e);
   }
 
-  // --- CORS multi-sites ---
+  // --- Réponse CORS ---
   const origin = event.headers.origin || "";
   const allowed = [
     "https://smes21540.github.io",
@@ -71,21 +79,13 @@ export async function handler(event) {
     "Access-Control-Allow-Origin": corsOrigin,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
   };
-
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers, body: "OK" };
   }
 
-  // --- Réponse finale ---
   return {
     statusCode: 200,
     headers,
-    body: JSON.stringify({
-      site,
-      week: weekKey,
-      visits,
-      lastUpdate: data.lastUpdate || null,
-      info
-    })
+    body: JSON.stringify({ site, week: weekKey, visits, info })
   };
 }
