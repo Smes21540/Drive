@@ -497,29 +497,6 @@ tbody tr:hover .action-btn{opacity:1;visibility:visible;}
 }
 
 
-/* --- Fond tournesols bas gauche --- */
-#sunflower-bg {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 45vw;              /* largeur adaptative */
-  height: 40vh;             /* hauteur raisonnable */
-  background: url("img/sunflower.jpg") no-repeat left bottom;
-  background-size: cover;
-  z-index: -1;              /* derrière tout */
-  pointer-events: none;     /* jamais cliquable */
-  opacity: 0.9;             /* léger */
-  mask-image: linear-gradient(
-      to top right,
-      rgba(0,0,0,1) 10%,
-      rgba(0,0,0,0) 70%
-  );
-  -webkit-mask-image: linear-gradient(
-      to top right,
-      rgba(0,0,0,1) 10%,
-      rgba(0,0,0,0) 70%
-  );
-}
 
   
 
@@ -2656,14 +2633,11 @@ const canSend = true;
 </script>
 
 
-<div id="sunflower-bg"></div>
 
 
 
 </body>
 </html>
-
-
 
 
 
