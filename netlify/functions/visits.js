@@ -6,7 +6,7 @@ export async function handler(event) {
     const increment = parseInt(add, 10) || 1;
 
     const repo = "smes21540/visits-data"; // dépôt GitHub cible
-    const path = `${site}.json`;           // un fichier JSON par site
+    const path = "visits.json";            // un seul fichier commun à tous les sites
     const token = process.env.GITHUB_TOKEN;
 
     // 1️⃣ Lire le fichier actuel
@@ -14,20 +14,27 @@ export async function handler(event) {
       headers: { Authorization: `Bearer ${token}`, "User-Agent": "NetlifyFunction" },
     });
     const jsonGet = await resGet.json();
-    let count = 0, sha = null;
+    let data = {};
+    let sha = null;
 
     if (jsonGet.content) {
-      const data = JSON.parse(Buffer.from(jsonGet.content, "base64").toString());
-      count = data.visits || 0;
+      data = JSON.parse(Buffer.from(jsonGet.content, "base64").toString());
       sha = jsonGet.sha;
     }
 
-    // 2️⃣ Mettre à jour
-    count += increment;
+    // 2️⃣ Calcul de la semaine courante
+    const now = new Date();
+    const year = now.getFullYear();
+    const week = Math.ceil((((now - new Date(year, 0, 1)) / 86400000) + new Date(year, 0, 1).getDay() + 1) / 7);
+    const weekKey = `${year}-W${String(week).padStart(2, "0")}`;
 
-    const newContent = Buffer.from(JSON.stringify({ visits: count }, null, 2)).toString("base64");
+    // 3️⃣ Mettre à jour le site et la semaine
+    if (!data[site]) data[site] = {};
+    data[site][weekKey] = (data[site][weekKey] || 0) + increment;
 
-    // 3️⃣ Commit unique
+    const newContent = Buffer.from(JSON.stringify(data, null, 2)).toString("base64");
+
+    // 4️⃣ Commit unique sur GitHub
     await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
       method: "PUT",
       headers: {
@@ -36,7 +43,7 @@ export async function handler(event) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        message: `Update visits for ${site}`,
+        message: `Update visits for ${site} (${weekKey})`,
         content: newContent,
         sha,
         branch: "main",
@@ -45,7 +52,7 @@ export async function handler(event) {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ site, visits: count }),
+      body: JSON.stringify({ site, week: weekKey, visits: data[site][weekKey] }),
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Content-Type": "application/json",
