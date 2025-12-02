@@ -2595,18 +2595,43 @@ function clearBrowserCache() {
 
 <script>
 (async () => {
-  const el = document.getElementById("visitCounter");
-  const site = "Oxyane"; // ⚠️ change selon le site
+  const SITE_NAME = "Invivo_St_Usage";
+  const VISIT_KEY = `visits_${SITE_NAME}`;
+  const LAST_SEND_KEY = `lastSend_${SITE_NAME}`;
+  const COUNTER_EL = document.getElementById("visitCounter");
 
-  try {
-    const res = await fetch(`https://smes21540.netlify.app/.netlify/functions/visits?site=${site}`);
-    const d = await res.json();
-    el.textContent = `👁️ ${d.visits} visite${d.visits > 1 ? "s" : ""} cette semaine ${d.info || ""}`;
-  } catch (err) {
-    console.error("Erreur compteur:", err);
-    el.textContent = "👁️ --";
+  function nowISO() { return new Date().toISOString(); }
+
+  // 1️⃣ On incrémente la visite locale
+  let localCount = parseInt(localStorage.getItem(VISIT_KEY) || "0", 10);
+  localCount++;
+  localStorage.setItem(VISIT_KEY, localCount);
+
+  // 2️⃣ Vérifie si on peut envoyer
+  const lastSend = localStorage.getItem(LAST_SEND_KEY);
+  const twentyMinutes = 20 * 60 * 1000;
+  const canSend =
+    !lastSend || new Date() - new Date(lastSend) > twentyMinutes;
+
+  if (canSend && navigator.onLine) {
+    try {
+      const resp = await fetch(
+        `https://smes21540.netlify.app/.netlify/functions/visits?site=${SITE_NAME}&add=${localCount}`
+      );
+      const data = await resp.json();
+      localStorage.setItem(VISIT_KEY, 0);
+      localStorage.setItem(LAST_SEND_KEY, nowISO());
+      COUNTER_EL.textContent = `👁️ ${data.visits} visite${data.visits > 1 ? "s" : ""} cette semaine`;
+    } catch (err) {
+      console.error("Erreur envoi visites :", err);
+      COUNTER_EL.textContent = "👁️ --";
+    }
+  } else {
+    // Affiche provisoirement le total local
+    COUNTER_EL.textContent = `👁️ +${localCount} (local)`;
   }
 })();
+
 </script>
 
 
@@ -2615,6 +2640,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
