@@ -2596,42 +2596,36 @@ function clearBrowserCache() {
 <script>
 (async function compteurVisites() {
   const el = document.getElementById("visitCounter");
-  const folderId = localStorage.getItem("lastFolderId") || "1CqYRsyzABUc8QnIi_zdFVjodbCVYeQ1r"; // ton dossier Drive racine
+  const folderId = "172S-K-sQ-Zx943COAwawPPMMR6gG_cjk";
+  const fileName = "visits.json";
   const site = "Smes_Acces";
   const driveUrl = "https://smes21540.netlify.app/.netlify/functions/drive";
-  const fileName = "visits.json";
 
   try {
-    // 🔹 1. Lecture du fichier existant (format que ton script accepte)
+    // Lecture
     let data = {};
-    const readUrl = `${driveUrl}?id=${folderId}&name=${fileName}&site=${site}`;
-    const res = await fetch(readUrl);
+    const res = await fetch(`${driveUrl}?folderId=${folderId}&fileName=${fileName}&site=${site}`);
     if (res.ok) {
       const text = await res.text();
       if (text.trim()) data = JSON.parse(text);
     }
 
-    // 🔹 2. Incrémentation
+    // Incrément
     if (typeof data.note !== "number") data.note = 0;
     data.note++;
     data.updatedAt = new Date().toISOString();
 
-    // 🔹 3. Écriture du fichier via le même Apps Script
-    const writeBody = new URLSearchParams({
-      id: folderId,
-      site: site,
-      name: fileName,
+    // Écriture (le même format que les notes)
+    const body = new URLSearchParams({
+      folderId,
+      fileName,
+      site,
       content: JSON.stringify(data)
     });
 
-    const writeRes = await fetch(driveUrl, {
-      method: "POST",
-      body: writeBody
-    });
+    const resWrite = await fetch(driveUrl, { method: "POST", body });
+    if (!resWrite.ok) throw new Error("Échec écriture Drive");
 
-    if (!writeRes.ok) throw new Error("Échec écriture Drive");
-
-    // 🔹 4. Affichage
     el.textContent = `👁️ ${data.note} visite${data.note > 1 ? "s" : ""}`;
   } catch (err) {
     console.error("Erreur compteur Drive :", err);
@@ -2644,8 +2638,10 @@ function clearBrowserCache() {
 
 
 
+
 </body>
 </html>
+
 
 
 
