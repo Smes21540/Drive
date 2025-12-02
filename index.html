@@ -2594,23 +2594,53 @@ function clearBrowserCache() {
 </div>
 
 <script>
-fetch("https://smes21540.netlify.app/.netlify/functions/visits?site=Drive")
-  .then(r => r.json())
-  .then(d => {
-    const el = document.getElementById("visitCounter");
-    el.textContent = `👁️ ${d.note} visite${d.note > 1 ? "s" : ""}`;
-  })
-  .catch(() => {
-    document.getElementById("visitCounter").textContent = "👁️ --";
-  });
+(async function compteurVisites() {
+  const el = document.getElementById("visitCounter");
+  const folderId = localStorage.getItem("lastFolderId") || "root"; // dossier courant ou racine
+  const fileName = "visits.json";
+  const site = "Smes_Acces"; // correspond à ton paramètre site côté proxy
+  const driveUrl = "https://smes21540.netlify.app/.netlify/functions/drive";
 
+  try {
+    // 🔹 Lecture du fichier existant sur le Drive
+    let data = {};
+    const readUrl = `${driveUrl}?id=${folderId}&file=${fileName}&mode=read&site=${site}`;
+    const res = await fetch(readUrl);
+    if (res.ok) {
+      const text = await res.text();
+      if (text.trim()) data = JSON.parse(text);
+    }
 
+    // 🔹 Incrémentation ou initialisation
+    if (typeof data.note !== "number") data.note = 0;
+    data.note++;
+    data.updatedAt = new Date().toISOString();
+
+    // 🔹 Sauvegarde sur Drive (ton script Google le créera s’il n’existe pas)
+    const writeBody = new URLSearchParams({
+      mode: "write",
+      site: site,
+      file: fileName,
+      id: folderId,
+      content: JSON.stringify(data)
+    });
+
+    await fetch(driveUrl, { method: "POST", body: writeBody });
+
+    el.textContent = `👁️ ${data.note} visite${data.note > 1 ? "s" : ""}`;
+  } catch (err) {
+    console.error("Erreur compteur :", err);
+    el.textContent = "👁️ --";
+  }
+})();
 </script>
+
 
 
 
 </body>
 </html>
+
 
 
 
