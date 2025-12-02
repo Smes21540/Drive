@@ -2608,10 +2608,8 @@ function clearBrowserCache() {
   localStorage.setItem(VISIT_KEY, localCount);
 
   // 2️⃣ Vérifie si on peut envoyer
-  const lastSend = localStorage.getItem(LAST_SEND_KEY);
-  const twentyMinutes = 1 * 60 * 1000;
-  const canSend =
-    !lastSend || new Date() - new Date(lastSend) > twentyMinutes;
+const canSend = true;
+
 
   if (canSend && navigator.onLine) {
     try {
@@ -2640,6 +2638,7 @@ function clearBrowserCache() {
 
 </body>
 </html>
+
 
 
 
