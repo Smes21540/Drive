@@ -2598,18 +2598,19 @@ fetch("https://smes21540.netlify.app/.netlify/functions/visits?site=Drive")
   .then(r => r.json())
   .then(d => {
     const el = document.getElementById("visitCounter");
-    el.textContent = `👁️ ${d.visits} visite${d.visits > 1 ? "s" : ""} cette semaine`;
+    el.textContent = `👁️ ${d.visits} visite${d.visits > 1 ? "s" : ""} cette semaine ${d.info || ""}`;
   })
-  .catch(err => {
-    console.error("Erreur compteur:", err);
+  .catch(() => {
     document.getElementById("visitCounter").textContent = "👁️ --";
   });
+
 </script>
 
 
 
 </body>
 </html>
+
 
 
 
