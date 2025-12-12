@@ -58,14 +58,17 @@
     .controls button{flex:0 0 auto; width:auto; display:inline-block;}
 
     /* Zone graphe */
-.graph-wrapper {
-  display: flex;
-  align-items: stretch;   /* le canvas prend toute la hauteur */
-  justify-content: center;
-  gap: 20px;
-  margin-bottom: 40px;
-  height: 1000px;          /* hauteur fixée comme le canvas */
+.graph-wrapper{
+  display:flex;
+  align-items:stretch;
+  justify-content:center;
+  gap:20px;
+  margin-bottom:20px;
+
+  /* hauteur écran – header + barres */
+  height: calc(100vh - 160px);
 }
+
 
 .graph-side {
   display: flex;
@@ -73,34 +76,30 @@
   justify-content: center; /* centre verticalement si le menu est plus petit */
 }
 
-#myChart {
-  width: 100%;
-  aspect-ratio: 16/9;
-  max-height: 1000px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px var(--shadow);
-  display: block;
-  margin: 0 auto;
+#myChart{
+  width:100%;
+  height:100% !important;   /* 🔑 prend toute la hauteur dispo */
+  background:#fff;
+  border-radius:8px;
+  box-shadow:0 4px 12px var(--shadow);
+  display:block;
 }
 
-.y-columns {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 
-  /* hauteur adaptative */
-  max-height: 1000px;      /* ne jamais dépasser 1000px */
-  height: auto;            /* prend la taille du contenu si < 1000px */
-
-  overflow-y: auto;        /* ajoute une barre de défilement si trop long */
-  border: 1px solid #ddd;
-  padding: 6px;
-  border-radius: 6px;
-  background: var(--panel);
-  scrollbar-width: thin;
-  width: 220px;
+.y-columns{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  height:100%;
+  max-height:100%;
+  overflow-y:auto;
+  border:1px solid #ddd;
+  padding:6px;
+  border-radius:6px;
+  background:var(--panel);
+  width:220px;
 }
+
 
 
 
@@ -405,7 +404,7 @@
 
   <!-- Zone centrale : graphe -->
   <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
-    <canvas id="myChart" width="1400" height="1000"></canvas>
+    <canvas id="myChart"></canvas>
     <input type="color" id="colorPicker" style="display:none;" />
     <div id="dateLabels" style="text-align:center; margin-top:8px; font-weight:bold; color:var(--danger);"></div>
   </div>
@@ -2691,6 +2690,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
