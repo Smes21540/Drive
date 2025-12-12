@@ -1322,29 +1322,38 @@ if (!isNaN(dt.getTime())) {
       interaction:{mode:'nearest',axis:'x',intersect:false},
       plugins:{
         legend:{
-          position:'top',
-          labels:{
-            usePointStyle:true,
-            pointStyle:'rect',
-            color:getCSSVar('--text')
-          },
-          onClick:(e,legendItem)=>{
-            const datasetIndex = legendItem.datasetIndex;
-            const ds = chart.data.datasets[datasetIndex];
-            const baseId = ds.id;
-            const picker = document.getElementById('colorPicker');
-            picker.oninput = (ev)=>{
-              const newColor = ev.target.value;
-              customColors[baseLabel] = newColor;
-              ds.borderColor = newColor;
-              ds.backgroundColor = newColor;
-              ds.pointBackgroundColor = newColor;
-              ds.pointBorderColor = newColor;
-              chart.update('none');
-            };
-            picker.click();
-          }
-        },
+  position:'top',
+  labels:{
+    usePointStyle:true,
+    pointStyle:'rect',
+    color:getCSSVar('--text')
+  },
+  onClick:(e,legendItem)=>{
+    const datasetIndex = legendItem.datasetIndex;
+    const ds = chart.data.datasets[datasetIndex];
+
+    // ✅ clé stable pour mémoriser la couleur
+    const baseLabel = ds.label.replace(" (lissé)", "");
+
+    const picker = document.getElementById('colorPicker');
+    picker.oninput = (ev)=>{
+      const newColor = ev.target.value;
+
+      // mémorisation
+      customColors[baseLabel] = newColor;
+
+      // application
+      ds.borderColor = newColor;
+      ds.backgroundColor = newColor;
+      ds.pointBackgroundColor = newColor;
+      ds.pointBorderColor = newColor;
+
+      chart.update('none');
+    };
+    picker.click();
+  }
+},
+
         datalabels:{display:false},
         zoom:{
           zoom:{
@@ -2682,6 +2691,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
