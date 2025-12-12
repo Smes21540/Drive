@@ -509,7 +509,14 @@ function applyThemeVars(vars){
   function closeThemeMenu(){document.getElementById("themeMenu").style.display="none";clearTimeout(themeMenuTimer);}
   function getCSSVar(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
   function hexToRgb(hex){hex=hex.replace('#','');if(hex.length===3){hex=hex.split('').map(h=>h+h).join('');}const n=parseInt(hex,16);return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
-  function buildPalette(){const a=getCSSVar('--accent'),d=getCSSVar('--danger');return [a,d,"#3380ff","#4caf50","#8e44ad","#ff33a6","#33cccc","#ffc300"];}
+  function buildPalette(){
+  return [
+    "#ff7043", "#2196f3", "#4caf50", "#9c27b0",
+    "#ffc300", "#00bcd4", "#e91e63", "#795548",
+    "#607d8b", "#8bc34a", "#ff9800", "#3f51b5"
+  ];
+}
+
 
   /* ===================== SPINNER + ERROR ===================== */
   function showSpinner(){document.getElementById('spinner').style.display='block';}
@@ -2690,6 +2697,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
