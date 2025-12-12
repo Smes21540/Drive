@@ -454,10 +454,23 @@
 
 
   let baseFileName="", baseFileId="", headers=[], timeField="", baseDateYYYYMMDD="";
-  let colors=[]; let themeMenuTimer;
-  let loadedDays=new Set(); let saMeta=null;
-  let customColors = {}; // mémorise les couleurs choisies par label
-  let initialMin = null, initialMax = null;
+let themeMenuTimer;
+let loadedDays=new Set(); let saMeta=null;
+
+let customColors = {}; // mémorise les couleurs choisies par label
+
+// 🎨 Palette FIXE pour les séries (indépendante du thème)
+const SERIES_COLORS = [
+  "#ff7043", "#2196f3", "#4caf50", "#9c27b0",
+  "#ffc300", "#00bcd4", "#e91e63", "#795548",
+  "#607d8b", "#8bc34a", "#ff9800", "#3f51b5"
+];
+
+// Couleur stable par nom de courbe (clé = nom colonne)
+let seriesColorMap = {};
+
+let initialMin = null, initialMax = null;
+
 
 let avgState = "idle";  // idle | first | second
 let avgStart = null;
@@ -477,19 +490,9 @@ let avgStart = null;
 function applyThemeVars(vars){
   const r=document.documentElement;
   Object.entries(vars).forEach(([k,v])=>r.style.setProperty(k,v));
-  colors = buildPalette();
-  if(chart){
-    chart.data.datasets.forEach((ds,i)=>{
-      const baseLabel = ds.label.replace(" (lissé)", "");
-      const saved = customColors[baseLabel];
-      const c = saved || colors[i % colors.length];
-      ds.borderColor = c;
-      ds.backgroundColor = c;
-      ds.pointBackgroundColor = c;
-      ds.pointBorderColor = c;
-    });
-    chart.update('none');
-  }
+// ⚠️ Le changement de thème ne recolorie plus les courbes
+if (chart) chart.update('none');
+
 }
 
   
@@ -885,9 +888,18 @@ if (parasiteFilterEnabled) {
       // valeurs affichées
       if (smooth) pts = movingAverage(pts, 10);
 
-const baseLabel = yCol; // la "clé" toujours sans (lissé)
+const baseLabel = yCol;
+
 const savedColor = customColors[baseLabel];
-const c = savedColor || colors[i % colors.length];
+
+// couleur par défaut stable par label
+if (!seriesColorMap[baseLabel]) {
+  const idx = Object.keys(seriesColorMap).length % SERIES_COLORS.length;
+  seriesColorMap[baseLabel] = SERIES_COLORS[idx];
+}
+
+const c = savedColor || seriesColorMap[baseLabel];
+
 
 return {
   id: yCol,
@@ -2697,6 +2709,7 @@ function showConfirm(message, onConfirm) {
   
 </body>
 </html>
+
 
 
 
